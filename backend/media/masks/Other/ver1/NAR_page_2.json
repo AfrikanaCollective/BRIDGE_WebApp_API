@@ -1,0 +1,13 @@
+[
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 5,
+    "ymin": 1948,
+    "xmax": 614,
+    "ymax": 2006
+  }
+]

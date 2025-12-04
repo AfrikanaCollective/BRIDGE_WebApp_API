@@ -1,0 +1,79 @@
+[
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 96,
+    "ymin": 35,
+    "xmax": 1351,
+    "ymax": 83
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 1,
+    "ymin": 49,
+    "xmax": 82,
+    "ymax": 143
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 142,
+    "ymin": 193,
+    "xmax": 707,
+    "ymax": 251
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 862,
+    "ymin": 193,
+    "xmax": 1395,
+    "ymax": 253
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 141,
+    "ymin": 676,
+    "xmax": 708,
+    "ymax": 736
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 863,
+    "ymin": 675,
+    "xmax": 1392,
+    "ymax": 734
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 1186,
+    "ymin": 742,
+    "xmax": 1394,
+    "ymax": 801
+  }
+]

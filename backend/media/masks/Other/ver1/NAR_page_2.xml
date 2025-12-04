@@ -1,0 +1,26 @@
+<annotation>
+	<folder>ver1</folder>
+	<filename>NAR_page_2.png</filename>
+	<path>D:\annotated_page_1\mask_templates\Other\ver1\NAR_page_2.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1400</width>
+		<height>2100</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>mask</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>5</xmin>
+			<ymin>1948</ymin>
+			<xmax>614</xmax>
+			<ymax>2006</ymax>
+		</bndbox>
+	</object>
+</annotation>

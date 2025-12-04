@@ -1,0 +1,123 @@
+[
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 141,
+    "ymin": 227,
+    "xmax": 713,
+    "ymax": 346
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 858,
+    "ymin": 225,
+    "xmax": 1395,
+    "ymax": 347
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 373,
+    "ymin": 1930,
+    "xmax": 1395,
+    "ymax": 1972
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 153,
+    "ymin": 1976,
+    "xmax": 806,
+    "ymax": 2036
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 262,
+    "ymin": 1884,
+    "xmax": 806,
+    "ymax": 1930
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 1073,
+    "ymin": 1884,
+    "xmax": 1395,
+    "ymax": 1930
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 620,
+    "ymin": 1549,
+    "xmax": 1154,
+    "ymax": 1605
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 1,
+    "ymin": 47,
+    "xmax": 124,
+    "ymax": 176
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 133,
+    "ymin": 34,
+    "xmax": 1357,
+    "ymax": 77
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 879,
+    "ymin": 1759,
+    "xmax": 1394,
+    "ymax": 1833
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 937,
+    "ymin": 417,
+    "xmax": 1394,
+    "ymax": 474
+  }
+]

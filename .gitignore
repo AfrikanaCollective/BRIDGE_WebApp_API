@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environment files
+*.env
+.env.*
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+*.manifest
+*.spec
+
+# Django stuff
+#  Usually contains https config / not useful for local testing
+settings.py
+
+# Distribution / packaging
+ml_models/
+node_modules/

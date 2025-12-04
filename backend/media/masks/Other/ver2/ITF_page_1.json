@@ -1,0 +1,123 @@
+[
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 147,
+    "ymin": 233,
+    "xmax": 695,
+    "ymax": 411
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 863,
+    "ymin": 235,
+    "xmax": 1395,
+    "ymax": 413
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 4,
+    "ymin": 53,
+    "xmax": 110,
+    "ymax": 171
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 125,
+    "ymin": 44,
+    "xmax": 1349,
+    "ymax": 76
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 948,
+    "ymin": 484,
+    "xmax": 1392,
+    "ymax": 541
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 623,
+    "ymin": 1568,
+    "xmax": 1152,
+    "ymax": 1625
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 786,
+    "ymin": 1800,
+    "xmax": 1394,
+    "ymax": 1874
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 265,
+    "ymin": 1926,
+    "xmax": 844,
+    "ymax": 1964
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 200,
+    "ymin": 1972,
+    "xmax": 613,
+    "ymax": 2028
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 1074,
+    "ymin": 1926,
+    "xmax": 1395,
+    "ymax": 1963
+  },
+  {
+    "id": "mask",
+    "variable": "",
+    "roi_type": "character",
+    "width": 1400,
+    "height": 2100,
+    "xmin": 750,
+    "ymin": 1971,
+    "xmax": 845,
+    "ymax": 2029
+  }
+]
