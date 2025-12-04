@@ -23,3 +23,7 @@ settings.py
 # Distribution / packaging
 ml_models/
 node_modules/
+
+# Custom outputs
+transaction_time.json
+model_output_data.json
