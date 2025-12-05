@@ -27,7 +27,7 @@ build/
 dataclerk-ai/
 package.json
 package-lock.json
-migrations/[0-9]*.py
+migrations/
 
 signals.py
 
