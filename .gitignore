@@ -23,8 +23,12 @@ settings.py
 # Distribution / packaging
 ml_models/
 node_modules/
+package.json
 package-lock.json
 migrations/[0-9]*.py
+
+signals.py
+
 
 # Custom outputs
 transaction_time.json
