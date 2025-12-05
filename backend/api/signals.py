@@ -14,7 +14,7 @@ logging.config.dictConfig(settings.LOGGING)
 @receiver(post_save, sender=CustomUser)
 def send_request_approval_app(sender, instance, created, **kwargs):
 
-    frontend_url = getattr(settings, "FRONTEND_URL", "https://bridge.kemri-wellcome.org/dataclerk-ai")
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
     if frontend_url.endswith("/api"):
         frontend_url = frontend_url.rsplit("/api", 1)[0]
 
@@ -61,7 +61,7 @@ def send_approval_email(sender, instance, created, **kwargs):
 @receiver(user_signed_up)
 def send_request_approval_google(request, user, **kwargs):
 
-    frontend_url = getattr(settings, "FRONTEND_URL", "https://bridge.kemri-wellcome.org/dataclerk-ai")
+    frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
     if frontend_url.endswith("/api"):
         frontend_url = frontend_url.rsplit("/api", 1)[0]
 
