@@ -23,6 +23,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
   const [documentType, setDocumentType] = useState(null);
   const [recordIp, setRecordIp] = useState(null);
   const [pdfId, setPdfId] = useState(null);
+  const templateRef = React.useRef(null);
 
   const [pages, setPages] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -132,6 +133,27 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
     const { name, type, value, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
 
+    if (name === "template_version"){
+      const csrfToken = getCookie("csrftoken");
+      templateRef.current = value
+      try {
+          const transactionResource = axios.post(`${apiUrl}/template-version/${pdfId}/`,
+              {
+                template_version: value,
+              }, {
+              headers: {
+                  "X-CSRFToken": csrfToken,
+              },
+              withCredentials: true
+          });
+
+      } catch (err) {
+          console.error("Failed to save template version:", err);
+      }
+    }
+
+    
+
     setParams((prev) => ({
       ...prev,
       [name]: type === 'number' ? Number(newValue) : newValue,
@@ -164,9 +186,9 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
 
       const response_params = await axios.post(`${apiUrl}/pages/update-params/`,
         postData,
-        { 
-          headers: {"X-CSRFToken": csrfToken},
-          withCredentials: true 
+        {
+          headers: { "X-CSRFToken": csrfToken },
+          withCredentials: true
         } // Send cookies/session
       ).then((response) => {
         const updatedPage = response.data.updatedPage;
@@ -187,15 +209,15 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
         setTimeout(() => setSaveStatus(null), 2000);
       });
 
-      setTaskStatus('pending');      
+      setTaskStatus('pending');
 
       const response_reprocess = await axios.post(`${apiUrl}/pages/reprocess/`,
         postData,
-        { 
+        {
           headers: {
-             "X-CSRFToken": csrfToken,
+            "X-CSRFToken": csrfToken,
           },
-          withCredentials: true 
+          withCredentials: true
         } // Send cookies/session
       );
 
@@ -228,7 +250,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
   };
 
 
- 
+
 
   useEffect(() => {
 
@@ -249,6 +271,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
         setDocumentType(transactionResource.data.document)
         setRecordIp(transactionResource.data.record)
         setPdfId(transactionResource.data.pdf_id)
+        templateRef.current = transactionResource.data.template_version
 
       } catch (err) {
         console.error("Failed to fetch form data:", err);
@@ -290,7 +313,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
     if (!pages.length || pages.length === 0) return;
     if (!currentPage) return;
 
-    
+
     const pageId = currentPage.id;
     const imageUrl = currentPage.processed_image;
 
@@ -317,7 +340,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
     });
 
 
-
+    /** 
     const container = containerRef.current;
     if (container) container.addEventListener('wheel', handleWheel, { passive: false });
 
@@ -327,6 +350,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
       if (container) container.removeEventListener('wheel', handleWheel);
       window.removeEventListener('keydown', handleKeyDown);
     };
+    */
   }, [pdfId, currentPage, imageVersion, handleKeyDown, handleWheel]);
 
 
@@ -338,7 +362,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
 
   return (
     <Box display="flex" justifyContent="center" mt={4}>
-      
+
       <Box textAlign="center" mt={4}>
         {currentPage ? (
           <Box
@@ -374,16 +398,18 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
                   transition: 'transform 0.2s ease-in-out',
                   maxWidth: '100%',
                   maxHeight: '80vh',
+                  minWidth: '1400px',     // 👈 add this
+                  minHeight: '2100px',    // 👈 add this
                 }}
-              />           
+              />
 
-            ): (
+            ) : (
               <div style={{ textAlign: 'center', marginTop: '40px' }}>
                 <GridLoader color="#1976d2" size={20} margin={4} />
                 <p style={{ marginTop: '20px' }}>Image not processed: Update settings.</p>
               </div>
             )}
-          </Box>          
+          </Box>
         ) : (
 
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
@@ -420,15 +446,15 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
             Next →
           </Button>
 
-          <Button onClick={handleZoomOut} sx={{ mr: 1 }} variant="contained" color="secondary">
+          <Button onClick={handleZoomOut} sx={{ mr: 1 }} variant="contained" color="secondary" disabled={true}>
             Zoom -
           </Button>
 
-          <Button onClick={handleZoomIn} sx={{ mr: 1 }} variant="contained" color="secondary">
+          <Button onClick={handleZoomIn} sx={{ mr: 1 }} variant="contained" color="secondary" disabled={true}>
             Zoom +
           </Button>
 
-          <Button onClick={handleResetZoom} variant="outlined">
+          <Button onClick={handleResetZoom} variant="outlined" disabled={true}>
             Reset Zoom
           </Button>
         </Box>
@@ -447,7 +473,7 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
 
             <Button variant="contained"
               onClick={onNext}
-              disabled={viewedPages.size !== pages.length} // 👈 enable only when step is complete
+              disabled={viewedPages.size !== pages.length || !templateRef.current} // 👈 enable only when step is complete
             >
               Next
             </Button>
@@ -460,10 +486,11 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
 
 
       {/* Crop Mode Side Panel */}
-      <Box sx={{ ml: 4, minWidth: 200 }}>
-        <FormLabel component="legend">Fiducial Grayscale %</FormLabel>
+      <Box sx={{ ml: 4, minWidth: 200 }}>        
+
+        <FormLabel component="legend" sx={{ marginTop: 3}} >Reference boxes shade</FormLabel>
         <RadioGroup
-          aria-label="Fiducial Grayscale %"
+          aria-label="Reference boxes shade"
           name="gray_use"
           value={params.gray_use}
           onChange={handleEvent}
@@ -473,8 +500,23 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
           <FormControlLabel value="3" control={<Radio />} label="≥65% Black" />
         </RadioGroup>
 
-        <FormLabel component="legend">Image Filter</FormLabel>
-        <RadioGroup
+
+        <FiducialSizeOptionsDropdown
+          name="fiducial_use"
+          label="Reference boxes size"
+          value={params.fiducial_use}
+          onChange={handleEvent}
+        />
+
+        <AspectRatioOptionsDropdown
+          name="aspect_use"
+          label="Fiducial's Aspect Ratio Range"
+          value={params.aspect_use}
+          onChange={handleEvent}
+        />
+
+        <FormLabel component="legend" sx={{ marginTop: 3}} >Image Filter</FormLabel>
+        <RadioGroup          
           aria-label="Image Filter"
           name="filter_use"
           value={params.filter_use}
@@ -488,22 +530,8 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
 
         <ThresholdOptionsDropdown
           name="threshold_use"
-          label="Image Threshold"
+          label="Image Contrast"
           value={params.threshold_use}
-          onChange={handleEvent}
-        />
-
-        <FiducialSizeOptionsDropdown
-          name="fiducial_use"
-          label="Fiducial Size Range"
-          value={params.fiducial_use}
-          onChange={handleEvent}
-        />
-
-        <AspectRatioOptionsDropdown
-          name="aspect_use"
-          label="Fiducial's Aspect Ratio Range"
-          value={params.aspect_use}
           onChange={handleEvent}
         />
 
@@ -515,15 +543,22 @@ function ProcessImagesPages({ transactionId, onNext, onBack, onCancel }) {
             onClick={sendParams}
             variant="contained"
             color="primary"
-            style={{ marginTop: '1rem' }}
+            style={{ marginTop: '1rem', marginBottom: '1rem' }}
           >
             Update Parameters
           </Button>
+
+          <FormLabel component="legend" >Template Version</FormLabel>
+            <RadioGroup
+              aria-label="Template Version"
+              name="template_version"
+              value={templateRef.current ?? ""}
+              onChange={handleEvent}
+            >
+              <FormControlLabel value="ver1" control={<Radio />} label="Version 1" />
+              <FormControlLabel value="ver2" control={<Radio />} label="Version 2" />
+            </RadioGroup>
         </Stack>
-
-
-
-
       </Box>
 
     </Box>

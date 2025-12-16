@@ -335,6 +335,7 @@ function DocumentAI({ view, setView }) {
                                                                 name={patient.id}
                                                                 checked={patient.is_archived}
                                                                 onChange={handleCheckboxChange}
+                                                                disabled={userType !== "DM"}
                                                             />
 
                                                         }

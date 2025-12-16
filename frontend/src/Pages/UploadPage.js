@@ -67,6 +67,8 @@ function UploadPage({ transactionId, onNext, onCancel }) {
         setUploadMsg("");
         setLoading(true);
 
+        const startTime = Date.now(); // 👈 capture start timestamp        
+
         if (!file) {
             setUploadMsg("No file selected");
             setLoading(false);
@@ -111,6 +113,25 @@ function UploadPage({ transactionId, onNext, onCancel }) {
                 if (taskFinished) {
                     const pdfId = result.data.pdf_id;
                     setPdfId(pdfId);
+
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    try {
+                        const transactionResource = await axios.post(`${apiUrl}/upload-time/${pdfId}/`,
+                            {
+                                upload_time: elapsed
+                            }, {
+                            headers: {
+                                "X-CSRFToken": csrfToken,
+                            },
+                            withCredentials: true
+                        });
+
+                        console.log(transactionResource.data.message)
+
+                    } catch (err) {
+                        console.error("Failed to save upload time:", err);
+                    }
+
                 }
             } catch (error) {
                 console.error("Upload error", error);

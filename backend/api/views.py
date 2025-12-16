@@ -5,6 +5,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from pathlib import Path
+
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
@@ -25,24 +29,18 @@ from bridge.celery import app
 from .tasks import split_pdf_to_images
 from .tasks import process_single_image
 from .tasks import align_page_to_template
-from .tasks import run_prediction_task
 from .tasks import save_page_data
 from .tasks import combine_values
 from .tasks import convert_nans
 from .tasks import save_to_mongo_db
 from .tasks import get_page_template_score
 from .tasks import aggregate_template_scores
-from .tasks import predict_field_task
+from .tasks import predict_ocr_batch_task
+from .tasks import predict_omr_batch_task
 from .tasks import aggregate_results
 
 import os
-import io
-import cv2
-import json
-import glob
 import copy
-import numpy as np
-from PIL import Image
 from dateutil import parser
 import logging, logging.config
 
@@ -232,8 +230,9 @@ def save_step(request, txn_id):
 @permission_classes([IsAuthenticated])
 def transaction_details(request, txn_id):
     txn = DocumentTransaction.objects.get(id=txn_id)
-
     pdf_id = None
+
+    template_version = ""
 
     try:
         # if steps are after upload (i.e. step > 0):
@@ -243,6 +242,7 @@ def transaction_details(request, txn_id):
         ).latest("uploaded_at")
 
         pdf_id = latest_doc.id
+        template_version = latest_doc.template_version
 
     except PatientDocument.DoesNotExist:
         logging.info("[View] transaction_details: PatientDocument not found")
@@ -253,7 +253,8 @@ def transaction_details(request, txn_id):
         "hospital": txn.patient.hospital.name,
         "record": txn.patient.record_ipno,
         "document": txn.document_type.description,
-        "pdf_id": pdf_id
+        "pdf_id": pdf_id,
+        "template_version": template_version
     })
 
 
@@ -276,6 +277,48 @@ def document_inference_time(request, pdf_id):
         "message": "Inference time for saved",
         "pdf_id": pdf_id
     })
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def document_upload_time(request, pdf_id):
+
+    upload_time = request.data.get('upload_time')
+    try:
+        doc = PatientDocument.objects.get(id=pdf_id)   
+        doc.upload_time = upload_time   
+        doc.save() 
+
+    except PatientDocument.DoesNotExist:
+        logging.info("[View] document_upload_time: PatientDocument not found")
+
+
+    return JsonResponse({
+        "message": "Upload time for PDF saved",
+        "pdf_id": pdf_id
+    })
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def template_version(request, pdf_id):
+
+    template_version = request.data.get('template_version')
+    try:
+        doc = PatientDocument.objects.get(id=pdf_id)   
+        doc.template_version = template_version   
+        doc.save() 
+
+    except PatientDocument.DoesNotExist:
+        logging.info("[View] template_version: PatientDocument not found")
+
+
+    return JsonResponse({
+        "message": "Template version for PDF saved",
+        "pdf_id": pdf_id
+    })
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -413,6 +456,8 @@ def upload_pdf(request):
     
     processing_params = request.data.get('params', default_params)
 
+    nairobi_timezone = ZoneInfo("Africa/Nairobi")
+
     pdf, created = PatientDocument.objects.update_or_create(
         form_id=form_id,
         defaults={
@@ -420,6 +465,7 @@ def upload_pdf(request):
             "patient": transaction.patient,
             "document_type" : transaction.document_type,
             "uploaded_by" : dataClerk,
+            "uploaded_at": datetime.now(nairobi_timezone),
             "status": "uploaded"
         }
     )  
@@ -504,6 +550,7 @@ def find_optimum_templates(request):
     transactionId = request.data['transaction_id']
 
     pdf_doc = PatientDocument.objects.get(id = pdf_id)
+    template_version = int(pdf_doc.template_version.replace("ver", ""))
     doc_type = pdf_doc.document_type.code
 
     pages = pdf_doc.pages.all()
@@ -512,31 +559,41 @@ def find_optimum_templates(request):
 
     all_tasks = []
 
-    for page in pages:       
+    for page in pages:    
 
-        hospital_specific_template_path_list = glob.glob(
-            os.path.join(
-                template_dir, 
-                hospital_name, 
-                "**", 
-                f"{doc_type}_page_{page.page_number}.png"),
-            recursive=True) 
+        hospital_specific_template_path_list = []
+        for p in Path(template_dir, hospital_name).glob(
+            f"ver*/{doc_type}_page_{page.page_number}.png"
+        ):
+            try:
+                ver_num = int(p.parent.name.replace("ver", ""))
+                if ((template_version < 2) & (ver_num < 2)):
+                        hospital_specific_template_path_list.append(p)
+                elif ver_num == template_version:
+                        hospital_specific_template_path_list.append(p)                
+            except ValueError:
+                pass        
+
+        other_template_path_list = []
+        for p in Path(template_dir, "Other").glob(
+            f"ver*/{doc_type}_page_{page.page_number}.png"
+        ):
+            try:
+                ver_num = int(p.parent.name.replace("ver", ""))
+                if ((template_version < 2) & (ver_num < 2)):
+                        hospital_specific_template_path_list.append(p)
+                elif ver_num == template_version:
+                        hospital_specific_template_path_list.append(p)
+            except ValueError:
+                pass
         
-        other_template_path_list = glob.glob(
-            os.path.join(
-                template_dir, 
-                "Other", 
-                "**", 
-                f"{doc_type}_page_{page.page_number}.png"),
-            recursive=True) 
         
-        template_path_list = hospital_specific_template_path_list + other_template_path_list
+        template_path_list = hospital_specific_template_path_list + other_template_path_list       
 
         for template_path in template_path_list:
             all_tasks.append(
-                get_page_template_score.s(page.id, template_path)
+                get_page_template_score.s(page.id, str(template_path))
             )
-
 
     chord_result = chord(all_tasks)(aggregate_template_scores.s())
 
@@ -592,34 +649,43 @@ def ai_extract_page_data(request):
     transactionId = request.data['transaction_id']
     pages = PageImage.objects.filter(pdf_id=pdf_id).order_by('page_number')
 
-    all_tasks = []
+    all_tasks = []      
 
-    for page in pages:
+    for page in pages: 
 
-        # Load image with OpenCV
-        with page.aligned_image.open("rb") as f:
-            file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
-            image = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE) 
+        ocr_batch = []
+        omr_batch = []          
 
         field_map = copy.deepcopy(page.field_params)
 
-        for item in field_map:
+        for idx, item in enumerate(field_map):
 
             field_type = item['roi_type']
             xmin, ymin, xmax, ymax = item['xmin'], item['ymin'], item['xmax'], item['ymax']
-            img_width, img_height = (64, 64) if field_type == "character" else (48, 48)
+            img_width, img_height = (64, 64) if field_type == "character" else (48, 48)            
 
-            # Crop the ROI from the page image
-            roi = image[ymin:ymax, xmin:xmax]
-            pil_image = Image.fromarray(roi).convert("RGB").resize((img_width, img_height))
+            payload = {
+                "page_id": page.id,
+                "field_index": idx,
+                "item": item,
+                "xmin": xmin,
+                "ymin": ymin,
+                "xmax": xmax,
+                "ymax": ymax,
+                "img_width": img_width, 
+                "img_height": img_height
+            }
 
-            buffer = io.BytesIO()
-            pil_image.save(buffer, format="PNG")
-            roi_bytes = buffer.getvalue() # JSON serialisable Image Object for Celery task
+            if item['roi_type'] == "character":
+                ocr_batch.append(payload)
+            else:
+                omr_batch.append(payload)
 
-            all_tasks.append(
-                predict_field_task.s(item, roi_bytes, page.id) 
-            )
+        if ocr_batch:
+            all_tasks.append(predict_ocr_batch_task.s(ocr_batch, page.id))
+
+        if omr_batch:
+            all_tasks.append(predict_omr_batch_task.s(omr_batch, page.id))
 
     chord_result = chord(all_tasks)(aggregate_results.s())
 
@@ -645,48 +711,6 @@ def canvas_images(request):
     pages = PageImage.objects.filter(pdf_id=pdf_id).order_by('page_number')
     serializer = PageImageSerializer(pages, many=True, context={'request': request})
     return Response(serializer.data)
-
-@api_view(['POST'])
-@parser_classes([JSONParser])
-@permission_classes([IsAuthenticated])
-def predict_from_canvas(request):   
-    data = json.loads(request.body)
-    base64_image = data.get('image')
-    field_name = data.get('field')
-
-
-    task = run_prediction_task.delay(base64_image, field_name)
-
-    return JsonResponse({"task_id": task.id})
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_prediction_result(request, task_id):
-    result = AsyncResult(task_id)
-
-    response_data = {
-        "task_id": task_id,
-        "status": result.state
-    }
-
-    if result.state == states.SUCCESS:
-        response_data["prediction"] = str(result.result)
-        return JsonResponse(response_data)    
-
-    elif result.status == states.FAILURE:
-        logging.info('Prediction Task Failed [View]: {}'.format(result.result))
-        response_data["error"] = str(result.result)
-
-        return JsonResponse(response_data)
-    
-    elif result.state in [states.PENDING, states.RECEIVED, states.STARTED, states.RETRY]:
-        response_data["message"] = "Prediction task is in progress..."           
-
-    else:
-        response_data["message"] = "Unexpected task state."
-
-    return JsonResponse(response_data)
-
 
 @api_view(['POST'])
 @parser_classes([JSONParser])
@@ -744,6 +768,11 @@ def save_processed_form_data(request):
         pdf_id,
         pdf_doc.patient.hospital.id
     )
+
+    nairobi_timezone = ZoneInfo("Africa/Nairobi")
+
+    pdf_doc.finalised_at = datetime.now(nairobi_timezone)
+    pdf_doc.save()
 
     return Response({
         'form_data': human_readable_data, 

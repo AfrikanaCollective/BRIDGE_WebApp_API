@@ -186,10 +186,14 @@ class PatientDocument(models.Model):
     
     status = models.CharField(max_length=20, choices=PROCESSING_STATUS, default="uploaded")
 
+    template_version = models.CharField(max_length=10, default="")
+
     inference_time = models.IntegerField(default=-1)
+    upload_time = models.IntegerField(default=-1)
     
     form_id = models.CharField(max_length=20, unique=True, default=timezone.now)
-    uploaded_at = models.DateTimeField(auto_now_add=True)      
+    uploaded_at = models.DateTimeField(default=timezone.now)     
+    finalised_at = models.DateTimeField(default=timezone.now)  
     
     total_pages = models.PositiveIntegerField(null=True, blank=True)
     error_message = models.TextField(blank=True, null=True)
@@ -278,7 +282,6 @@ class TransactionTaskMap(models.Model):
     transaction_id = models.CharField(max_length=100, db_index=True)
     task_id = models.CharField(max_length=255, unique=True)
     task_type = models.CharField(max_length=50, choices=TASK_TYPES, default="other")
-    #user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     status = models.CharField(max_length=50, default="PENDING")
     error_message = models.TextField(blank=True, null=True)

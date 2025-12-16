@@ -21,7 +21,7 @@ import tensorflow as tf
 from django.conf import settings
 from django.core.files import File
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from .models import PatientDocument, PageImage, Hospital
@@ -214,6 +214,9 @@ def split_pdf_to_images(pdf_id, user_params):
     raw_pdf_page_image_storage = RawImageStorage()
 
     page_indices = [i for i in range(n_pages)]  # all pages
+
+    logging.info(f"[Task] PDF ID {pdf_id} page_indices: {page_indices}")
+
     renderer = pdf_doc.render(pdfium.PdfBitmap.to_pil,
                             page_indices=page_indices,
                             scale= 300/72 # 300 dpi
@@ -469,49 +472,109 @@ def align_page_to_template(page_id, template_path):
     page.save() 
 
 @shared_task
-def predict_field_task(item, roi_bytes, page_id):
+def predict_ocr_batch_task(batch, page_id):
 
-    # Convert roi_bytes back to PIL
-    roi_image = Image.open(io.BytesIO(roi_bytes)).convert("RGB")
+    infer_ocr_fn = get_ocr_model()
+    page = PageImage.objects.get(id=page_id)
 
-    field_type = item['roi_type']
-    img_width, img_height = roi_image.size
+    images = []
+    meta = []
+    
+    with page.aligned_image.open("rb") as f:
+            file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+            image = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE) 
 
-    try:
-        infer_omr_fn = get_omr_model()
-        infer_ocr_fn = get_ocr_model()
+    for entry in batch:
+        # Convert roi_bytes back to PIL
+        roi_image = image[
+            entry["ymin"]:entry["ymax"],
+            entry["xmin"]:entry["xmax"]
+        ]
 
-        image_tensor = tf.convert_to_tensor(
-            np.array(roi_image).reshape(1, img_width, img_height, 3),
-            dtype=tf.float32
-        )
+        pil_image = Image.fromarray(roi_image).convert("RGB").resize((entry["img_width"],entry["img_height"]))
+        images.append(np.asarray(pil_image, dtype=np.float32))
+        meta.append(entry)
+    
+    image_tensor = tf.convert_to_tensor(
+        np.stack(images, axis=0),
+        dtype=tf.float32
+    )    
 
-        if field_type == "character":
-            result = infer_ocr_fn(image_tensor)  #infer_ocr_fn(image_tensor)
-            predicted_class = OCR_CLASS_NAMES[np.argmax(list(result.values())[0])]
-            item['value'] = predicted_class
-        else:
-            result = infer_omr_fn(image_tensor)  #infer_omr_fn(image_tensor)
-            predictions = list(result.values())[0]
-            item['value'] = int(np.rint(predictions))
+    results = infer_ocr_fn(image_tensor)
+    logits = list(results.values())[0]
+    predictions = np.argmax(logits, axis=1)
 
-        item['generator'] = 'model'
+    outputs = []
 
-        return (page_id, item)
+    for i, pred in enumerate(predictions):
+        item = meta[i]["item"]
+        item["value"] = OCR_CLASS_NAMES[pred]
+        item["generator"] = "model"
 
-    except Exception as e:
-        logging.error(f"[Task Error] predict_field_task failed: {e}")
-        raise Exception(f"Prediction error from predict_field_task: {str(e)}") 
+        outputs.append((meta[i]["page_id"], item))
+
+    
+    return outputs
+
+
+@shared_task
+def predict_omr_batch_task(batch, page_id):
+
+    infer_omr_fn = get_omr_model()
+    page = PageImage.objects.get(id=page_id)
+
+    images = []
+    meta = []
+
+    with page.aligned_image.open("rb") as f:
+            file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+            image = cv2.imdecode(file_bytes, cv2.IMREAD_GRAYSCALE) 
+    
+    for entry in batch:
+        # Convert roi_bytes back to PIL
+        roi_image = image[
+            entry["ymin"]:entry["ymax"],
+            entry["xmin"]:entry["xmax"]
+        ]
+
+        pil_image = Image.fromarray(roi_image).convert("RGB").resize((entry["img_width"],entry["img_height"]))
+        images.append(np.asarray(pil_image, dtype=np.float32))
+        meta.append(entry)
+    
+    image_tensor = tf.convert_to_tensor(
+        np.stack(images, axis=0),
+        dtype=tf.float32
+    )
+
+    results = infer_omr_fn(image_tensor)
+    predictions = np.rint(list(results.values())[0]).astype(int)
+
+    outputs = []
+
+    for i, pred in enumerate(predictions):
+        item = meta[i]["item"]
+        item["value"] = int(pred)
+        item["generator"] = "model"
+
+        outputs.append((meta[i]["page_id"], item))
+
+    
+    return outputs
+    
+
 
 @shared_task
 def aggregate_results(results):
     """
     results = [(page_id, item), (page_id, item), ...]
     """
+
+    flat_results = [pair for sublist in results for pair in sublist]
+
     from collections import defaultdict
     grouped = defaultdict(list)
 
-    for page_id, item in results:
+    for page_id, item in flat_results:
         grouped[page_id].append(item)
 
     # Now dispatch save_field_results per page
@@ -738,39 +801,6 @@ def combine_values(records, form_type):
 
     return human_readable_result
 
-@shared_task
-def run_prediction_task(base64_image, field_name):
-    try:
-        #os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # Force CPU use
-
-        image_data = base64.b64decode(base64_image.split(',')[1])
-        img = Image.open(io.BytesIO(image_data)).convert('RGB')
-        img = img.resize((48, 48))
-        
-        image_tensor = tf.convert_to_tensor(
-            np.array(img).reshape(1, 48, 48, 3), 
-            dtype=tf.float32
-        )
-
-        infer_fn = get_omr_model()
-
-        result = infer_fn(image_tensor)
-        predictions = list(result.values())[0]
-        predicted_isSelected = int(np.rint(predictions))
-
-        logging.info("[Task] image field: {}, prediction:{}, class:{}".format(
-            str(field_name),
-            str(predictions),
-            str(predicted_isSelected)
-         ))        
-
-        return predicted_isSelected
-
-    except Exception as e:
-        traceback_str = traceback.format_exc()
-        logging.error(f"[Task ERROR] Prediction task failed: {traceback_str}")
-        raise Exception(f"Prediction Error: {str(e)}")
-    
 
 @shared_task
 def save_to_mongo_db(data_as_dict, pdf_id, hospital_id):

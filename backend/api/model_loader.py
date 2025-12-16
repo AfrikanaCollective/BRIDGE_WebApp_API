@@ -1,4 +1,4 @@
-
+import os
 import tensorflow as tf
 from django.conf import settings
 from celery.signals import worker_process_init
@@ -22,6 +22,7 @@ _ocr_infer_fn = None
 #
 
 def get_omr_model(signature_name='serving_default'):
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # Force CPU use
     global _omr_model, _omr_infer_fn
 
     if _omr_model is None:
@@ -32,6 +33,7 @@ def get_omr_model(signature_name='serving_default'):
 
 
 def get_ocr_model(signature_name='serving_default'):
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # Force CPU use
     global _ocr_model, _ocr_infer_fn
 
     if _ocr_model is None:
