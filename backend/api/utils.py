@@ -224,7 +224,7 @@ def get_template_akaze_score(image_gray, template_path):
 
     # Create AKAZE detector
     akaze = cv2.AKAZE_create(
-        threshold=1e-5,
+        threshold=5e-6,
         descriptor_size=0
     )
 
@@ -242,9 +242,13 @@ def get_template_akaze_score(image_gray, template_path):
     raw_matches = bf.knnMatch(descriptors_img, descriptors_template, k=2) 
 
     good_matches = []
-    for m, n in raw_matches:
-        if m.distance < 0.7 * n.distance:  # Lowe’s ratio test
+    for pair in raw_matches:
+        if len(pair) < 2:
+            continue
+        m, n = pair
+        if m.distance < 0.7 * n.distance: # Lowe’s ratio test
             good_matches.append(m)
+            
 
     matches = bf.match(descriptors_img, descriptors_template)
     matches = sorted(matches, key=lambda x: x.distance)

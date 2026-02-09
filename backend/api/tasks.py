@@ -392,6 +392,8 @@ def aggregate_template_scores(results):
     """
     best_by_page = {}
 
+    print(results)
+
     for page_id, template_path, score in results:
         if page_id not in best_by_page or score > best_by_page[page_id][1]:
             best_by_page[page_id] = (template_path, score)
