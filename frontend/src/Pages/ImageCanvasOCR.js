@@ -150,13 +150,15 @@ const ImageCanvasOCR = ({ imageUrl, formData, width = 600, height = 800, setLoad
     if (!currentField) return;
 
     const { rect, fieldId } = currentField;
+    const twoCharFields = ["apgar", "rbs"];
+    const allowsTwoChars = twoCharFields.some(key => fieldId.includes(key));
     
-    if (newValue.length > 1 && !fieldId.includes("apgar")) {
+    if (newValue.length > 1 && !allowsTwoChars ) {
       setErrorMessage('Please enter not more than one character.');
       return;
     }
 
-    if (newValue.length > 2 && fieldId.includes("apgar")) {
+    if (newValue.length > 2 && allowsTwoChars ) {
       setErrorMessage('Please enter not more than two characters.');
       return;
     }
