@@ -310,13 +310,11 @@ class Command(BaseCommand):
                 pdf__document_type__code__in=[p[1] for p in pairs],
             )
         )
-        
+
         for page in pages:
 
             record_ipno = page.pdf.patient.record_ipno
             document_type = page.pdf.document_type.code
-
-            print(f"Page {document_type}, {record_ipno}\n")
 
             # ensure the exact pair exists in the CSV
             if (record_ipno, document_type) not in pairs:
@@ -324,10 +322,14 @@ class Command(BaseCommand):
 
             field_params = page.field_params
 
+            print(f"field_params {field_params}\n")
+
             if not field_params:
                 continue
             
             human_readable_data =  convert_nans(combine_values(field_params, document_type))
+
+            print(f"human_readable_data {human_readable_data}\n")
             try:
                 custom_id = f"{document_type}_{record_ipno}_page_{page.page_number}.png"
 
