@@ -326,19 +326,16 @@ class Command(BaseCommand):
             # ensure the exact pair exists in the CSV
             if (record_ipno, document_type) not in pairs:
                 continue
-
-            print(f"Page {document_type}, {record_ipno}\n")
-
+            
             field_params = page.field_params
-
-            print(f"field_params {field_params}\n")
+          
 
             if not field_params:
                 continue
             
             human_readable_data =  convert_nans(combine_values(field_params, document_type))
 
-            print(f"human_readable_data {human_readable_data}\n")
+            
             try:
                 custom_id = f"{document_type}_{record_ipno}_page_{page.page_number}.png"
 
@@ -348,7 +345,7 @@ class Command(BaseCommand):
                 update_fields = {}
 
                 # Always update timestamps and fixed fields
-                update_fields["set__hospital"] = page.pdf.patient.hospital.id
+                update_fields["set__hospital"] = f"{page.pdf.patient.hospital.id}"
                 update_fields["set__record_type"] = document_type
 
                 for k, v in human_readable_data.items():
