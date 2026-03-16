@@ -320,6 +320,8 @@ class Command(BaseCommand):
             if (record_ipno, document_type) not in pairs:
                 continue
 
+            print(f"Page {document_type}, {record_ipno}\n")
+
             field_params = page.field_params
 
             print(f"field_params {field_params}\n")
