@@ -176,6 +176,7 @@ def combine_values(records, form_type):
         if roi_type == 'character':
             # Sort by numeric suffix and combine as string
             sorted_items = sorted(items, key=lambda x: extract_numeric_suffix(x['id']))
+            print(f"Sorted: {sorted_items}")
             values = [str(i['value']) for i in sorted_items]
 
             # Apply custom rule if exists
@@ -378,8 +379,6 @@ class Command(BaseCommand):
 
             except Exception as e:
 
-                print(f"{custom_id}:\n {human_readable_data}\n\n")
-                
                 logging.error(f"[Task MongoDB] Failed to save record: {e}")
                 raise Exception(f"[Task MongoDB] Error: {str(e)}")
 
