@@ -310,13 +310,13 @@ class Command(BaseCommand):
                 pdf__document_type__code__in=[p[1] for p in pairs],
             )
         )
-
-        print(f"Pages {len(pages)}\n")
-
+        
         for page in pages:
 
             record_ipno = page.pdf.patient.record_ipno
             document_type = page.pdf.document_type.code
+
+            print(f"Page {document_type}, {record_ipno}\n")
 
             # ensure the exact pair exists in the CSV
             if (record_ipno, document_type) not in pairs:
