@@ -176,7 +176,7 @@ def combine_values(records, form_type):
         if roi_type == 'character':
             # Sort by numeric suffix and combine as string
             sorted_items = sorted(items, key=lambda x: extract_numeric_suffix(x['id']))
-            values = [str(i.get("value", "@")) for i in sorted_items]
+            values = [i.get("value") for i in sorted_items]
 
             # Apply custom rule if exists
             if var in combine_rules:
@@ -241,7 +241,7 @@ def combine_values(records, form_type):
                 if ((var in interventions) and (form_type in ["DSC"])): 
                     var = "given_" + var         
 
-                ones = [i for i in items if i['value'] == 1]
+                ones = [i for i in items if i.get('value') == 1]
                 if len(ones) == 0:
 
                     if var in special_checkbox_vars:
