@@ -19,3 +19,9 @@ class PaperRecordCollection(DynamicDocument):
     record_type = StringField(required=True)
     admission_date_manual = DateTimeField(required=True)
     discharge_date_manual = DateTimeField(required=True)
+
+class PaperRecordPageCollection(DynamicDocument):
+    meta = {'collection': 'neonatal_page_data'}  # custom collection name
+    id = StringField(primary_key=True)
+    hospital = StringField(required=True)
+    record_type = StringField(required=True)
