@@ -339,7 +339,6 @@ class Command(BaseCommand):
             try:
                 custom_id = f"{document_type}_{record_ipno}_page_{page.page_number}.png"
 
-                print(f"{custom_id}:\n {human_readable_data}\n\n")
                 doc = PaperRecordPageCollection.objects(id=custom_id).first()
 
                 update_fields = {}
@@ -378,6 +377,9 @@ class Command(BaseCommand):
                     doc = doc or PaperRecordPageCollection.objects(id=custom_id).first()
 
             except Exception as e:
+
+                print(f"{custom_id}:\n {human_readable_data}\n\n")
+                
                 logging.error(f"[Task MongoDB] Failed to save record: {e}")
                 raise Exception(f"[Task MongoDB] Error: {str(e)}")
 
