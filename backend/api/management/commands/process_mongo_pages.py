@@ -349,6 +349,11 @@ class Command(BaseCommand):
 
                 for k, v in human_readable_data.items():
                     field_name = f"{k}"
+
+                    # Fix APGAR OCR issue: 0 → 10
+                    if "apgar" in field_name and v == "0":
+                        v = "10"
+
                     current_value = getattr(doc, field_name, None) if doc else None
 
                     # CASE 1: Document doesn't exist → allow any value (even None)
