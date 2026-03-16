@@ -299,7 +299,14 @@ class Command(BaseCommand):
         get_mongo_connection() # connect safely after fork
 
         pairs = set(
-            zip(mongo_pages["record_ipno"], mongo_pages["document_type"])
+            (
+                str(r).strip().upper(),
+                str(d).strip().upper()
+            )
+            for r, d in zip(
+                mongo_pages["record_ipno"],
+                mongo_pages["document_type"]
+            )
         )
 
         pages = (
@@ -313,8 +320,8 @@ class Command(BaseCommand):
 
         for page in pages:
 
-            record_ipno = page.pdf.patient.record_ipno
-            document_type = page.pdf.document_type.code
+            record_ipno = str(page.pdf.patient.record_ipno).strip().upper()
+            document_type = str(page.pdf.document_type.code).strip().upper()
 
             # ensure the exact pair exists in the CSV
             if (record_ipno, document_type) not in pairs:
