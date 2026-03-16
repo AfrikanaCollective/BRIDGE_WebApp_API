@@ -328,6 +328,8 @@ class Command(BaseCommand):
             human_readable_data =  convert_nans(combine_values(field_params, document_type))
             try:
                 custom_id = f"{document_type}_{record_ipno}_page_{page.page_number}.png"
+
+                print(f"{custom_id}:\n {human_readable_data}\n\n")
                 doc = PaperRecordPageCollection.objects(id=custom_id).first()
 
                 update_fields = {}
