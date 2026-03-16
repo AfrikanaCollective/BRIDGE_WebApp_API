@@ -176,8 +176,7 @@ def combine_values(records, form_type):
         if roi_type == 'character':
             # Sort by numeric suffix and combine as string
             sorted_items = sorted(items, key=lambda x: extract_numeric_suffix(x['id']))
-            print(f"Sorted: {sorted_items}")
-            values = [str(i['value']) for i in sorted_items]
+            values = [str(i.get("value", "@")) for i in sorted_items]
 
             # Apply custom rule if exists
             if var in combine_rules:
