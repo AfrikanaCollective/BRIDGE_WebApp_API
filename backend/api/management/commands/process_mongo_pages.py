@@ -311,6 +311,8 @@ class Command(BaseCommand):
             )
         )
 
+        print(f"Pages {len(pages)}\n")
+
         for page in pages:
 
             record_ipno = page.pdf.patient.record_ipno
