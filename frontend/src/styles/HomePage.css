@@ -1,0 +1,72 @@
+/* frontend/src/styles/HomePage.css */
+.home-page {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.hero-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hero-card h1 {
+    color: white;
+}
+
+.hero-card p {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.feature-card {
+    text-align: center;
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    padding: 24px;
+}
+
+.feature-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+}
+
+.feature-card h3 {
+    margin: 16px 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.feature-card p {
+    color: #666;
+    margin: 8px 0 16px;
+}
+
+.cta-card {
+    padding: 48px 24px;
+    border-radius: 8px;
+}
+
+.cta-card h2 {
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+    .home-page {
+        padding: 16px;
+    }
+
+    .hero-card {
+        padding: 24px;
+    }
+
+    .cta-card {
+        padding: 32px 16px;
+    }
+
+    .cta-card h2 {
+        font-size: 20px;
+    }
+}

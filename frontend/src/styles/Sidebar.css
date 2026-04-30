@@ -1,0 +1,33 @@
+/* frontend/src/styles/Sidebar.css */
+.sidebar {
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+
+.sidebar :global(.ant-menu) {
+    background: transparent;
+}
+
+.sidebar :global(.ant-menu-item-group-title) {
+    color: #666;
+    font-weight: 600;
+    padding: 8px 16px;
+}
+
+.sidebar :global(.ant-menu-item) {
+    margin: 8px 0;
+    border-radius: 4px;
+}
+
+.sidebar :global(.ant-menu-item:hover) {
+    background: rgba(24, 144, 255, 0.1);
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        position: absolute;
+        left: -200px;
+    }
+}

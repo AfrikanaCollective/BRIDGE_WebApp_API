@@ -1,0 +1,35 @@
+/* frontend/src/styles/Navbar.css */
+.navbar {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar-brand h1 {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.navbar :global(.ant-menu-horizontal) {
+    line-height: 64px;
+}
+
+.navbar :global(.ant-menu-item) {
+    margin: 0 16px;
+}
+
+.navbar :global(.ant-menu-item a) {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+}
+
+.navbar :global(.ant-menu-item-selected a) {
+    color: #1890ff;
+}
+
+@media (max-width: 768px) {
+    .navbar :global(.ant-menu-horizontal) {
+        line-height: 48px;
+    }
+}
