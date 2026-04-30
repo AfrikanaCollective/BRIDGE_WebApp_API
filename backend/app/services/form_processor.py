@@ -1,0 +1,495 @@
+# backend/app/services/form_processor.py
+"""
+Form processor service that orchestrates the entire flow:
+Image → LLM → Agent Processing → Storage
+
+Refactored from clients/image_generation.py with integrated storage.
+"""
+
+import re
+import ssl
+import json
+import aiohttp
+import logging
+from pathlib import Path
+from typing import Optional, Dict, Any, Tuple
+from datetime import datetime
+
+from app.config.settings import settings
+from app.agents.itf_agent import ITFAgent
+from app.agents.nar_agent import NARAgent
+from app.services.storage_service import StorageService
+
+logger = logging.getLogger(__name__)
+
+# Form type agent mapping
+FORM_TYPE_AGENTS = {
+    "ITF": ITFAgent,
+    "NAR": NARAgent,
+}
+
+
+class FormProcessor:
+    """
+    Main form processor that orchestrates the entire pipeline.
+
+    Pipeline:
+    1. Image validation
+    2. Prompt loading/validation
+    3. LLM processing (Qwen)
+    4. Agent-based data extraction
+    5. Storage (MongoDB + MinIO)
+    """
+
+    def __init__(self, storage_service: StorageService):
+        """
+        Initialize form processor.
+
+        Args:
+            storage_service: StorageService instance for persistence
+        """
+        self.storage = storage_service
+        self.ssl_context = self._create_ssl_context()
+        logger.info("📋 Form processor initialized")
+
+    @staticmethod
+    def _create_ssl_context() -> ssl.SSLContext:
+        """Create SSL context for self-signed certificates."""
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        return context
+
+    @staticmethod
+    def extract_page_number(image_path: Path) -> Optional[int]:
+        """
+        Extract page number from image filename.
+
+        Supports patterns like:
+        - ITF_40000071_page_1.png -> 1
+        - ITF_40000071_p1.png -> 1
+        - ITF_40000071_1.png -> 1
+
+        Args:
+            image_path: Path to image file
+
+        Returns:
+            int: Page number if found, None otherwise
+        """
+        filename = image_path.stem.lower()
+
+        # Try "page_N" pattern
+        match = re.search(r'page[_-]?(\d+)', filename)
+        if match:
+            return int(match.group(1))
+
+        # Try "_pN" pattern
+        match = re.search(r'_p(\d+)$', filename)
+        if match:
+            return int(match.group(1))
+
+        # Try trailing number pattern
+        match = re.search(r'_(\d+)$', filename)
+        if match:
+            return int(match.group(1))
+
+        return None
+
+    @staticmethod
+    def load_prompt_from_file(
+        form_type: str,
+        page_number: Optional[int] = None,
+        use_fallback: bool = True,
+    ) -> str:
+        """
+        Load prompt from file based on form type and page number.
+
+        Args:
+            form_type: Form type identifier (e.g., 'ITF', 'NAR')
+            page_number: Page number (optional)
+            use_fallback: Use DEFAULT.txt if specific prompt not found
+
+        Returns:
+            str: Prompt text loaded from file
+
+        Raises:
+            FileNotFoundError: If prompt file not found and fallback disabled
+            ValueError: If form_type is invalid
+        """
+        form_type_upper = form_type.upper().strip()
+
+        if not form_type_upper:
+            raise ValueError("form_type cannot be empty")
+
+        # Build filename
+        if page_number is not None:
+            prompt_filename = f"{form_type_upper}_{page_number}.txt"
+        else:
+            prompt_filename = f"{form_type_upper}.txt"
+
+        prompt_path = settings.PROMPTS_DIR / prompt_filename
+
+        logger.debug(f"🔍 Looking for prompt: {prompt_path}")
+
+        # Try specific prompt first
+        if Path(prompt_path).exists():
+            try:
+                content = Path(prompt_path).read_text(encoding="utf-8").strip()
+                logger.info(f"📄 Loaded prompt from: {prompt_filename}")
+                return content
+            except Exception as e:
+                logger.error(f"❌ Error reading prompt file: {e}")
+                if not use_fallback:
+                    raise
+
+        # Try fallback prompt
+        if use_fallback and settings.DEFAULT_PROMPT_FALLBACK:
+            fallback_path = settings.PROMPTS_DIR / settings.DEFAULT_PROMPT_FILE
+
+            if Path(fallback_path).exists():
+                try:
+                    content = Path(fallback_path).read_text(encoding="utf-8").strip()
+                    logger.warning(f"⚠️  Using fallback prompt")
+                    return content
+                except Exception as e:
+                    logger.error(f"❌ Error reading fallback: {e}")
+                    raise
+
+        raise FileNotFoundError(
+            f"Prompt not found: {prompt_filename} or {settings.DEFAULT_PROMPT_FILE}"
+        )
+
+    @staticmethod
+    def strip_markdown_code_blocks(text: str) -> str:
+        """Strip markdown code blocks from text."""
+        if not isinstance(text, str):
+            return text
+
+        pattern = r"```(?:json|python|javascript|yaml)?\n(.*?)\n```"
+        match = re.search(pattern, text, re.DOTALL)
+
+        if match:
+            content = match.group(1)
+            logger.debug(f"🔍 Stripped markdown code block")
+            return content
+
+        return text
+
+    @staticmethod
+    def get_agent_for_form_type(form_type: str):
+        """
+        Get the appropriate agent for the given form type.
+
+        Args:
+            form_type: Form type identifier (e.g., 'ITF', 'NAR')
+
+        Returns:
+            Agent class (not instantiated)
+
+        Raises:
+            ValueError: If form type is not supported
+        """
+        form_type_upper = form_type.upper().strip()
+
+        if form_type_upper not in FORM_TYPE_AGENTS:
+            supported = ", ".join(FORM_TYPE_AGENTS.keys())
+            raise ValueError(
+                f"Unsupported form type: '{form_type}'. "
+                f"Supported: {supported}"
+            )
+
+        return FORM_TYPE_AGENTS[form_type_upper]
+
+    async def _process_with_agent(
+        self,
+        response_text: str,
+        image_path: Path,
+        form_type: str = "ITF",
+        page_number: Optional[int] = None,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], str]:
+        """
+        Process LLM response through form agent.
+
+        Args:
+            response_text: Raw LLM response text
+            image_path: Path to original image
+            form_type: Form type identifier
+            page_number: Page number (optional)
+
+        Returns:
+            Tuple of (raw_json, cleaned_json, case_summary)
+        """
+        try:
+            form_type_upper = form_type.upper()
+            logger.debug(f"🤖 Processing with {form_type_upper} agent...")
+
+            # Parse raw response
+            try:
+                raw_json = json.loads(response_text)
+                logger.debug(f"✅ Parsed response as JSON")
+            except json.JSONDecodeError:
+                logger.warning(f"⚠️  Response is not valid JSON")
+                raw_json = {"response": response_text}
+
+            # Get agent
+            try:
+                agent_class = self.get_agent_for_form_type(form_type)
+            except ValueError as e:
+                logger.warning(f"⚠️  {str(e)}")
+                return (raw_json, {}, f"Agent error: {str(e)}")
+
+            # Create temp markdown file
+            temp_md = Path(f"/tmp/{form_type_upper.lower()}_{image_path.stem}.md")
+
+            if isinstance(raw_json, dict):
+                md_content = f"\n```json\n"
+                md_content += json.dumps(raw_json, indent=2)
+                md_content += "\n```\n"
+            else:
+                md_content = f"\n{response_text}\n"
+
+            temp_md.write_text(md_content, encoding="utf-8")
+            logger.debug(f"📝 Created temp markdown: {temp_md}")
+
+            # Process with agent
+            if page_number is None:
+                page_number = self.extract_page_number(image_path) or 1
+
+            agent = agent_class(page_number)
+
+            # Call appropriate method
+            if hasattr(agent, "process_itf_file"):
+                result = await agent.process_itf_file(str(temp_md))
+            elif hasattr(agent, "process_nar_file"):
+                result = await agent.process_nar_file(str(temp_md))
+            elif hasattr(agent, "process_file"):
+                result = await agent.process_file(str(temp_md))
+            else:
+                raise AttributeError("Agent missing process method")
+
+            # Cleanup
+            try:
+                temp_md.unlink()
+            except Exception as e:
+                logger.warning(f"⚠️  Could not cleanup temp file: {e}")
+
+            # Extract results
+            if result.get("status") == "success":
+                cleaned_json = (
+                    result.get("sections")
+                    or result.get("data")
+                    or result.get("cleaned_data")
+                    or {}
+                )
+                case_summary = result.get("summary") or result.get("report") or ""
+
+                logger.info(f"✅ Agent processing complete")
+                return raw_json, cleaned_json, case_summary
+            else:
+                error_msg = result.get("error", "Unknown error")
+                logger.warning(f"⚠️  Agent error: {error_msg}")
+                return raw_json, {}, f"Agent error: {error_msg}"
+
+        except Exception as e:
+            logger.error(f"❌ Agent processing failed: {e}", exc_info=True)
+            try:
+                raw_json = json.loads(response_text)
+            except:
+                raw_json = {"response": response_text}
+
+            return raw_json, {}, f"Error: {str(e)}"
+
+    async def process_form(
+        self,
+        image_path: str,
+        prompt: Optional[str] = None,
+        form_type: str = "ITF",
+        page_number: Optional[int] = None,
+        case_id: Optional[str] = None,
+        save_to_storage: bool = True,
+        process_with_agent: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Process a form image through the complete pipeline.
+
+        Pipeline:
+        1. Validate image
+        2. Load/validate prompt
+        3. Send to Qwen LLM
+        4. Process with form agent
+        5. Save to MongoDB + MinIO
+
+        Args:
+            image_path: Path to form image
+            prompt: Custom prompt (loads from file if None)
+            form_type: Form type (default: ITF)
+            page_number: Page number for prompt
+            case_id: Optional case ID for organization
+            save_to_storage: Save results to MongoDB/MinIO
+            process_with_agent: Process response with form agent
+
+        Returns:
+            dict: Complete processing result including:
+                - response: LLM response text
+                - raw_json: Parsed JSON response
+                - cleaned_json: Extracted structured data
+                - case_summary: Human-readable summary
+                - metadata: Processing metadata
+                - mongo_id: MongoDB document ID (if saved)
+
+        Raises:
+            FileNotFoundError: If image or prompt file not found
+            ValueError: If form type unsupported or API error
+        """
+        image_path = Path(image_path).resolve()
+        form_type_upper = form_type.upper()
+
+        # ==================== STEP 1: VALIDATE IMAGE ====================
+        if not image_path.exists():
+            raise FileNotFoundError(f"Image not found: {image_path}")
+
+        file_size_mb = image_path.stat().st_size / (1024 * 1024)
+        logger.info(f"📸 Processing: {image_path.name} ({file_size_mb:.2f} MB)")
+        logger.info(f"📋 Form Type: {form_type_upper}")
+
+        # ==================== STEP 2: LOAD/VALIDATE PROMPT ====================
+        if prompt is None:
+            # Auto-detect page number if not provided
+            if page_number is None:
+                detected = self.extract_page_number(image_path)
+                if detected:
+                    page_number = detected
+                    logger.debug(f"🔍 Auto-detected page: {page_number}")
+
+            # Load prompt from file
+            prompt = self.load_prompt_from_file(
+                form_type=form_type,
+                page_number=page_number,
+                use_fallback=True,
+            )
+
+        logger.debug(f"💬 Prompt: {prompt[:100]}...")
+
+        # ==================== STEP 3: SEND TO LLM ====================
+        logger.info(f"🔗 Sending to Qwen: {settings.QWEN_SERVICE_URL}")
+
+        start_time = datetime.utcnow()
+        result = await self._call_qwen_api(image_path, prompt)
+        elapsed = (datetime.utcnow() - start_time).total_seconds()
+
+        if "error" in result:
+            logger.error(f"❌ LLM error: {result['error']}")
+            return result
+
+        response_text = result.get("response", "")
+        response_text = self.strip_markdown_code_blocks(response_text)
+
+        # ==================== STEP 4: PROCESS WITH AGENT ====================
+        if process_with_agent:
+            logger.info(f"🤖 Processing with {form_type_upper} agent...")
+            raw_json, cleaned_json, case_summary = await self._process_with_agent(
+                response_text,
+                image_path,
+                form_type=form_type,
+                page_number=page_number,
+            )
+
+            result["raw_json"] = raw_json
+            result["cleaned_json"] = cleaned_json
+            result["case_summary"] = case_summary
+        else:
+            try:
+                result["raw_json"] = json.loads(response_text)
+            except:
+                result["raw_json"] = {"response": response_text}
+
+            result["cleaned_json"] = {}
+            result["case_summary"] = ""
+
+        result["form_type"] = form_type_upper
+        result["agent_processed"] = process_with_agent
+        result["processing_time_seconds"] = elapsed
+
+        # ==================== STEP 5: SAVE TO STORAGE ====================
+        mongo_id = None
+        if save_to_storage:
+            logger.info(f"💾 Saving to storage...")
+
+            # Save to MongoDB + MinIO
+            mongo_id = await self.storage.save_form_processing_result(
+                result=result,
+                image_filename=image_path.name,
+                form_type=form_type_upper,
+                metadata={
+                    "case_id": case_id,
+                    "page_number": page_number,
+                    "file_size_mb": file_size_mb,
+                },
+            )
+
+            # Also save original document
+            doc_key = await self.storage.save_form_document(
+                file_path=str(image_path),
+                form_type=form_type_upper,
+                case_id=case_id,
+            )
+
+            if mongo_id:
+                result["mongo_id"] = mongo_id
+                logger.info(f"✅ Saved with ID: {mongo_id}")
+            if doc_key:
+                result["document_s3_key"] = doc_key
+                logger.info(f"✅ Document saved to S3: {doc_key}")
+
+        return result
+
+    async def _call_qwen_api(
+        self,
+        image_path: Path,
+        prompt: str,
+        timeout: int = 300,
+    ) -> Dict[str, Any]:
+        """
+        Call Qwen API with image and prompt.
+
+        Args:
+            image_path: Path to image file
+            prompt: Text prompt
+            timeout: Request timeout in seconds
+
+        Returns:
+            dict: API response
+        """
+        try:
+            with open(image_path, "rb") as f:
+                data = aiohttp.FormData()
+                data.add_field("image", f, filename=image_path.name)
+                data.add_field("prompt", prompt)
+
+                connector = aiohttp.TCPConnector(ssl=self.ssl_context)
+                timeout_obj = aiohttp.ClientTimeout(total=timeout)
+
+                async with aiohttp.ClientSession(connector=connector) as session:
+                    async with session.post(
+                        f"{settings.QWEN_SERVICE_URL}/generate-with-image",
+                        data=data,
+                        timeout=timeout_obj,
+                    ) as response:
+                        if response.status != 200:
+                            error_text = await response.text()
+                            logger.error(f"❌ API error {response.status}: {error_text}")
+                            return {
+                                "error": f"API error {response.status}",
+                                "details": error_text,
+                            }
+
+                        result = await response.json()
+                        logger.info(f"✅ Received LLM response")
+                        return result
+
+        except aiohttp.ClientError as e:
+            logger.error(f"❌ Request failed: {e}")
+            return {"error": str(e)}
+        except Exception as e:
+            logger.error(f"❌ Unexpected error: {e}", exc_info=True)
+            return {"error": str(e)}

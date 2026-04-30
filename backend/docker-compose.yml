@@ -1,0 +1,94 @@
+# backend/docker-compose.yml
+version: '3.8'
+
+services:
+  # ==================== MONGODB ====================
+  mongodb:
+    image: mongo:6.0
+    container_name: bridge-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: "@Dmin2o13!"
+      MONGO_INITDB_DATABASE: bridge_form_processor
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - bridge-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - "--auth"
+
+  # ==================== MINIO ====================
+  minio:
+    image: minio/minio:latest
+    container_name: bridge-minio
+    environment:
+      MINIO_ROOT_USER: bridge
+      MINIO_ROOT_PASSWORD: "@Dmin2o13!"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/minio_root
+    networks:
+      - bridge-network
+    command: server /minio_root --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://bridge.kemri-wellcome.org:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== FASTAPI BACKEND ====================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bridge-backend
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-true}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      MONGODB_USERNAME: admin
+      MONGODB_PASSWORD: "@Dmin2o13!"
+      MONGODB_AUTH_SOURCE: admin
+      MONGODB_DB_NAME: bridge_webui_mvp
+      MINIO_ENDPOINT: minio:9000
+      QWEN_SERVICE_URL: ${QWEN_SERVICE_URL:-https://qwen:8443}
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+      - ./prompts:/app/prompts
+    networks:
+      - bridge-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mongodb_data:
+  minio_data:
+
+networks:
+  bridge-network:
+    driver: bridge
