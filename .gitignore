@@ -1,6 +1,7 @@
 .env
-.idea
-*pyc
+.idea/
+*.pyc
 __pycache__/
 .pyctest_reports/
 node_modules/
+
