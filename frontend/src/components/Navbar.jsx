@@ -8,7 +8,8 @@ import {
     HistoryOutlined,
     GithubOutlined,
 } from '@ant-design/icons';
-import '../styles/Navbar.css';
+import '../styles/Navbar.css'
+import faviconImage from '../assets/favicon.ico'
 
 const { Header } = Layout;
 
@@ -23,19 +24,35 @@ const Navbar = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '0 24px',
+                height: '64px',
+                lineHeight: '64px',
             }}
         >
             <div className="navbar-brand">
-                <h1 style={{ color: 'white', margin: 0, fontSize: '20px' }}>
-                    Form Processor
-                </h1>
+                <div className="brand-container">
+                    <img
+                        src={faviconImage}
+                        alt="BRIDGE Logo"
+                        className="navbar-favicon"
+                        title="the data BRIDGE project"
+                    />
+                    <h1 style={{ color: 'white', margin: 0, fontSize: '20px', lineHeight: '64px' }}>
+                        the data BRIDGE project
+                    </h1>
+                </div>
             </div>
 
             <Menu
                 theme="dark"
                 mode="horizontal"
                 defaultSelectedKeys={['home']}
-                style={{ flex: 1, justifyContent: 'center', border: 'none' }}
+                style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    border: 'none',
+                    height: '64px',
+                    lineHeight: '64px',
+                }}
             >
                 <Menu.Item key="home" icon={<HomeOutlined />}>
                     <Link to="/">Home</Link>
@@ -56,6 +73,8 @@ const Navbar = () => {
                     style={{
                         background: '#1890ff',
                         borderColor: '#1890ff',
+                        height: '40px',
+                        lineHeight: '40px',
                     }}
                 >
                     <Link to="/upload" style={{ color: 'white', textDecoration: 'none' }}>

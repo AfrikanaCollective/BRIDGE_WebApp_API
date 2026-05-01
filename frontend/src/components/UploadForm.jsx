@@ -5,19 +5,16 @@ import {
     Form,
     Button,
     Upload,
-    Select,
     Card,
     Row,
     Col,
     Spin,
     message,
     Progress,
-    Tag,
     Alert,
     Space,
     Divider,
     Tooltip,
-    Modal,
 } from 'antd';
 import {
     UploadOutlined,
@@ -42,7 +39,7 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
 
     // Supported file types
     const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'pdf', 'tiff'];
-    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 
     // Validate file before upload
     const beforeUpload = useCallback((file) => {
@@ -56,7 +53,7 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
         }
 
         if (file.size > MAX_FILE_SIZE) {
-            message.error(`File size must not exceed 100MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            message.error(`File size must not exceed 15MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
             return false;
         }
 
@@ -260,7 +257,7 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
                                         : 'Drag a file here or click to select'}
                                 </p>
                                 <p className="ant-upload-hint">
-                                    Supported formats: PNG, JPG, JPEG, PDF, TIFF (Max 100MB each)
+                                    Supported formats: PNG, JPG, JPEG, PDF, TIFF (Max 15MB each)
                                 </p>
                             </Upload.Dragger>
                         </Form.Item>
@@ -344,8 +341,8 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
                             <div className="info-box">
                                 <h4>⚙️ Processing Details</h4>
                                 <ul>
-                                    <li>Max file size: 100MB</li>
-                                    <li>Processing time: 30-120 seconds</li>
+                                    <li>Max file size: 15MB</li>
+                                    <li>Processing time: 1-2 minutes</li>
                                     <li>Results available in history</li>
                                 </ul>
                             </div>

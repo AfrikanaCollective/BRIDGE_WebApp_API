@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, Row, Col, Button, Space, Statistic, Tag } from 'antd';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
     UploadOutlined,
     HistoryOutlined,
@@ -11,16 +12,18 @@ import {
 import '../styles/HomePage.css';
 
 const HomePage = () => {
+    const stats = useSelector(state => state.stats.data);
+
     return (
         <div className="home-page">
             {/* Hero Section */}
             <Card className="hero-card" style={{ marginBottom: '32px' }}>
                 <h1 style={{ fontSize: '32px', marginBottom: '16px' }}>
-                    Form Processing System
+                    the data BRIDGE clinical records collation & harmonisation system
                 </h1>
                 <p style={{ fontSize: '16px', color: '#666', marginBottom: '24px' }}>
-                    Intelligent form extraction and processing powered by AI. Upload your forms
-                    and let our system extract structured data automatically.
+                    Intelligent data extraction and processing powered by AI. Upload your forms
+                    and let our platform using natural language processing and generative AI models harmonise data items, even those collected for different clinical care domains. Currently fine-tuned for the Clinical Information Network (CIN) forms <b><i>only</i></b> found here: <a href={"https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/70WJ8O"} target="_blank" rel="noreferrer">Harvard Dataverse Repo</a>. Sample forms for "quick" testing can be found <a href={"https://github.com/AfrikanaCollective/BRIDGE_LLM_extension/tree/main/tests/test_data"} target="_blank" rel="noreferrer"><b>here</b></a>.
                 </p>
                 <Space>
                     <Button
@@ -51,7 +54,7 @@ const HomePage = () => {
                     <Card hoverable className="feature-card">
                         <FileOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
                         <h3>Multiple Formats</h3>
-                        <p>Support for PNG, JPG, PDF, and TIFF formats</p>
+                        <p>Support for PNG, JPG and PDF formats</p>
                         <Tag color="blue">Supported</Tag>
                     </Card>
                 </Col>
@@ -59,7 +62,7 @@ const HomePage = () => {
                     <Card hoverable className="feature-card">
                         <CheckCircleOutlined style={{ fontSize: '32px', color: '#52c41a', marginBottom: '16px' }} />
                         <h3>AI Extraction</h3>
-                        <p>Powered by Qwen LLM for accurate data extraction</p>
+                        <p>Powered by Large Language Models (LLMs) for accurate data extraction</p>
                         <Tag color="green">Active</Tag>
                     </Card>
                 </Col>
@@ -82,19 +85,36 @@ const HomePage = () => {
             </Row>
 
             {/* Statistics Section */}
-            <Card style={{ marginBottom: '32px' }}>
+            <Card className="statistics-card" style={{ marginBottom: '32px' }}>
                 <Row gutter={[32, 32]}>
                     <Col xs={24} sm={12} lg={6}>
-                        <Statistic title="Forms Processed" value={0} suffix="forms" />
+                        <Statistic
+                            title="Forms Processed"
+                            value={stats?.totalForms || 0}
+                            suffix="forms"
+                        />
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                        <Statistic title="Success Rate" value={0} suffix="%" />
+                        <Statistic
+                            title="Success Rate"
+                            value={stats?.successRate || 0}
+                            suffix="%"
+                            precision={1}
+                        />
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                        <Statistic title="Avg. Processing Time" value={0} suffix="s" />
+                        <Statistic
+                            title="Avg. Processing Time"
+                            value={stats?.avgProcessingTime || 0}
+                            suffix="s"
+                            precision={2}
+                        />
                     </Col>
                     <Col xs={24} sm={12} lg={6}>
-                        <Statistic title="Active Sessions" value={0} />
+                        <Statistic
+                            title="Active Sessions"
+                            value={stats?.activeSessions || 0}
+                        />
                     </Col>
                 </Row>
             </Card>

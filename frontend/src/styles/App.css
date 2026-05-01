@@ -1,38 +1,126 @@
-/* frontend/src/App.css */
+/* frontend/src/styles/App.css */
 
-.App {
-    text-align: center;
-    min-height: 100vh;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+#root {
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    overflow: hidden;
 }
 
-.App-header {
-    animation: fadeIn 0.5s ease-in;
+/* Ant Layout Structure */
+.ant-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 
-.App-header h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    color: white;
+.ant-layout-header {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 999;
 }
 
-.App-header p {
-    font-size: 1.5rem;
-    color: rgba(255, 255, 255, 0.9);
+.ant-layout-sider {
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: #001529;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+.ant-layout-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main Layout Container */
+.ant-layout > .ant-layout {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+}
+
+.ant-layout > .ant-layout > .ant-layout {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scrollbar Styling - Custom */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 10px;
+    border: 2px solid #f1f5f9;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+::-webkit-scrollbar-corner {
+    background: #f1f5f9;
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-color: #10b981 #f1f5f9;
+    scrollbar-width: thin;
+}
+
+/* Selection Color */
+::selection {
+    background-color: #10b981;
+    color: #ffffff;
+}
+
+::-moz-selection {
+    background-color: #10b981;
+    color: #ffffff;
+}
+
+/* Prevent horizontal scroll */
+body,
+html {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+/* Responsive - Sidebar scrollbar */
+@media (max-width: 768px) {
+    ::-webkit-scrollbar {
+        width: 8px;
     }
 }

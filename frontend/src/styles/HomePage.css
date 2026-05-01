@@ -1,65 +1,131 @@
 /* frontend/src/styles/HomePage.css */
+
 .home-page {
-    padding: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
 }
 
+/* Hero Card */
 .hero-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    border: 2px solid #e6f2ff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    animation: slideDown 0.4s ease-out;
 }
 
 .hero-card h1 {
-    color: white;
+    color: #1a365d;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 .hero-card p {
-    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
 }
 
+.hero-card a {
+    color: #10b981;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.hero-card a:hover {
+    color: #059669;
+    text-decoration: underline;
+}
+
+/* Feature Cards */
 .feature-card {
-    text-align: center;
-    border: 1px solid #f0f0f0;
-    transition: all 0.3s ease;
+    border-radius: 12px;
+    border: 2px solid #e6f2ff;
     padding: 24px;
+    height: 100%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .feature-card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
 }
 
 .feature-card h3 {
-    margin: 16px 0 8px;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
+    color: #1a365d;
+    margin-bottom: 12px;
 }
 
 .feature-card p {
+    font-size: 14px;
     color: #666;
-    margin: 8px 0 16px;
+    margin-bottom: 12px;
+    line-height: 1.5;
 }
 
+/* CTA Card */
 .cta-card {
+    border-radius: 12px;
+    border: 2px solid #e6f2ff;
     padding: 48px 24px;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+    text-align: center;
+    animation: slideUp 0.4s ease-out 0.2s both;
 }
 
 .cta-card h2 {
     font-size: 28px;
-    margin-bottom: 16px;
+    color: #1a365d;
+    margin-bottom: 12px;
 }
 
+.cta-card p {
+    color: #666;
+    margin-bottom: 24px;
+}
+
+/* Statistics Card */
+.statistics-card {
+    border-radius: 12px;
+    border: 2px solid #e6f2ff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
     .home-page {
-        padding: 16px;
+        gap: 16px;
     }
 
-    .hero-card {
-        padding: 24px;
+    .hero-card h1 {
+        font-size: 24px;
     }
 
     .cta-card {
@@ -68,5 +134,44 @@
 
     .cta-card h2 {
         font-size: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .home-page {
+        gap: 12px;
+    }
+
+    .hero-card {
+        padding: 16px;
+    }
+
+    .hero-card h1 {
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+
+    .hero-card p {
+        font-size: 14px;
+    }
+
+    .feature-card {
+        padding: 16px;
+    }
+
+    .feature-card h3 {
+        font-size: 16px;
+    }
+
+    .feature-card p {
+        font-size: 12px;
+    }
+
+    .cta-card {
+        padding: 24px 12px;
+    }
+
+    .cta-card h2 {
+        font-size: 18px;
     }
 }
