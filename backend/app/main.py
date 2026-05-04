@@ -29,7 +29,6 @@ async def lifespan(app: FastAPI):
 
     # ==================== STARTUP ====================
     logger.info("🚀 Starting up application...")
-    logger.info(f"Environment: {settings.ENVIRONMENT}")
 
     try:
         # Log configuration (with masked secrets)

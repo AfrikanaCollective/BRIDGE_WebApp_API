@@ -12,13 +12,19 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-true}
       API_HOST: 0.0.0.0
-      API_PORT: 8000
+      API_PORT: 6443
+
+      # ==================== SSL Configuration ====================
+      USE_HTTPS: ${USE_HTTPS:-true}
+      SSL_CERT_FILE: ${SSL_CERT_FILE:-/app/certs/public.crt}
+      SSL_KEY_FILE: ${SSL_KEY_FILE:-/app/certs/private.key}
+      SSL_VERIFY: ${SSL_VERIFY:-false}
 
       # MongoDB (Remote)
       MONGODB_HOST: ${MONGODB_HOST:-mongodb.example.com}
       MONGODB_PORT: ${MONGODB_PORT:-27017}
-      MONGODB_USERNAME: ${MONGODB_USERNAME:-admin}
-      MONGODB_PASSWORD: ${MONGODB_PASSWORD:-@Dmin2o13!}
+      MONGODB_USERNAME: ${MONGODB_USERNAME:-root}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:-password}
       MONGODB_AUTH_SOURCE: ${MONGODB_AUTH_SOURCE:-admin}
       MONGODB_DB_NAME: ${MONGODB_DB_NAME:-bridge_webui_mvp}
       MONGODB_DB_COLLECTION: ${MONGODB_DB_COLLECTION:-webui_form_processor_stats}
@@ -53,19 +59,27 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${API_PORT:-6443}:6443"
 
     volumes:
       - ./app:/app/app
+      - ./agents:/app/agents
+      - ./certs:/app/certs:ro
+      - ./clients:/app/clients
+      - ./config:/app/config
       - ./logs:/app/logs
-      - ./temp:/app/temp
+      - ./middleware:/app/middleware
+      - ./models:/app/models
       - ./prompts:/app/prompts
+      - ./routes:/app/routes
+      - ./services:/app/services
+      - ./temp:/app/temp
 
     networks:
       - bridge-network
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('https://localhost:${API_PORT}/api/health', verify=False)"]
       interval: 30s
       timeout: 10s
       retries: 3

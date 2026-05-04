@@ -3,11 +3,9 @@
 Form processor service that orchestrates the entire flow:
 Image → LLM → Agent Processing → Storage
 
-Refactored from clients/image_generation.py with integrated storage.
 """
 
 import re
-import ssl
 import json
 import aiohttp
 import logging
@@ -49,16 +47,8 @@ class FormProcessor:
             storage_service: StorageService instance for persistence
         """
         self.storage = storage_service
-        self.ssl_context = self._create_ssl_context()
-        logger.info("📋 Form processor initialized")
-
-    @staticmethod
-    def _create_ssl_context() -> ssl.SSLContext:
-        """Create SSL context for self-signed certificates."""
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        return context
+        self.ssl_context = settings.get_ssl_context()
+        logger.info("📋 data BRIDGE LLM form processor initialized")
 
     @staticmethod
     def extract_page_number(image_path: Path) -> Optional[int]:
@@ -127,14 +117,14 @@ class FormProcessor:
         else:
             prompt_filename = f"{form_type_upper}.txt"
 
-        prompt_path = settings.PROMPTS_DIR / prompt_filename
+        prompt_path = Path(settings.PROMPTS_DIR) / prompt_filename
 
         logger.debug(f"🔍 Looking for prompt: {prompt_path}")
 
         # Try specific prompt first
-        if Path(prompt_path).exists():
+        if prompt_path.exists():
             try:
-                content = Path(prompt_path).read_text(encoding="utf-8").strip()
+                content = prompt_path.read_text(encoding="utf-8").strip()
                 logger.info(f"📄 Loaded prompt from: {prompt_filename}")
                 return content
             except Exception as e:
@@ -144,11 +134,11 @@ class FormProcessor:
 
         # Try fallback prompt
         if use_fallback and settings.DEFAULT_PROMPT_FALLBACK:
-            fallback_path = settings.PROMPTS_DIR / settings.DEFAULT_PROMPT_FILE
+            fallback_path = Path(settings.PROMPTS_DIR) / settings.DEFAULT_PROMPT_FILE
 
-            if Path(fallback_path).exists():
+            if fallback_path.exists():
                 try:
-                    content = Path(fallback_path).read_text(encoding="utf-8").strip()
+                    content = fallback_path.read_text(encoding="utf-8").strip()
                     logger.warning(f"⚠️  Using fallback prompt")
                     return content
                 except Exception as e:
@@ -459,6 +449,9 @@ class FormProcessor:
 
         Returns:
             dict: API response
+
+        Note:
+            Uses SSL context from settings for self-signed certificate handling.
         """
         try:
             with open(image_path, "rb") as f:

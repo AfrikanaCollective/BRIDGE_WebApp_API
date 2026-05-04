@@ -1,8 +1,10 @@
 """
 Application settings loaded from environment variables and .env file.
 """
+import ssl
 import logging
 from typing import List
+from pathlib import Path
 from pydantic import Field
 from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings
@@ -19,11 +21,17 @@ class Settings(BaseSettings):
     API_VERSION: str = Field(default="1.0.0")
     DEBUG: bool = Field(default=False)
     HOST: str = Field(default="0.0.0.0")
-    PORT: int = Field(default=8000)
+    PORT: int = Field(default=6443)
+
+    # ==================== SSL/TLS CONFIGURATION ====================
+    USE_HTTPS: bool = Field(default=True, env="USE_HTTPS")
+    SSL_CERT_FILE: str = Field(default="/app/certs/public.crt", env="SSL_CERT_FILE")
+    SSL_KEY_FILE: str = Field(default="/app/certs/private.key", env="SSL_KEY_FILE")
+    SSL_VERIFY: bool = Field(default=False, env="SSL_VERIFY")
 
     # ==================== CORS ====================
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "https://yourdomain.com"]
+        default=["http://localhost:3000", "https://bridge.kemri-wellcome.org"]
     )
     CORS_CREDENTIALS: bool = Field(default=True)
     CORS_METHODS: List[str] = Field(default=["*"])
@@ -36,8 +44,8 @@ class Settings(BaseSettings):
     MONGODB_TIMEOUT: int = Field(default=5000)  # milliseconds
     MONGODB_HOST: str = Field(default="localhost", env="MONGODB_HOST")
     MONGODB_PORT: int = Field(default=27017, env="MONGODB_PORT")
-    MONGODB_USERNAME: str = Field(default="admin", env="MONGODB_USERNAME")
-    MONGODB_PASSWORD: str = Field(default="@Dmin2o13!", env="MONGODB_PASSWORD")
+    MONGODB_USERNAME: str = Field(default="root", env="MONGODB_USERNAME")
+    MONGODB_PASSWORD: str = Field(default="pass", env="MONGODB_PASSWORD")
     MONGODB_AUTH_SOURCE: str = Field(default="admin", env="MONGODB_AUTH_SOURCE")
     MONGODB_DB_NAME: str = Field(default="bridge_form_processor", env="MONGODB_DB_NAME")
     MONGODB_DB_COLLECTION: str = Field(
@@ -97,38 +105,6 @@ class Settings(BaseSettings):
         """Initialize settings and log configuration."""
         super().__init__(**data)
         self._log_configuration()
-
-    def _log_configuration(self):
-        """Log loaded configuration (with sensitive fields masked)."""
-        logger.info("=" * 80)
-        logger.info("🔧 Application Settings Loaded")
-        logger.info("=" * 80)
-
-        # Settings to display (non-sensitive)
-        public_settings = {
-            "API_TITLE": self.API_TITLE,
-            "API_VERSION": self.API_VERSION,
-            "ENVIRONMENT": self.ENVIRONMENT,
-            "DEBUG": self.DEBUG,
-            "HOST": self.HOST,
-            "PORT": self.PORT,
-            "CORS_ORIGINS": self.CORS_ORIGINS,
-            "MAX_FILE_SIZE": f"{self.MAX_FILE_SIZE / (1024*1024):.1f} MB",
-            "QWEN_MODEL": self.QWEN_MODEL,
-            "QWEN_SERVICE_URL": self.QWEN_SERVICE_URL,
-            "MONGODB_URL": self._mask_url(self.MONGODB_URL),
-            "REDIS_HOST": self.REDIS_HOST,
-            "REDIS_PORT": self.REDIS_PORT,
-            "MINIO_ENDPOINT": self.MINIO_ENDPOINT,
-            "MINIO_BUCKET_NAME": self.MINIO_BUCKET_NAME,
-            "UPLOAD_TEMP_DIR": self.UPLOAD_TEMP_DIR,
-            "LOG_DIR": self.LOG_DIR,
-        }
-
-        for key, value in public_settings.items():
-            logger.info(f"  {key:30} = {value}")
-
-        logger.info("=" * 80)
 
     @staticmethod
     def _mask_url(url: str, show_chars: int = 3) -> str:
@@ -212,6 +188,79 @@ class Settings(BaseSettings):
             "max_retries": self.QWEN_MAX_RETRIES,
         }
 
+    # ==================== SSL CONFIGURATION ====================
+    def get_ssl_context(self) -> ssl.SSLContext | None:
+        """
+        Create SSL context for aiohttp client.
+        Used for communicating with external services (Qwen, etc.) when HTTPS is enabled.
+
+        Returns:
+            ssl.SSLContext or None: SSL context for secure connections
+        """
+        if not self.USE_HTTPS:
+            return None
+
+        if self.SSL_VERIFY:
+            # Use default context with certificate verification
+            ssl_context = ssl.create_default_context()
+            logger.info("✅ SSL context configured (certificate verification enabled)")
+        else:
+            # For self-signed certificates, disable SSL verification
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            logger.info("✅ SSL context configured (self-signed certificates allowed)")
+
+        return ssl_context
+
+    def get_uvicorn_ssl_config(self) -> tuple[str | None, str | None]:
+        """
+        Prepare SSL configuration for Uvicorn server.
+
+        Returns:
+            tuple: (ssl_keyfile, ssl_certfile) or (None, None) if HTTPS disabled
+
+        Raises:
+            FileNotFoundError: If certificate or key files are missing
+        """
+        if not self.USE_HTTPS:
+            logger.info("ℹ️  HTTPS disabled - running on HTTP")
+            return None, None
+
+        cert_path = Path(self.SSL_CERT_FILE)
+        key_path = Path(self.SSL_KEY_FILE)
+
+        # Verify certificate exists
+        if not cert_path.exists():
+            raise FileNotFoundError(
+                f"❌ SSL certificate not found: {cert_path.absolute()}\n"
+                f"   Expected at: {cert_path.absolute()}\n"
+                f"   Please ensure public.crt is in the certs folder"
+            )
+
+        # Verify key exists
+        if not key_path.exists():
+            raise FileNotFoundError(
+                f"❌ SSL key not found: {key_path.absolute()}\n"
+                f"   Expected at: {key_path.absolute()}\n"
+                f"   Please ensure private.key is in the certs folder"
+            )
+
+        # Verify file permissions (key should not be world-readable)
+        key_stat = key_path.stat()
+        if key_stat.st_mode & 0o077:
+            logger.warning(
+                f"⚠️  Warning: Private key may have overly permissive permissions: "
+                f"{oct(key_stat.st_mode)}"
+            )
+
+        logger.info("✅ SSL certificates validated:")
+        logger.info(f"   📜 Certificate: {cert_path.absolute()}")
+        logger.info(f"   🔑 Key: {key_path.absolute()}")
+        logger.info(f"   🔒 Verification: {'Enabled' if self.SSL_VERIFY else 'Disabled (self-signed)'}")
+
+        return str(key_path), str(cert_path)
+
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.ENVIRONMENT.lower() == "production"
@@ -219,6 +268,64 @@ class Settings(BaseSettings):
     def is_development(self) -> bool:
         """Check if running in development environment."""
         return self.ENVIRONMENT.lower() == "development"
+
+    # ==================== LOGGING CONFIGURATION ====================
+    def _log_configuration(self) -> None:
+        """Log configuration settings (with masked secrets)."""
+        logger.info("=" * 60)
+        logger.info("📋 Configuration Summary")
+        logger.info("=" * 60)
+
+        logger.info(f"Environment: {self.ENVIRONMENT}")
+
+        # API Configuration
+        logger.info("🔌 API Configuration:")
+        logger.info(f"   Host: {self.API_HOST}")
+        logger.info(f"   Port: {self.API_PORT}")
+        logger.info(f"   HTTPS: {'Enabled' if self.USE_HTTPS else 'Disabled'}")
+        logger.info(f"   Debug: {self.DEBUG}")
+
+        # SSL Configuration
+        logger.info("🔐 SSL/TLS Configuration:")
+        logger.info(f"   HTTPS Enabled: {self.USE_HTTPS}")
+        logger.info(f"   Certificate File: {self.SSL_CERT_FILE}")
+        logger.info(f"   Key File: {self.SSL_KEY_FILE}")
+        logger.info(f"   Verify Certificates: {self.SSL_VERIFY}")
+
+        # MongoDB Configuration
+        logger.info("🗄️  MongoDB Configuration:")
+        logger.info(f"   Host: {self.MONGODB_HOST}:{self.MONGODB_PORT}")
+        logger.info(f"   Database: {self.MONGODB_DB_NAME}")
+        logger.info(f"   Collection: {self.MONGODB_DB_COLLECTION}")
+        logger.info(f"   Auth Source: {self.MONGODB_AUTH_SOURCE}")
+        logger.info(f"   Pool Size: {self.MONGODB_POOL_SIZE}")
+        logger.info(f"   Max Idle Time: {self.MONGODB_MAX_IDLE_TIME}ms")
+
+        # MinIO Configuration
+        logger.info("🪣 MinIO Configuration:")
+        logger.info(f"   Endpoint: {self.MINIO_ENDPOINT}")
+        logger.info(f"   Bucket: {self.MINIO_BUCKET_NAME}")
+        logger.info(f"   Secure: {self.MINIO_SECURE}")
+        logger.info(f"   Region: {self.MINIO_REGION}")
+
+        # Qwen Configuration
+        logger.info("🤖 Qwen LLM Configuration:")
+        logger.info(f"   Service URL: {self.QWEN_SERVICE_URL}")
+        logger.info(f"   Model: {self.QWEN_MODEL}")
+        logger.info(f"   Timeout: {self.QWEN_TIMEOUT}s")
+        logger.info(f"   Max Retries: {self.QWEN_MAX_RETRIES}")
+
+        # File Upload Configuration
+        logger.info("📁 File Upload Configuration:")
+        logger.info(f"   Max Size: {self.MAX_UPLOAD_SIZE_MB}MB")
+        logger.info(f"   Allowed Extensions: {', '.join(self.ALLOWED_EXTENSIONS)}")
+
+        # CORS Configuration
+        logger.info("🌐 CORS Configuration:")
+        logger.info(f"   Origins: {', '.join(self.CORS_ORIGINS[:5])}...")
+        logger.info(f"   Credentials: {self.CORS_CREDENTIALS}")
+
+        logger.info("=" * 60)
 
 
 # Create singleton instance
