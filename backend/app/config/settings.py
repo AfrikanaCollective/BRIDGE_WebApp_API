@@ -317,7 +317,7 @@ class Settings(BaseSettings):
 
         # File Upload Configuration
         logger.info("📁 File Upload Configuration:")
-        logger.info(f"   Max Size: {self.MAX_UPLOAD_SIZE_MB}MB")
+        logger.info(f"   Max Size: {self.MAX_FILE_SIZE}MB")
         logger.info(f"   Allowed Extensions: {', '.join(self.ALLOWED_EXTENSIONS)}")
 
         # CORS Configuration

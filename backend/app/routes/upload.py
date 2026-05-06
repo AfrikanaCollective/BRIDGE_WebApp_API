@@ -138,12 +138,12 @@ async def upload_form(
             detail="File is empty"
         )
 
-    max_size_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    max_size_bytes = settings.MAX_FILE_SIZE * 1024 * 1024
     if file.size > max_size_bytes:
         logger.warning(f"❌ File too large: {file.size} bytes")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"File size exceeds maximum: {settings.MAX_UPLOAD_SIZE_MB}MB"
+            detail=f"File size exceeds maximum: {settings.MAX_FILE_SIZE}MB"
         )
 
     # Validate file extension
@@ -303,11 +303,11 @@ async def upload_form_batch(
                 })
                 continue
 
-            max_size_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+            max_size_bytes = settings.MAX_FILE_SIZE * 1024 * 1024
             if file.size > max_size_bytes:
                 failed.append({
                     "filename": file.filename,
-                    "error": f"File exceeds {settings.MAX_UPLOAD_SIZE_MB}MB limit"
+                    "error": f"File exceeds {settings.MAX_FILE_SIZE}MB limit"
                 })
                 continue
 
