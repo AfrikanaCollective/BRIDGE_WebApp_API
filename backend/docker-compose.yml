@@ -65,7 +65,7 @@ services:
 
     volumes:
       # ✅ Bind mount for code (read-only in production)
-      - .:/app:ro
+      - .:/app:rw
 
       # ✅ Named volumes for data persistence
       - backend-logs:/app/logs
