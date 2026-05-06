@@ -6,18 +6,19 @@ Properly initializes MongoDB with authentication.
 """
 
 import logging
-from contextlib import asynccontextmanager
 from typing import Optional
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
+from routes import upload, history, health
 from clients.mongo_client import MongoClient
 from clients.minio_client import MinIOClient
 from services.form_processor import FormProcessor
 from services.storage_service import StorageService
-from routes import upload, history, health
+
 
 logger = logging.getLogger(__name__)
 
@@ -134,8 +135,10 @@ async def lifespan(app: FastAPI):
                 collection_name=settings.MONGODB_DB_COLLECTION,
             )
 
+            # ✅ CHANGE: Pass mongo_client to FormProcessor
             form_processor = FormProcessor(
-                storage_service=storage_service
+                storage_service=storage_service,
+                mongo_client=mongo_client,
             )
 
             logger.info("✅ Services initialized successfully")

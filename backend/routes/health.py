@@ -22,6 +22,7 @@ class ServiceStatus(BaseModel):
     latency_ms: Optional[float] = Field(None, description="Response time in milliseconds")
     version: Optional[str] = Field(None, description="Service version")
     error: Optional[str] = Field(None, description="Error message if unhealthy")
+    details: Optional[dict] = Field(None, description="Additional diagnostic details")
 
 
 class HealthCheckResponse(BaseModel):
@@ -115,28 +116,104 @@ async def check_minio_health(minio_client) -> tuple[str, Optional[str], Optional
         return "unhealthy", None, None
 
 
-async def check_form_processor_health(form_processor) -> tuple[str, Optional[str]]:
+async def check_form_processor_health(form_processor) -> tuple[str, Optional[str], dict]:
     """
-    Check FormProcessor initialization status.
+    Check FormProcessor initialization status with detailed diagnostics.
+
+    Returns:
+        tuple: (status, error_message, details_dict)
     """
+    details = {
+        "has_process_method": False,
+        "has_storage_service": False,
+        "storage_service_initialized": False,
+        "has_mongo_client": False,
+        "has_ssl_context": False,
+        "attributes": [],
+    }
+
     if form_processor is None:
-        logger.warning("⚠️  FormProcessor not initialized")
-        return "unhealthy", "FormProcessor not initialized"
+        logger.warning("⚠️  FormProcessor is None")
+        return "unhealthy", "FormProcessor not initialized", details
 
     try:
-        # Check if processor has required attributes
+        # ==================== CHECK PROCESS METHOD ====================
         if not hasattr(form_processor, "process"):
-            return "unhealthy", "FormProcessor missing 'process' method"
+            logger.error("❌ FormProcessor missing 'process' method")
+            details["attributes"] = [attr for attr in dir(form_processor) if not attr.startswith("_")]
+            return "unhealthy", "Missing 'process' method", details
 
+        details["has_process_method"] = True
+        logger.debug("✅ FormProcessor has 'process' method")
+
+        # ==================== CHECK STORAGE SERVICE ====================
         if not hasattr(form_processor, "storage_service"):
-            return "unhealthy", "FormProcessor missing storage service"
+            logger.error("❌ FormProcessor missing 'storage_service' attribute")
+            details["attributes"] = [attr for attr in dir(form_processor) if not attr.startswith("_")]
+            return "unhealthy", "Missing 'storage_service' attribute", details
 
-        logger.debug("✅ FormProcessor healthy")
-        return "healthy", None
+        details["has_storage_service"] = True
+        logger.debug("✅ FormProcessor has 'storage_service' attribute")
+
+        # Check if storage_service is actually initialized
+        if form_processor.storage_service is None:
+            logger.error("❌ FormProcessor storage_service is None")
+            return "unhealthy", "storage_service not initialized", details
+
+        details["storage_service_initialized"] = True
+        logger.debug("✅ FormProcessor storage_service is initialized")
+
+        # ==================== CHECK STORAGE SERVICE METHODS ====================
+        storage = form_processor.storage_service
+        required_methods = [
+            "save_form_processing_result",
+            "save_form_document",
+        ]
+        missing_methods = [
+            method for method in required_methods
+            if not hasattr(storage, method)
+        ]
+
+        if missing_methods:
+            logger.error(f"❌ StorageService missing methods: {missing_methods}")
+            return (
+                "unhealthy",
+                f"StorageService incomplete: missing {missing_methods}",
+                details
+            )
+
+        logger.debug("✅ StorageService has all required methods")
+
+        # ==================== CHECK MONGO CLIENT ====================
+        if hasattr(form_processor, "mongo_client"):
+            details["has_mongo_client"] = form_processor.mongo_client is not None
+            if form_processor.mongo_client is not None:
+                logger.debug("✅ FormProcessor has mongo_client")
+            else:
+                logger.debug("⚠️  FormProcessor mongo_client is None")
+        else:
+            logger.debug("⚠️  FormProcessor missing mongo_client attribute")
+
+        # ==================== CHECK SSL CONTEXT ====================
+        if hasattr(form_processor, "ssl_context"):
+            details["has_ssl_context"] = form_processor.ssl_context is not None
+            if form_processor.ssl_context is not None:
+                logger.debug("✅ FormProcessor has ssl_context")
+            else:
+                logger.debug("⚠️  FormProcessor ssl_context is None")
+        else:
+            logger.debug("⚠️  FormProcessor missing ssl_context attribute")
+
+        # ==================== FINAL CHECK ====================
+        logger.debug("✅ FormProcessor health check passed")
+        return "healthy", None, details
 
     except Exception as e:
-        logger.warning(f"⚠️  FormProcessor check failed: {type(e).__name__}: {e}")
-        return "unhealthy", str(e)
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        logger.error(f"❌ FormProcessor health check exception: {error_msg}")
+        details["error"] = error_msg
+        details["attributes"] = [attr for attr in dir(form_processor) if not attr.startswith("_")]
+        return "unhealthy", error_msg, details
 
 
 # ==================== ROUTES ====================
@@ -161,11 +238,11 @@ async def health_check(request: Request) -> HealthCheckResponse:
     logger.debug("🏥 Health check initiated")
 
     try:
-        # Access services from app.state
-        services = request.app.state.services
-        mongo_client = request.app.state.mongo
-        minio_client = request.app.state.minio
-        form_processor = request.app.state.form_processor
+        # ==================== ACCESS SERVICES ====================
+        services = getattr(request.app.state, "services", None)
+        mongo_client = getattr(request.app.state, "mongo", None)
+        minio_client = getattr(request.app.state, "minio", None)
+        form_processor = getattr(request.app.state, "form_processor", None)
 
         if services is None:
             logger.error("❌ Services container not initialized")
@@ -177,13 +254,16 @@ async def health_check(request: Request) -> HealthCheckResponse:
         # ==================== CHECK ALL SERVICES ====================
         service_statuses = {}
 
+        # ========== API STATUS ==========
         # API status (always healthy if we reached this point)
         service_statuses["api"] = ServiceStatus(
             status="healthy",
             latency_ms=0.0,
         )
+        logger.debug("✅ API status: healthy")
 
-        # MongoDB status
+        # ========== MONGODB STATUS ==========
+        logger.debug("🔍 Checking MongoDB...")
         db_status, db_version, db_latency = await check_mongodb_health(mongo_client)
         service_statuses["mongodb"] = ServiceStatus(
             status=db_status,
@@ -191,8 +271,10 @@ async def health_check(request: Request) -> HealthCheckResponse:
             latency_ms=db_latency,
             error=None if db_status == "healthy" else "Connection failed",
         )
+        logger.debug(f"📊 MongoDB status: {db_status}")
 
-        # MinIO status
+        # ========== MINIO STATUS ==========
+        logger.debug("🔍 Checking MinIO...")
         minio_status, minio_bucket_count, minio_latency = await check_minio_health(minio_client)
         service_statuses["minio"] = ServiceStatus(
             status=minio_status,
@@ -200,13 +282,23 @@ async def health_check(request: Request) -> HealthCheckResponse:
             latency_ms=minio_latency,
             error=None if minio_status == "healthy" else "Connection failed",
         )
+        logger.debug(f"📊 MinIO status: {minio_status}")
 
-        # FormProcessor status
-        processor_status, processor_error = await check_form_processor_health(form_processor)
+        # ========== FORM PROCESSOR STATUS ==========
+        logger.debug("🔍 Checking FormProcessor...")
+        processor_status, processor_error, processor_details = await check_form_processor_health(
+            form_processor
+        )
         service_statuses["form_processor"] = ServiceStatus(
             status=processor_status,
             error=processor_error,
+            details=processor_details,
         )
+        logger.debug(f"📊 FormProcessor status: {processor_status}")
+        if processor_error:
+            logger.debug(f"   Error: {processor_error}")
+        if processor_details:
+            logger.debug(f"   Details: {processor_details}")
 
         # ==================== DETERMINE OVERALL STATUS ====================
         unhealthy_services = [
@@ -285,9 +377,10 @@ async def readiness_probe(request: Request) -> dict:
     logger.debug("🟢 Readiness probe")
 
     try:
-        mongo_client = request.app.state.mongo
-        minio_client = request.app.state.minio
-        form_processor = request.app.state.form_processor
+        # ==================== SAFE ATTRIBUTE ACCESS ====================
+        mongo_client = getattr(request.app.state, "mongo", None)
+        minio_client = getattr(request.app.state, "minio", None)
+        form_processor = getattr(request.app.state, "form_processor", None)
 
         is_ready = all([
             mongo_client is not None,
@@ -334,7 +427,8 @@ async def startup_probe(request: Request) -> dict:
     logger.debug("🚀 Startup probe")
 
     try:
-        services = request.app.state.services
+        # ==================== SAFE ATTRIBUTE ACCESS ====================
+        services = getattr(request.app.state, "services", None)
 
         if services is None:
             logger.warning("⚠️  Services not yet initialized")

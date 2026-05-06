@@ -39,16 +39,39 @@ class FormProcessor:
     5. Storage (MongoDB + MinIO)
     """
 
-    def __init__(self, storage_service: StorageService):
+    def __init__(
+        self,
+        storage_service: StorageService,
+        mongo_client=None,
+    ):
         """
         Initialize form processor.
 
         Args:
             storage_service: StorageService instance for persistence
+            mongo_client: Optional MongoClient instance (for health checks)
+
+        Raises:
+            ValueError: If storage_service is None
         """
+        if storage_service is None:
+            raise ValueError("storage_service cannot be None")
+
+        # ✅ Store as both self.storage AND self.storage_service
+        # Health check expects self.storage_service
         self.storage = storage_service
+        self.storage_service = storage_service
+
+        # ✅ Store mongo_client for health checks
+        self.mongo_client = mongo_client
+
+        # ✅ Get SSL context for secure connections
         self.ssl_context = settings.get_ssl_context()
+
         logger.info("📋 data BRIDGE LLM form processor initialized")
+        logger.debug(f"   Storage service: {type(self.storage).__name__}")
+        logger.debug(f"   Mongo client: {'initialized' if mongo_client else 'not provided'}")
+        logger.debug(f"   SSL context: {'configured' if self.ssl_context else 'not configured'}")
 
     @staticmethod
     def extract_page_number(image_path: Path) -> Optional[int]:
@@ -229,7 +252,9 @@ class FormProcessor:
                 return (raw_json, {}, f"Agent error: {str(e)}")
 
             # Create temp markdown file
-            temp_md = Path(f"{settings.UPLOAD_TEMP_DIR}/{form_type_upper.lower()}_{image_path.stem}.md")
+            temp_md = Path(
+                f"{settings.UPLOAD_TEMP_DIR}/{form_type_upper.lower()}_{image_path.stem}.md"
+            )
 
             if isinstance(raw_json, dict):
                 md_content = f"\n```json\n"
@@ -289,7 +314,7 @@ class FormProcessor:
 
             return raw_json, {}, f"Error: {str(e)}"
 
-    async def process_form(
+    async def process(
         self,
         image_path: str,
         prompt: Optional[str] = None,
@@ -301,6 +326,9 @@ class FormProcessor:
     ) -> Dict[str, Any]:
         """
         Process a form image through the complete pipeline.
+
+        This is the main entry point for form processing and is expected
+        by the health check and upload routes.
 
         Pipeline:
         1. Validate image
@@ -433,6 +461,31 @@ class FormProcessor:
 
         return result
 
+    async def process_form(
+        self,
+        image_path: str,
+        prompt: Optional[str] = None,
+        form_type: str = "ITF",
+        page_number: Optional[int] = None,
+        case_id: Optional[str] = None,
+        save_to_storage: bool = True,
+        process_with_agent: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Alias for process() method for backward compatibility.
+
+        Delegates to the main process() method.
+        """
+        return await self.process(
+            image_path=image_path,
+            prompt=prompt,
+            form_type=form_type,
+            page_number=page_number,
+            case_id=case_id,
+            save_to_storage=save_to_storage,
+            process_with_agent=process_with_agent,
+        )
+
     async def _call_qwen_api(
         self,
         image_path: Path,
@@ -448,7 +501,9 @@ class FormProcessor:
             timeout: Request timeout in seconds
 
         Returns:
-            dict: API response
+            dict: API response with keys:
+                - response: LLM response text
+                - error: Error message if failed
 
         Note:
             Uses SSL context from settings for self-signed certificate handling.
