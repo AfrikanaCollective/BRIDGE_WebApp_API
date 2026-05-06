@@ -64,13 +64,11 @@ services:
       - "${API_PORT:-6443}:6443"
 
     volumes:
-      # ✅ Main application directory (read-write for logs and uploads)
-      - .:/app:rw
+      # ✅ Bind mount for code (read-only in production)
+      - .:/app:ro
 
-      # ✅ Optional: Named volume for persistent logs (uncomment if needed)
+      # ✅ Named volumes for data persistence
       - backend-logs:/app/logs
-
-      # ✅ Optional: Named volume for persistent uploads (uncomment if needed)
       - backend-uploads:/app/tmp/uploads
 
     networks:
@@ -88,3 +86,10 @@ services:
 networks:
   bridge-api:
     driver: bridge
+
+# ✅ DECLARE NAMED VOLUMES at top level
+volumes:
+  backend-logs:
+    driver: local
+  backend-uploads:
+    driver: local
