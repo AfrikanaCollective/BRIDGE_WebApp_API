@@ -24,7 +24,7 @@ class StorageService:
         mongo_client: MongoClient,
         minio_client: MinIOClient,
         db_name: str = settings.MONGODB_DB_NAME,
-        collection_name: str = settings.MONGODB_COLLECTION_NAME,
+        collection_name: str = settings.MONGODB_DB_COLLECTION,
     ):
         """
         Initialize storage service.
