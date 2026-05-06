@@ -134,7 +134,7 @@ class Settings(BaseSettings):
             str: MongoDB connection URI
 
         Example:
-            mongodb://admin:%40Dmin2o13%21@localhost:27017/bridge_form_processor?authSource=admin
+            mongodb://admin:%40Dmin2o13%21@localhost:27017/bridge_webui_mvp?authSource=admin
         """
         # URL-encode password to handle special characters
         encoded_password = quote_plus(self.MONGODB_PASSWORD)

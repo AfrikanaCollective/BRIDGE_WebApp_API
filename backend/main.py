@@ -2,11 +2,12 @@
 """
 FastAPI application with lifespan management and service injection.
 Properly initializes MongoDB with authentication.
-Redis has been removed from the tech stack.
+
 """
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +21,22 @@ from routes import upload, history, health
 
 logger = logging.getLogger(__name__)
 
-_services = {}
+
+# ✅ CHANGE 1: Create Services class for type safety
+class Services:
+    """Container for application services."""
+
+    def __init__(
+            self,
+            mongo: MongoClient,
+            minio: MinIOClient,
+            storage: StorageService,
+            form_processor: FormProcessor,
+    ):
+        self.mongo = mongo
+        self.minio = minio
+        self.storage = storage
+        self.form_processor = form_processor
 
 
 @asynccontextmanager
@@ -29,6 +45,11 @@ async def lifespan(app: FastAPI):
 
     # ==================== STARTUP ====================
     logger.info("🚀 Starting up application...")
+
+    mongo_client: Optional[MongoClient] = None
+    minio_client: Optional[MinIOClient] = None
+    storage_service: Optional[StorageService] = None
+    form_processor: Optional[FormProcessor] = None
 
     try:
         # Log configuration (with masked secrets)
@@ -44,14 +65,14 @@ async def lifespan(app: FastAPI):
             )
 
             # Test connection and authentication
-            health = await mongo_client.health_check()
-            if health["connected"]:
+            health_check = await mongo_client.health_check()
+            if health_check["connected"]:
                 logger.info(f"✅ MongoDB authenticated: {settings.MONGODB_AUTH_SOURCE}")
-                logger.info(f"   Server: {health['server_info'].get('version', 'unknown')}")
+                logger.info(f"   Server: {health_check['server_info'].get('version', 'unknown')}")
                 logger.info(f"   Database: {settings.MONGODB_DB_NAME}")
                 logger.info(f"   Collection: {settings.MONGODB_DB_COLLECTION}")
             else:
-                raise Exception(f"MongoDB health check failed: {health.get('error')}")
+                raise Exception(f"MongoDB health check failed: {health_check.get('error')}")
 
             # Ensure collection exists
             await mongo_client.create_collection_if_not_exists(
@@ -115,19 +136,23 @@ async def lifespan(app: FastAPI):
             logger.error(f"❌ Service initialization failed: {e}")
             raise
 
-        # ==================== STORE SERVICE INSTANCES ====================
-        _services["mongo"] = mongo_client
-        _services["minio"] = minio_client
-        _services["storage"] = storage_service
-        _services["form_processor"] = form_processor
+        # ✅ CHANGE 2: Create Services instance and store in app.state
+        services = Services(
+            mongo=mongo_client,
+            minio=minio_client,
+            storage=storage_service,
+            form_processor=form_processor,
+        )
 
-        # ==================== INJECT INTO ROUTES ====================
-        upload.form_processor = form_processor
-        upload.storage_service = storage_service
-        history.mongo_client = mongo_client
-        health.services = _services
+        app.state.services = services
+        app.state.form_processor = form_processor
+        app.state.storage = storage_service
+        app.state.mongo = mongo_client
+        app.state.minio = minio_client
 
-        logger.info("✅ All services initialized and injected into routes")
+        # ✅ CHANGE 3: Update route injection to use app.state
+        # (Routes will access services via request.app.state)
+        logger.info("✅ Services stored in app.state and ready for injection")
         logger.info("=" * 60)
 
     except Exception as e:
@@ -140,18 +165,19 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down application...")
 
     try:
-        if "mongo" in _services:
-            await _services["mongo"].close()
+        # ✅ CHANGE 4: Improved shutdown with proper null checks
+        if mongo_client is not None:
+            await mongo_client.close()
             logger.info("✅ MongoDB connection closed")
 
-        if "minio" in _services:
-            await _services["minio"].close()
+        if minio_client is not None:
+            await minio_client.close()
             logger.info("✅ MinIO connection closed")
 
         logger.info("✅ All services closed gracefully")
 
     except Exception as e:
-        logger.error(f"❌ Shutdown error: {e}")
+        logger.error(f"❌ Shutdown error: {e}", exc_info=True)
 
 
 def create_app() -> FastAPI:
@@ -160,7 +186,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.API_TITLE,
         version=settings.API_VERSION,
-        description="Bridge Form Processor - Medical form processing pipeline",
+        description="data BRIDGE LLM form Processor - Medical form processing pipeline",
         debug=settings.DEBUG,
         lifespan=lifespan,
     )
