@@ -74,16 +74,16 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: List[str] = Field(
         default=["png"]
     )
-    UPLOAD_TEMP_DIR: str = Field(default="/tmp/uploads")
-    LOG_DIR: str = Field(default="/tmp/logs")
+    UPLOAD_TEMP_DIR: str = Field(default="/app/tmp/uploads")
+    LOG_DIR: str = Field(default="/app/logs")
 
     # ==================== Prompts ====================
-    PROMPTS_DIR: str = Field(default="./prompts")
+    PROMPTS_DIR: str = Field(default="/app/prompts")
     DEFAULT_PROMPT_FILE: str = Field(default="DEFAULT.txt")
     DEFAULT_PROMPT_FALLBACK: bool = Field(default=True)
 
     # ==================== Agents ====================
-    AGENTS_DIR: str = Field(default="./app/agents")
+    AGENTS_DIR: str = Field(default="/app/agents")
 
     # ==================== Logging ====================
     LOG_LEVEL: str = Field(default="INFO")

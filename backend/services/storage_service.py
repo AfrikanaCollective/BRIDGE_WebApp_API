@@ -107,7 +107,7 @@ class StorageService:
 
             # Save full result as JSON to MinIO
             stem = Path(image_filename).stem
-            s3_key = f"form-results/{form_type.lower()}/{stem}_result.json"
+            s3_key = f"form-results/{form_type.lower()}/{stem}.json"
 
             success = await self.minio.upload_bytes(
                 data=json.dumps(result, indent=2, ensure_ascii=False).encode(),

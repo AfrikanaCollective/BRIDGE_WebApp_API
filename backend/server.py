@@ -20,7 +20,7 @@ def configure_logging() -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(Path("../logs/app.log").absolute()),
+            logging.FileHandler(Path(f"{settings.LOG_DIR}/app.log").absolute()),
         ],
     )
 
