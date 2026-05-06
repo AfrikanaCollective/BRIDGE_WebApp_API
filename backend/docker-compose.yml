@@ -34,7 +34,7 @@ services:
       MONGODB_MAX_IDLE_TIME: ${MONGODB_MAX_IDLE_TIME:-45000}
 
       # MinIO (Remote)
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio.example.com:9000}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-host.docker.internal:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-bridge-ui-forms}

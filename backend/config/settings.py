@@ -2,12 +2,13 @@
 Application settings loaded from environment variables and .env file.
 """
 import ssl
+import json
 import logging
 from typing import List
 from pathlib import Path
-from pydantic import Field
 from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
 
 
 logger = logging.getLogger(__name__)
@@ -39,9 +40,6 @@ class Settings(BaseSettings):
 
     # ==================== MongoDB ====================
     MONGODB_URL: str = Field(default="mongodb://root:password@localhost:27017")
-    MONGODB_DB_NAME: str = Field(default="bridge_form_processor")
-    MONGODB_DB_COLLECTION: str = Field(default="webui_form_processor_stats")
-    MONGODB_TIMEOUT: int = Field(default=5000)  # milliseconds
     MONGODB_HOST: str = Field(default="localhost", env="MONGODB_HOST")
     MONGODB_PORT: int = Field(default=27017, env="MONGODB_PORT")
     MONGODB_USERNAME: str = Field(default="root", env="MONGODB_USERNAME")
@@ -54,6 +52,7 @@ class Settings(BaseSettings):
     )
     MONGODB_POOL_SIZE: int = Field(default=10, env="MONGODB_POOL_SIZE")
     MONGODB_MAX_IDLE_TIME: int = Field(default=45000, env="MONGODB_MAX_IDLE_TIME")
+    MONGODB_TIMEOUT: int = Field(default=5000)  # milliseconds
 
     # ==================== MinIO S3 ====================
     MINIO_ENDPOINT: str = Field(default="localhost:9000")
@@ -100,6 +99,53 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = True
         extra = "allow"  # Allow extra fields from .env
+
+        # ==================== VALIDATORS ====================
+        @field_validator("CORS_ORIGINS", mode="before")
+        @classmethod
+        def parse_cors_origins(cls, v):
+            """Parse CORS_ORIGINS from JSON string or list."""
+            if isinstance(v, str):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠️  Invalid JSON for CORS_ORIGINS: {v}")
+                    return ["http://localhost:3000"]
+            return v
+
+        @field_validator("ALLOWED_EXTENSIONS", mode="before")
+        @classmethod
+        def parse_allowed_extensions(cls, v):
+            """Parse ALLOWED_EXTENSIONS from JSON string or list."""
+            if isinstance(v, str):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠️  Invalid JSON for ALLOWED_EXTENSIONS: {v}")
+                    return ["png"]
+            return v
+
+        @field_validator("CORS_METHODS", mode="before")
+        @classmethod
+        def parse_cors_methods(cls, v):
+            """Parse CORS_METHODS from JSON string or list."""
+            if isinstance(v, str):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    return ["*"]
+            return v
+
+        @field_validator("CORS_HEADERS", mode="before")
+        @classmethod
+        def parse_cors_headers(cls, v):
+            """Parse CORS_HEADERS from JSON string or list."""
+            if isinstance(v, str):
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    return ["*"]
+            return v
 
     def __init__(self, **data):
         """Initialize settings and log configuration."""
