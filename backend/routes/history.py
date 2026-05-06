@@ -3,15 +3,20 @@
 History and record management route.
 Provides paginated access to form processing records with filtering,
 statistics, and deletion capabilities.
+
+✅ REFACTORED:
+  - Access services via request.app.state
+  - Proper Path() parameters for path variables
+  - Pydantic v2 ConfigDict for _id field mapping
+  - Removed module-level service assignments
+  - Type-safe database operations
 """
 
 import logging
 from typing import Optional
 
 from fastapi import APIRouter, Request, HTTPException, status, Path, Query
-from pydantic import BaseModel, Field
-
-from config.settings import settings
+from pydantic import BaseModel, Field, ConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +26,15 @@ router = APIRouter()
 # ==================== RESPONSE MODELS ====================
 class FormRecord(BaseModel):
     """Individual form processing record."""
-    _id: str = Field(..., description="MongoDB ObjectId")
+
+    # ✅ CHANGE 1: Configure Pydantic v2 to allow field alias mapping
+    model_config = ConfigDict(
+        populate_by_name=True,  # Allow both 'id' and '_id' names
+        from_attributes=True,  # Support ORM mode
+    )
+
+    # ✅ CHANGE 2: Use 'id' as field name, '_id' as alias for MongoDB documents
+    id: str = Field(..., alias="_id", description="MongoDB ObjectId")
     processing_id: str = Field(..., description="Unique processing identifier")
     form_type: str = Field(..., description="Type of form (ITF, NAR)")
     case_id: str = Field(..., description="Associated case identifier")
@@ -69,12 +82,17 @@ class DeleteResponse(BaseModel):
 
 # ==================== HELPER FUNCTIONS ====================
 def record_to_dict(record: dict) -> dict:
-    """Convert MongoDB record to response dictionary."""
+    """
+    Convert MongoDB record to response dictionary.
+
+    Maps MongoDB's '_id' field to 'id' for Pydantic model compatibility.
+    """
     if record is None:
         return None
 
+    # ✅ CHANGE 3: Map _id to id for Pydantic
     return {
-        "_id": str(record.get("_id", "")),
+        "id": str(record.get("_id", "")),  # MongoDB uses _id, Pydantic uses id
         "processing_id": record.get("processing_id", ""),
         "form_type": record.get("form_type", ""),
         "case_id": record.get("case_id", ""),
@@ -160,7 +178,7 @@ async def get_history(
     logger.debug(f"📜 Fetching history: page={page}, limit={limit}")
 
     try:
-        # ✅ CHANGE 1: Access storage from app.state
+        # ✅ CHANGE 4: Access storage from app.state
         storage_service = request.app.state.storage
 
         if not storage_service:
@@ -219,7 +237,6 @@ async def get_history(
 )
 async def get_record(
         request: Request,
-        # ✅ CHANGE 2: Use Path() for path parameter
         processing_id: str = Path(..., description="Unique processing identifier"),
 ) -> RecordResponse:
     """
@@ -244,7 +261,6 @@ async def get_record(
     logger.debug(f"🔍 Fetching record: {processing_id}")
 
     try:
-        # ✅ CHANGE 3: Access storage from app.state
         storage_service = request.app.state.storage
 
         if not storage_service:
@@ -310,7 +326,6 @@ async def get_stats_overview(request: Request) -> StatsOverview:
     logger.debug("📊 Fetching statistics overview")
 
     try:
-        # ✅ CHANGE 4: Access storage from app.state
         storage_service = request.app.state.storage
 
         if not storage_service:
@@ -352,7 +367,6 @@ async def get_stats_overview(request: Request) -> StatsOverview:
 )
 async def delete_record(
         request: Request,
-        # ✅ CHANGE 5: Use Path() for path parameter
         processing_id: str = Path(..., description="Unique processing identifier"),
 ) -> DeleteResponse:
     """
@@ -381,7 +395,6 @@ async def delete_record(
     logger.debug(f"🗑️  Deleting record: {processing_id}")
 
     try:
-        # ✅ CHANGE 6: Access storage from app.state
         storage_service = request.app.state.storage
 
         if not storage_service:
