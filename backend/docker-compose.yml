@@ -23,7 +23,7 @@ services:
       SSL_VERIFY: ${SSL_VERIFY:-false}
 
       # MongoDB (Remote)
-      MONGODB_HOST: ${MONGODB_HOST:-mongodb.example.com}
+      MONGODB_HOST: ${MONGODB_HOST:-host.docker.internal}
       MONGODB_PORT: ${MONGODB_PORT:-27017}
       MONGODB_USERNAME: ${MONGODB_USERNAME:-root}
       MONGODB_PASSWORD: ${MONGODB_PASSWORD:-password}
