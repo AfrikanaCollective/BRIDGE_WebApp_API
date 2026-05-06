@@ -2,13 +2,12 @@
 Application settings loaded from environment variables and .env file.
 """
 import ssl
-import json
 import logging
 from typing import List
 from pathlib import Path
 from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator
+from pydantic import Field
 
 
 logger = logging.getLogger(__name__)

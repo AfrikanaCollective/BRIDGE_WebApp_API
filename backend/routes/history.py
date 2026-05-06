@@ -1,14 +1,14 @@
 # backend/app/routes/history.py
 """
-History route handler for processing records.
-Retrieves historical form processing data from MongoDB.
+History and record management route.
+Provides paginated access to form processing records with filtering,
+statistics, and deletion capabilities.
 """
 
 import logging
-from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
-from fastapi import APIRouter, Request, HTTPException, status, Query
+from fastapi import APIRouter, Request, HTTPException, status, Path, Query
 from pydantic import BaseModel, Field
 
 from config.settings import settings
@@ -19,635 +19,411 @@ router = APIRouter()
 
 
 # ==================== RESPONSE MODELS ====================
-class FormExtractionData(BaseModel):
-    """Extracted form data model."""
-    patient_name: Optional[str] = None
-    patient_id: Optional[str] = None
-    date_of_birth: Optional[str] = None
-    form_type: Optional[str] = None
-    confidence: Optional[float] = Field(None, ge=0, le=1)
-    fields: Optional[dict] = None
+class FormRecord(BaseModel):
+    """Individual form processing record."""
+    _id: str = Field(..., description="MongoDB ObjectId")
+    processing_id: str = Field(..., description="Unique processing identifier")
+    form_type: str = Field(..., description="Type of form (ITF, NAR)")
+    case_id: str = Field(..., description="Associated case identifier")
+    status: str = Field(..., description="Processing status (pending, completed, failed)")
+    confidence: Optional[float] = Field(None, description="Extraction confidence score")
+    created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
+    updated_at: str = Field(..., description="Last update timestamp (ISO 8601)")
+    file_url: Optional[str] = Field(None, description="MinIO file URL")
+    error_message: Optional[str] = Field(None, description="Error details if failed")
+    extracted_data: Optional[dict] = Field(None, description="Extracted form data")
 
 
-class ProcessingHistory(BaseModel):
-    """Processing history record model."""
-    processing_id: str
-    status: str
-    form_type: str
-    timestamp: str
-    file_name: Optional[str] = None
-    extraction: Optional[FormExtractionData] = None
-    confidence: Optional[float] = Field(None, ge=0, le=1)
-    error: Optional[str] = None
+class HistoryResponse(BaseModel):
+    """Paginated history response."""
+    total: int = Field(..., description="Total number of records")
+    page: int = Field(..., description="Current page number")
+    limit: int = Field(..., description="Records per page")
+    records: list[FormRecord] = Field(..., description="Form records for this page")
 
 
-class HistoryListResponse(BaseModel):
-    """Paginated history list response."""
-    total: int = Field(..., ge=0)
-    page: int = Field(..., ge=1)
-    page_size: int = Field(..., ge=1)
-    items: List[ProcessingHistory]
-    has_more: bool
+class StatsOverview(BaseModel):
+    """Aggregate statistics overview."""
+    total: int = Field(..., description="Total records processed")
+    completed: int = Field(..., description="Successfully completed records")
+    failed: int = Field(..., description="Failed processing records")
+    pending: int = Field(..., description="Pending/in-progress records")
+    average_confidence: Optional[float] = Field(
+        None, description="Average confidence score (completed records)"
+    )
+    completion_rate: float = Field(..., description="Percentage of completed records")
 
 
-class HistoryStatsResponse(BaseModel):
-    """Statistics response model."""
-    total_processed: int = Field(..., ge=0)
-    completed: int = Field(..., ge=0)
-    failed: int = Field(..., ge=0)
-    in_progress: int = Field(..., ge=0)
-    average_confidence: Optional[float] = Field(None, ge=0, le=1)
-    form_types: dict
+class RecordResponse(BaseModel):
+    """Single record response."""
+    record: FormRecord = Field(..., description="Form record details")
+    file_url: Optional[str] = Field(None, description="Associated file URL")
+
+
+class DeleteResponse(BaseModel):
+    """Deletion confirmation response."""
+    deleted: bool = Field(..., description="Deletion success status")
+    processing_id: str = Field(..., description="Deleted processing identifier")
+    message: str = Field(..., description="Deletion details")
 
 
 # ==================== HELPER FUNCTIONS ====================
-async def fetch_processing_record(
-        mongo_client,
+def record_to_dict(record: dict) -> dict:
+    """Convert MongoDB record to response dictionary."""
+    if record is None:
+        return None
+
+    return {
+        "_id": str(record.get("_id", "")),
+        "processing_id": record.get("processing_id", ""),
+        "form_type": record.get("form_type", ""),
+        "case_id": record.get("case_id", ""),
+        "status": record.get("status", ""),
+        "confidence": record.get("confidence"),
+        "created_at": record.get("created_at", ""),
+        "updated_at": record.get("updated_at", ""),
+        "file_url": record.get("file_url"),
+        "error_message": record.get("error_message"),
+        "extracted_data": record.get("extracted_data"),
+    }
+
+
+async def get_record_by_processing_id(
+        storage_service,
         processing_id: str,
 ) -> Optional[dict]:
     """
-    Fetch a single processing record from MongoDB.
+    Retrieve a single record by processing_id.
 
     Args:
-        mongo_client: MongoDB client
-        processing_id: Record identifier
+        storage_service: StorageService instance
+        processing_id: Unique processing identifier
 
     Returns:
-        Processing record or None
+        Record dictionary or None
     """
     try:
-        record = await mongo_client.find_one(
-            collection=settings.MONGODB_DB_COLLECTION,
-            query={"processing_id": processing_id}
-        )
-        return record
+        record = await storage_service.get_record_by_processing_id(processing_id)
+        return record_to_dict(record)
     except Exception as e:
-        logger.error(f"❌ Database query failed: {e}")
-        raise
-
-
-async def fetch_processing_records(
-        mongo_client,
-        page: int = 1,
-        page_size: int = 20,
-        form_type: Optional[str] = None,
-        status_filter: Optional[str] = None,
-) -> tuple[int, List[dict]]:
-    """
-    Fetch paginated processing records from MongoDB.
-
-    Args:
-        mongo_client: MongoDB client
-        page: Page number (1-indexed)
-        page_size: Records per page
-        form_type: Filter by form type
-        status_filter: Filter by status
-
-    Returns:
-        Tuple of (total_count, records_list)
-    """
-    try:
-        # Build query
-        query = {}
-        if form_type:
-            query["form_type"] = form_type
-        if status_filter:
-            query["status"] = status_filter
-
-        # Count total
-        total = await mongo_client.count_documents(
-            collection=settings.MONGODB_DB_COLLECTION,
-            query=query
-        )
-
-        # Fetch with pagination
-        skip = (page - 1) * page_size
-        records = await mongo_client.find(
-            collection=settings.MONGODB_DB_COLLECTION,
-            query=query,
-            sort=[("timestamp", -1)],
-            skip=skip,
-            limit=page_size
-        )
-
-        logger.info(
-            f"📊 Fetched {len(records)} records "
-            f"(page {page}, total {total})"
-        )
-
-        return total, records
-
-    except Exception as e:
-        logger.error(f"❌ Database query failed: {e}")
-        raise
-
-
-async def calculate_statistics(mongo_client) -> dict:
-    """
-    Calculate processing statistics.
-
-    Args:
-        mongo_client: MongoDB client
-
-    Returns:
-        Statistics dictionary
-    """
-    try:
-        # Get all records
-        all_records = await mongo_client.find(
-            collection=settings.MONGODB_DB_COLLECTION,
-            query={}
-        )
-
-        if not all_records:
-            return {
-                "total_processed": 0,
-                "completed": 0,
-                "failed": 0,
-                "in_progress": 0,
-                "average_confidence": None,
-                "form_types": {},
-            }
-
-        # Calculate stats
-        total = len(all_records)
-        completed = sum(1 for r in all_records if r.get("status") == "completed")
-        failed = sum(1 for r in all_records if r.get("status") == "failed")
-        in_progress = sum(1 for r in all_records if r.get("status") == "processing")
-
-        # Calculate average confidence
-        confidences = [
-            r.get("extraction", {}).get("confidence")
-            for r in all_records
-            if r.get("extraction", {}).get("confidence") is not None
-        ]
-        avg_confidence = (
-            sum(confidences) / len(confidences) if confidences else None
-        )
-
-        # Count form types
-        form_types = {}
-        for record in all_records:
-            ft = record.get("form_type", "UNKNOWN")
-            form_types[ft] = form_types.get(ft, 0) + 1
-
-        logger.info(
-            f"📈 Statistics: total={total}, completed={completed}, "
-            f"failed={failed}, in_progress={in_progress}"
-        )
-
-        return {
-            "total_processed": total,
-            "completed": completed,
-            "failed": failed,
-            "in_progress": in_progress,
-            "average_confidence": avg_confidence,
-            "form_types": form_types,
-        }
-
-    except Exception as e:
-        logger.error(f"❌ Statistics calculation failed: {e}")
+        logger.error(f"❌ Failed to fetch record {processing_id}: {e}")
         raise
 
 
 # ==================== ROUTES ====================
 @router.get(
-    "/{processing_id}",
-    response_model=ProcessingHistory,
-    summary="Get processing record",
-    tags=["history"]
-)
-async def get_processing_history(
-        processing_id: str = Field(..., description="Processing job ID"),
-        request: Request = None,
-) -> ProcessingHistory:
-    """
-    Retrieve a specific processing record by ID.
-
-    Returns the complete processing history including extracted data,
-    confidence scores, and any errors that occurred.
-
-    **Path Parameters:**
-    - processing_id: Unique identifier from upload response
-
-    **Response:**
-    - processing_id: Job identifier
-    - status: Processing status (processing, completed, failed)
-    - form_type: Detected medical form type (ITF, NAR, etc.)
-    - timestamp: Processing timestamp (ISO 8601)
-    - extraction: Extracted patient and form data
-    - confidence: Overall extraction confidence (0-1)
-    - error: Error message if processing failed
-
-    **Errors:**
-    - 404: Record not found
-    - 503: Service unavailable
-    - 500: Database error
-
-    **Example:**
-    ```bash
-    curl http://localhost:6000/api/history/abc123def456
-    ```
-    """
-
-    logger.info(f"🔍 History request: {processing_id}")
-
-    try:
-        # ✅ CHANGE 1: Access MongoDB from app.state
-        mongo_client = request.app.state.mongo
-
-        if not mongo_client:
-            logger.error("❌ MongoDB client not initialized")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Database service not available"
-            )
-
-        # ==================== FETCH RECORD ====================
-        try:
-            record = await fetch_processing_record(mongo_client, processing_id)
-
-            if not record:
-                logger.warning(f"⚠️  Record not found: {processing_id}")
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Processing record '{processing_id}' not found"
-                )
-
-            # ==================== FORMAT RESPONSE ====================
-            extraction = record.get("extraction", {})
-            confidence = (
-                extraction.get("confidence")
-                if extraction else None
-            )
-
-            logger.info(
-                f"✅ Record retrieved: {processing_id} "
-                f"(status={record.get('status')})"
-            )
-
-            return ProcessingHistory(
-                processing_id=processing_id,
-                status=record.get("status", "unknown"),
-                form_type=record.get("form_type", "UNKNOWN"),
-                timestamp=record.get("timestamp", datetime.utcnow().isoformat()),
-                file_name=record.get("file_name"),
-                extraction=FormExtractionData(
-                    patient_name=extraction.get("patient_name"),
-                    patient_id=extraction.get("patient_id"),
-                    date_of_birth=extraction.get("date_of_birth"),
-                    form_type=extraction.get("form_type"),
-                    confidence=extraction.get("confidence"),
-                    fields=extraction.get("fields"),
-                ) if extraction else None,
-                confidence=confidence,
-                error=record.get("error"),
-            )
-
-        except HTTPException:
-            raise
-
-        except Exception as e:
-            logger.error(f"❌ Record fetch failed: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to retrieve record: {str(e)}"
-            )
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        logger.error(f"❌ History handler error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"History request failed: {str(e)}"
-        )
-
-
-@router.get(
     "/",
-    response_model=HistoryListResponse,
-    summary="List processing history",
+    response_model=HistoryResponse,
+    summary="Get form processing history",
     tags=["history"]
 )
-async def list_processing_history(
+async def get_history(
         request: Request,
         page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-        page_size: int = Query(20, ge=1, le=100, description="Records per page"),
+        limit: int = Query(20, ge=1, le=100, description="Records per page"),
         form_type: Optional[str] = Query(None, description="Filter by form type (ITF, NAR)"),
-        status: Optional[str] = Query(None, description="Filter by status (processing, completed, failed)"),
-) -> HistoryListResponse:
+        status_filter: Optional[str] = Query(None, description="Filter by status (pending, completed, failed)"),
+) -> HistoryResponse:
     """
-    List all processing records with pagination and filtering.
+    Retrieve paginated form processing history.
 
-    Returns a paginated list of form processing records with optional
-    filtering by form type and status.
+    Supports filtering by form_type and status. Default ordering is by
+    creation date (most recent first).
 
     **Query Parameters:**
-    - page: Page number, default 1
-    - page_size: Records per page, default 20, max 100
-    - form_type: Filter by form type (ITF, NAR, etc.)
-    - status: Filter by status (processing, completed, failed)
+    - page: Page number (default 1, minimum 1)
+    - limit: Records per page (default 20, maximum 100)
+    - form_type: Filter by form type (ITF, NAR)
+    - status_filter: Filter by status (pending, completed, failed)
 
     **Response:**
     - total: Total number of matching records
     - page: Current page number
-    - page_size: Records returned per page
-    - items: Array of processing records
-    - has_more: Whether more pages exist
-
-    **Errors:**
-    - 503: Service unavailable
-    - 500: Database error
+    - limit: Records per page
+    - records: Array of form records
 
     **Example:**
     ```bash
-    # Get first page
+    # Get first page (20 records)
     curl http://localhost:6000/api/history/
 
-    # Get page 2 with 50 items
-    curl "http://localhost:6000/api/history/?page=2&page_size=50"
+    # Get page 2 with 50 records per page
+    curl "http://localhost:6000/api/history/?page=2&limit=50"
 
     # Filter by form type
     curl "http://localhost:6000/api/history/?form_type=ITF"
 
     # Filter by status
-    curl "http://localhost:6000/api/history/?status=completed"
+    curl "http://localhost:6000/api/history/?status_filter=completed"
     ```
     """
-
-    logger.info(
-        f"📋 List history request: "
-        f"page={page}, page_size={page_size}, "
-        f"form_type={form_type}, status={status}"
-    )
+    logger.debug(f"📜 Fetching history: page={page}, limit={limit}")
 
     try:
-        # ✅ CHANGE 2: Access MongoDB from app.state
-        mongo_client = request.app.state.mongo
+        # ✅ CHANGE 1: Access storage from app.state
+        storage_service = request.app.state.storage
 
-        if not mongo_client:
-            logger.error("❌ MongoDB client not initialized")
+        if not storage_service:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Database service not available"
+                detail="Storage service not available"
             )
 
-        # ==================== FETCH RECORDS ====================
-        try:
-            total, records = await fetch_processing_records(
-                mongo_client=mongo_client,
-                page=page,
-                page_size=page_size,
-                form_type=form_type,
-                status_filter=status,
-            )
+        # Build filter
+        filters = {}
+        if form_type:
+            filters["form_type"] = form_type.upper()
+        if status_filter:
+            filters["status"] = status_filter.lower()
 
-            # ==================== FORMAT RESPONSE ====================
-            items = []
-            for record in records:
-                extraction = record.get("extraction", {})
-                confidence = (
-                    extraction.get("confidence")
-                    if extraction else None
-                )
+        logger.debug(f"Applying filters: {filters}")
 
-                items.append(ProcessingHistory(
-                    processing_id=record.get("processing_id", ""),
-                    status=record.get("status", "unknown"),
-                    form_type=record.get("form_type", "UNKNOWN"),
-                    timestamp=record.get("timestamp", datetime.utcnow().isoformat()),
-                    file_name=record.get("file_name"),
-                    extraction=FormExtractionData(
-                        patient_name=extraction.get("patient_name"),
-                        patient_id=extraction.get("patient_id"),
-                        date_of_birth=extraction.get("date_of_birth"),
-                        form_type=extraction.get("form_type"),
-                        confidence=extraction.get("confidence"),
-                        fields=extraction.get("fields"),
-                    ) if extraction else None,
-                    confidence=confidence,
-                    error=record.get("error"),
-                ))
+        # Fetch records
+        result = await storage_service.get_records(
+            page=page,
+            limit=limit,
+            filters=filters,
+        )
 
-            has_more = (page * page_size) < total
+        records = [
+            FormRecord(**record_to_dict(rec))
+            for rec in result.get("records", [])
+        ]
 
-            logger.info(
-                f"✅ History listed: {len(items)} records "
-                f"(page {page}/{(total + page_size - 1) // page_size})"
-            )
+        response = HistoryResponse(
+            total=result.get("total", 0),
+            page=page,
+            limit=limit,
+            records=records,
+        )
 
-            return HistoryListResponse(
-                total=total,
-                page=page,
-                page_size=page_size,
-                items=items,
-                has_more=has_more,
-            )
-
-        except Exception as e:
-            logger.error(f"❌ Record fetch failed: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to retrieve records: {str(e)}"
-            )
+        logger.debug(f"✅ Retrieved {len(records)} records")
+        return response
 
     except HTTPException:
         raise
 
     except Exception as e:
-        logger.error(f"❌ List handler error: {e}", exc_info=True)
+        logger.error(f"❌ Failed to fetch history: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"List request failed: {str(e)}"
+            detail="Failed to fetch history"
+        )
+
+
+@router.get(
+    "/{processing_id}",
+    response_model=RecordResponse,
+    summary="Get single record by processing_id",
+    tags=["history"]
+)
+async def get_record(
+        request: Request,
+        # ✅ CHANGE 2: Use Path() for path parameter
+        processing_id: str = Path(..., description="Unique processing identifier"),
+) -> RecordResponse:
+    """
+    Retrieve a single form processing record by processing_id.
+
+    **Path Parameters:**
+    - processing_id: Unique identifier returned by upload endpoint
+
+    **Response:**
+    - record: Complete form record with all details
+    - file_url: MinIO URL for the uploaded file
+
+    **Errors:**
+    - 404: Record not found
+    - 503: Storage service unavailable
+
+    **Example:**
+    ```bash
+    curl http://localhost:6000/api/history/proc-abc123def456
+    ```
+    """
+    logger.debug(f"🔍 Fetching record: {processing_id}")
+
+    try:
+        # ✅ CHANGE 3: Access storage from app.state
+        storage_service = request.app.state.storage
+
+        if not storage_service:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Storage service not available"
+            )
+
+        record = await get_record_by_processing_id(storage_service, processing_id)
+
+        if not record:
+            logger.warning(f"⚠️  Record not found: {processing_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Record not found: {processing_id}"
+            )
+
+        response = RecordResponse(
+            record=FormRecord(**record),
+            file_url=record.get("file_url"),
+        )
+
+        logger.debug(f"✅ Retrieved record: {processing_id}")
+        return response
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch record"
         )
 
 
 @router.get(
     "/stats/overview",
-    response_model=HistoryStatsResponse,
-    summary="Get processing statistics",
+    response_model=StatsOverview,
+    summary="Get statistics overview",
     tags=["history"]
 )
-async def get_history_stats(
-        request: Request,
-) -> HistoryStatsResponse:
+async def get_stats_overview(request: Request) -> StatsOverview:
     """
-    Get aggregate statistics about form processing.
+    Retrieve aggregate statistics across all records.
 
-    Returns overall statistics including total processed forms,
-    success/failure counts, and average confidence.
+    Includes total count, completion rate, failure count, and average
+    confidence score for successfully processed records.
 
     **Response:**
-    - total_processed: Total number of forms processed
-    - completed: Number of successfully completed forms
-    - failed: Number of failed processing attempts
-    - in_progress: Number of currently processing forms
-    - average_confidence: Average extraction confidence (0-1)
-    - form_types: Count of forms by type
-
-    **Errors:**
-    - 503: Service unavailable
-    - 500: Calculation error
+    - total: Total records processed
+    - completed: Successfully completed records
+    - failed: Failed processing records
+    - pending: Pending/in-progress records
+    - average_confidence: Average confidence score
+    - completion_rate: Percentage completed
 
     **Example:**
     ```bash
     curl http://localhost:6000/api/history/stats/overview
     ```
     """
-
-    logger.info("📈 Statistics request")
+    logger.debug("📊 Fetching statistics overview")
 
     try:
-        # ✅ CHANGE 3: Access MongoDB from app.state
-        mongo_client = request.app.state.mongo
+        # ✅ CHANGE 4: Access storage from app.state
+        storage_service = request.app.state.storage
 
-        if not mongo_client:
-            logger.error("❌ MongoDB client not initialized")
+        if not storage_service:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Database service not available"
+                detail="Storage service not available"
             )
 
-        # ==================== CALCULATE STATS ====================
-        try:
-            stats = await calculate_statistics(mongo_client)
+        stats = await storage_service.get_statistics()
 
-            logger.info(
-                f"✅ Statistics calculated: "
-                f"total={stats['total_processed']}, "
-                f"completed={stats['completed']}"
-            )
+        response = StatsOverview(
+            total=stats.get("total", 0),
+            completed=stats.get("completed", 0),
+            failed=stats.get("failed", 0),
+            pending=stats.get("pending", 0),
+            average_confidence=stats.get("average_confidence"),
+            completion_rate=stats.get("completion_rate", 0.0),
+        )
 
-            return HistoryStatsResponse(
-                total_processed=stats["total_processed"],
-                completed=stats["completed"],
-                failed=stats["failed"],
-                in_progress=stats["in_progress"],
-                average_confidence=stats["average_confidence"],
-                form_types=stats["form_types"],
-            )
-
-        except Exception as e:
-            logger.error(f"❌ Statistics calculation failed: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to calculate statistics: {str(e)}"
-            )
+        logger.debug(f"✅ Retrieved statistics: {response}")
+        return response
 
     except HTTPException:
         raise
 
     except Exception as e:
-        logger.error(f"❌ Stats handler error: {e}", exc_info=True)
+        logger.error(f"❌ Failed to fetch statistics: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Statistics request failed: {str(e)}"
+            detail="Failed to fetch statistics"
         )
 
 
 @router.delete(
     "/{processing_id}",
-    summary="Delete processing record",
+    response_model=DeleteResponse,
+    summary="Delete a record and associated files",
     tags=["history"]
 )
-async def delete_processing_record(
-        processing_id: str = Field(..., description="Processing job ID"),
-        request: Request = None,
-) -> dict:
+async def delete_record(
+        request: Request,
+        # ✅ CHANGE 5: Use Path() for path parameter
+        processing_id: str = Path(..., description="Unique processing identifier"),
+) -> DeleteResponse:
     """
-    Delete a processing record and associated files.
+    Delete a form processing record and associated MinIO files.
 
-    Removes the processing record from the database and deletes
-    associated files from MinIO storage.
+    Removes both the database record and all uploaded files from
+    MinIO object storage. This action cannot be undone.
 
     **Path Parameters:**
     - processing_id: Unique identifier of record to delete
 
     **Response:**
-    - processing_id: Deleted record identifier
-    - deleted: Whether deletion was successful
-    - message: Status message
+    - deleted: Success status
+    - processing_id: Deleted identifier
+    - message: Deletion details
 
     **Errors:**
     - 404: Record not found
-    - 503: Service unavailable
-    - 500: Deletion error
+    - 503: Storage service unavailable
 
     **Example:**
     ```bash
-    curl -X DELETE http://localhost:6000/api/history/abc123def456
+    curl -X DELETE http://localhost:6000/api/history/proc-abc123def456
     ```
     """
-
-    logger.info(f"🗑️  Delete request: {processing_id}")
+    logger.debug(f"🗑️  Deleting record: {processing_id}")
 
     try:
-        # ✅ CHANGE 4: Access MongoDB from app.state
-        mongo_client = request.app.state.mongo
+        # ✅ CHANGE 6: Access storage from app.state
         storage_service = request.app.state.storage
 
-        if not mongo_client or not storage_service:
-            logger.error("❌ Services not initialized")
+        if not storage_service:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Database or storage service not available"
+                detail="Storage service not available"
             )
 
-        # ==================== CHECK RECORD EXISTS ====================
-        try:
-            record = await fetch_processing_record(mongo_client, processing_id)
+        # Get record first
+        record = await get_record_by_processing_id(storage_service, processing_id)
 
-            if not record:
-                logger.warning(f"⚠️  Record not found: {processing_id}")
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Processing record '{processing_id}' not found"
-                )
-
-            # ==================== DELETE RECORD ====================
-            await mongo_client.delete_one(
-                collection=settings.MONGODB_DB_COLLECTION,
-                query={"processing_id": processing_id}
+        if not record:
+            logger.warning(f"⚠️  Record not found for deletion: {processing_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Record not found: {processing_id}"
             )
 
-            logger.info(f"✅ Record deleted from database: {processing_id}")
+        # Delete from storage (handles both MongoDB and MinIO)
+        success = await storage_service.delete_record(processing_id)
 
-            # ==================== DELETE FILES ====================
-            try:
-                # Delete associated files from MinIO
-                file_prefix = f"{processing_id}/"
-                await storage_service.delete_files_by_prefix(file_prefix)
-                logger.info(f"✅ Files deleted from storage: {processing_id}")
-            except Exception as e:
-                logger.warning(
-                    f"⚠️  Failed to delete files from storage: {e} "
-                    f"(record already deleted from DB)"
-                )
-
-            return {
-                "processing_id": processing_id,
-                "deleted": True,
-                "message": "Processing record and associated files deleted"
-            }
-
-        except HTTPException:
-            raise
-
-        except Exception as e:
-            logger.error(f"❌ Deletion failed: {e}", exc_info=True)
+        if not success:
+            logger.warning(f"⚠️  Deletion failed for: {processing_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to delete record: {str(e)}"
+                detail="Failed to delete record"
             )
+
+        logger.info(f"✅ Record deleted: {processing_id}")
+
+        return DeleteResponse(
+            deleted=True,
+            processing_id=processing_id,
+            message=f"Record and associated files deleted successfully"
+        )
 
     except HTTPException:
         raise
 
     except Exception as e:
-        logger.error(f"❌ Delete handler error: {e}", exc_info=True)
+        logger.error(f"❌ Failed to delete record {processing_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Delete request failed: {str(e)}"
+            detail="Failed to delete record"
         )
