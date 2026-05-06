@@ -312,7 +312,7 @@ class Settings(BaseSettings):
         logger.info("🤖 Qwen LLM Configuration:")
         logger.info(f"   Service URL: {self.QWEN_SERVICE_URL}")
         logger.info(f"   Model: {self.QWEN_MODEL}")
-        logger.info(f"   Timeout: {self.QWEN_TIMEOUT}s")
+        logger.info(f"   Timeout: {self.QWEN_REQUEST_TIMEOUT}s")
         logger.info(f"   Max Retries: {self.QWEN_MAX_RETRIES}")
 
         # File Upload Configuration

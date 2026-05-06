@@ -229,7 +229,7 @@ class FormProcessor:
                 return (raw_json, {}, f"Agent error: {str(e)}")
 
             # Create temp markdown file
-            temp_md = Path(f"/tmp/{form_type_upper.lower()}_{image_path.stem}.md")
+            temp_md = Path(f"{settings.UPLOAD_TEMP_DIR}/{form_type_upper.lower()}_{image_path.stem}.md")
 
             if isinstance(raw_json, dict):
                 md_content = f"\n```json\n"
