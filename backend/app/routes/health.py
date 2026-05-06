@@ -33,14 +33,6 @@ async def health_check():
             if not mongo_health:
                 health_status["status"] = "degraded"
 
-        # Check Redis
-        redis_client = services.get("redis_client")
-        if redis_client:
-            redis_health = redis_client.health_check()
-            health_status["services"]["redis"] = "healthy" if redis_health else "unhealthy"
-            if not redis_health:
-                health_status["status"] = "degraded"
-
         # Check Qwen
         qwen_client = services.get("qwen_client")
         if qwen_client:
@@ -73,7 +65,6 @@ async def detailed_health_check():
     # Check each service with timing
     services_to_check = [
         ("mongodb", services.get("mongo_client"), "health_check"),
-        ("redis", services.get("redis_client"), "health_check"),
     ]
 
     for service_name, service_instance, check_method in services_to_check:

@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     API_TITLE: str = Field(default="BRIDGE Form Processor API")
     API_VERSION: str = Field(default="1.0.0")
     DEBUG: bool = Field(default=False)
-    HOST: str = Field(default="0.0.0.0")
-    PORT: int = Field(default=6443)
+    API_HOST: str = Field(default="0.0.0.0")
+    API_PORT: int = Field(default=6443)
 
     # ==================== SSL/TLS CONFIGURATION ====================
     USE_HTTPS: bool = Field(default=True, env="USE_HTTPS")
