@@ -1,16 +1,5 @@
 # backend/app/routes/health.py
-"""
-Health check route for monitoring service status.
-Verifies connectivity to all external services (MongoDB, MinIO).
-
-✅ REFACTORED:
-  - Access services via request.app.state
-  - Removed module-level service assignments
-  - Active health checks for all dependencies
-  - Comprehensive error handling and logging
-  - Detailed status reporting
-  - Fixed MinIO list_buckets() async/sync handling
-"""
+"""Health check route with robust error handling."""
 import asyncio
 import logging
 import time
@@ -23,7 +12,6 @@ from pydantic import BaseModel, Field
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 
@@ -51,11 +39,7 @@ async def check_mongodb_health(mongo_client) -> tuple[str, Optional[str], Option
     """
     Check MongoDB connectivity and health.
 
-    Args:
-        mongo_client: MongoDB client
-
-    Returns:
-        Tuple of (status, version, latency_ms)
+    Uses the new async health_check() method on MongoClient.
     """
     if mongo_client is None:
         logger.warning("⚠️  MongoDB client not initialized")
@@ -64,24 +48,22 @@ async def check_mongodb_health(mongo_client) -> tuple[str, Optional[str], Option
     try:
         start_time = time.time()
 
-        # Wrap blocking call with asyncio.to_thread for async compatibility
-        server_info = await asyncio.wait_for(
-            asyncio.to_thread(mongo_client.server_info),
-            timeout=5.0
-        )
+        # Use the new async health_check method with timeout
+        health = await mongo_client.health_check(timeout=5.0)
 
         latency = (time.time() - start_time) * 1000
-        version = server_info.get("version", "unknown")
 
-        logger.debug(f"✅ MongoDB healthy (latency: {latency:.0f}ms, version: {version})")
-        return "healthy", version, latency
-
-    except asyncio.TimeoutError:
-        logger.warning("⚠️  MongoDB health check timeout (5s)")
-        return "unhealthy", None, None
+        if health["connected"]:
+            version = health.get("version", "unknown")
+            logger.debug(f"✅ MongoDB healthy (latency: {latency:.0f}ms, version: {version})")
+            return "healthy", version, latency
+        else:
+            error = health.get("error", "Unknown error")
+            logger.warning(f"⚠️  MongoDB unhealthy: {error}")
+            return "unhealthy", None, latency
 
     except Exception as e:
-        logger.warning(f"⚠️  MongoDB health check failed: {type(e).__name__}: {e}")
+        logger.error(f"⚠️  MongoDB health check exception: {type(e).__name__}: {e}")
         return "unhealthy", None, None
 
 
@@ -89,11 +71,7 @@ async def check_minio_health(minio_client) -> tuple[str, Optional[str], Optional
     """
     Check MinIO connectivity and health.
 
-    Args:
-        minio_client: MinIO client wrapper
-
-    Returns:
-        Tuple of (status, bucket_count, latency_ms)
+    Handles both direct Minio client and wrapper implementations.
     """
     if minio_client is None:
         logger.warning("⚠️  MinIO client not initialized")
@@ -102,21 +80,29 @@ async def check_minio_health(minio_client) -> tuple[str, Optional[str], Optional
     try:
         start_time = time.time()
 
-        # ✅ FIX: Access the underlying Minio client and call list_buckets()
-        # MinIO SDK's list_buckets() is a synchronous blocking call
-        if not hasattr(minio_client, 'client'):
-            logger.warning("⚠️  MinIO wrapper missing 'client' attribute")
+        bucket_count = 0
+
+        # Method 1: Wrapper with client attribute
+        if hasattr(minio_client, 'client'):
+            buckets = await asyncio.wait_for(
+                asyncio.to_thread(minio_client.client.list_buckets),
+                timeout=5.0
+            )
+            bucket_count = len(list(buckets)) if buckets else 0
+
+        # Method 2: Direct list_buckets on client
+        elif hasattr(minio_client, 'list_buckets'):
+            buckets = await asyncio.wait_for(
+                asyncio.to_thread(minio_client.list_buckets),
+                timeout=5.0
+            )
+            bucket_count = len(list(buckets)) if buckets else 0
+
+        else:
+            logger.warning("⚠️  MinIO client has no list_buckets method")
             return "unhealthy", None, None
 
-        # Wrap blocking call with asyncio.to_thread for async compatibility
-        buckets = await asyncio.wait_for(
-            asyncio.to_thread(minio_client.client.list_buckets),
-            timeout=5.0
-        )
-
         latency = (time.time() - start_time) * 1000
-        bucket_count = len(list(buckets)) if buckets else 0
-
         logger.debug(f"✅ MinIO healthy (latency: {latency:.0f}ms, buckets: {bucket_count})")
         return "healthy", str(bucket_count), latency
 
@@ -132,12 +118,6 @@ async def check_minio_health(minio_client) -> tuple[str, Optional[str], Optional
 async def check_form_processor_health(form_processor) -> tuple[str, Optional[str]]:
     """
     Check FormProcessor initialization status.
-
-    Args:
-        form_processor: FormProcessor instance
-
-    Returns:
-        Tuple of (status, error_message)
     """
     if form_processor is None:
         logger.warning("⚠️  FormProcessor not initialized")
@@ -171,42 +151,17 @@ async def health_check(request: Request) -> HealthCheckResponse:
     Comprehensive health check of all services.
 
     Performs active checks on MongoDB, MinIO, and FormProcessor
-    to ensure all components are operational. Used for monitoring
-    and load balancer health checks.
-
-    **Response:**
-    - status: Overall health (healthy, degraded, unhealthy)
-    - timestamp: Check timestamp (ISO 8601)
-    - duration_ms: Total check duration in milliseconds
-    - services: Individual service statuses with latency
-    - version: API version
-    - environment: Running environment (development, production)
-
-    **Service Statuses:**
-    - api: Application server status
-    - mongodb: Database connectivity
-    - minio: Object storage connectivity
-    - form_processor: Form processing service availability
+    to ensure all components are operational.
 
     **Status Codes:**
     - 200: All services healthy
     - 503: One or more services degraded/unhealthy
-
-    **Examples:**
-    ```bash
-    # Basic health check
-    curl https://localhost:6443/api/health/
-
-    # From Docker health check
-    curl --fail https://localhost:6443/api/health/ || exit 1
-    ```
     """
-
     check_start = time.time()
     logger.debug("🏥 Health check initiated")
 
     try:
-        # ✅ Access services from app.state (type-safe container)
+        # Access services from app.state
         services = request.app.state.services
         mongo_client = request.app.state.mongo
         minio_client = request.app.state.minio
@@ -237,11 +192,11 @@ async def health_check(request: Request) -> HealthCheckResponse:
             error=None if db_status == "healthy" else "Connection failed",
         )
 
-        # MinIO status - ✅ FIXED: Proper async handling of list_buckets()
+        # MinIO status
         minio_status, minio_bucket_count, minio_latency = await check_minio_health(minio_client)
         service_statuses["minio"] = ServiceStatus(
             status=minio_status,
-            version=minio_bucket_count,  # Shows bucket count instead of bucket name
+            version=minio_bucket_count,
             latency_ms=minio_latency,
             error=None if minio_status == "healthy" else "Connection failed",
         )
@@ -314,27 +269,9 @@ async def health_check(request: Request) -> HealthCheckResponse:
         )
 
 
-@router.get(
-    "/live",
-    summary="Liveness probe",
-    tags=["health"]
-)
+@router.get("/live", tags=["health"])
 async def liveness_probe(request: Request) -> dict:
-    """
-    Kubernetes liveness probe endpoint.
-
-    Returns 200 if the application is running.
-    Used by Kubernetes to determine if the container should be restarted.
-
-    **Response:**
-    - status: Always "alive" if endpoint is reachable
-    - timestamp: Current timestamp
-
-    **Example:**
-    ```bash
-    curl https://localhost:6443/api/health/live
-    ```
-    """
+    """Kubernetes liveness probe - returns 200 if app is running."""
     logger.debug("💚 Liveness probe")
     return {
         "status": "alive",
@@ -342,40 +279,16 @@ async def liveness_probe(request: Request) -> dict:
     }
 
 
-@router.get(
-    "/ready",
-    summary="Readiness probe",
-    tags=["health"]
-)
+@router.get("/ready", tags=["health"])
 async def readiness_probe(request: Request) -> dict:
-    """
-    Kubernetes readiness probe endpoint.
-
-    Returns 200 only if the application is ready to serve traffic.
-    Checks critical service dependencies.
-
-    **Response:**
-    - status: "ready" if all critical services are available
-    - ready: Boolean indicating readiness
-    - timestamp: Current timestamp
-
-    **Errors:**
-    - 503: Services not ready
-
-    **Example:**
-    ```bash
-    curl https://localhost:6443/api/health/ready
-    ```
-    """
+    """Kubernetes readiness probe - returns 200 if ready to serve."""
     logger.debug("🟢 Readiness probe")
 
     try:
-        # Access services from app.state
         mongo_client = request.app.state.mongo
         minio_client = request.app.state.minio
         form_processor = request.app.state.form_processor
 
-        # Check critical services exist
         is_ready = all([
             mongo_client is not None,
             minio_client is not None,
@@ -415,35 +328,12 @@ async def readiness_probe(request: Request) -> dict:
         )
 
 
-@router.get(
-    "/startup",
-    summary="Startup probe",
-    tags=["health"]
-)
+@router.get("/startup", tags=["health"])
 async def startup_probe(request: Request) -> dict:
-    """
-    Kubernetes startup probe endpoint.
-
-    Returns 200 when the application has completed startup.
-    Kubernetes waits for this before other probes.
-
-    **Response:**
-    - status: "started" when ready
-    - started: Boolean indicating startup completion
-    - timestamp: Current timestamp
-
-    **Errors:**
-    - 503: Still starting up
-
-    **Example:**
-    ```bash
-    curl https://localhost:6443/api/health/startup
-    ```
-    """
+    """Kubernetes startup probe - returns 200 when startup is complete."""
     logger.debug("🚀 Startup probe")
 
     try:
-        # Access services from app.state
         services = request.app.state.services
 
         if services is None:
