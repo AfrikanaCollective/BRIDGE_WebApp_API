@@ -100,53 +100,6 @@ class Settings(BaseSettings):
         case_sensitive = True
         extra = "allow"  # Allow extra fields from .env
 
-        # ==================== VALIDATORS ====================
-        @field_validator("CORS_ORIGINS", mode="before")
-        @classmethod
-        def parse_cors_origins(cls, v):
-            """Parse CORS_ORIGINS from JSON string or list."""
-            if isinstance(v, str):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    logger.warning(f"⚠️  Invalid JSON for CORS_ORIGINS: {v}")
-                    return ["http://localhost:3000"]
-            return v
-
-        @field_validator("ALLOWED_EXTENSIONS", mode="before")
-        @classmethod
-        def parse_allowed_extensions(cls, v):
-            """Parse ALLOWED_EXTENSIONS from JSON string or list."""
-            if isinstance(v, str):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    logger.warning(f"⚠️  Invalid JSON for ALLOWED_EXTENSIONS: {v}")
-                    return ["png"]
-            return v
-
-        @field_validator("CORS_METHODS", mode="before")
-        @classmethod
-        def parse_cors_methods(cls, v):
-            """Parse CORS_METHODS from JSON string or list."""
-            if isinstance(v, str):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    return ["*"]
-            return v
-
-        @field_validator("CORS_HEADERS", mode="before")
-        @classmethod
-        def parse_cors_headers(cls, v):
-            """Parse CORS_HEADERS from JSON string or list."""
-            if isinstance(v, str):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    return ["*"]
-            return v
-
     def __init__(self, **data):
         """Initialize settings and log configuration."""
         super().__init__(**data)
