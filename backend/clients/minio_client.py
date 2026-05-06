@@ -252,6 +252,14 @@ class MinIOClient:
             logger.error(f"❌ Delete failed: {e}")
             return False
 
+    async def list_buckets(self):
+        """List all buckets"""
+        try:
+            buckets = self.client.list_buckets()
+            return buckets
+        except Exception as e:
+            raise Exception(f"Failed to list buckets: {e}")
+
     async def list_objects(
         self,
         prefix: str = "",

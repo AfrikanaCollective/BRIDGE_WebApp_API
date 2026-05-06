@@ -9,9 +9,11 @@ Verifies connectivity to all external services (MongoDB, MinIO).
   - Active health checks for all dependencies
   - Comprehensive error handling and logging
   - Detailed status reporting
+  - Fixed MinIO list_buckets() async/sync handling
 """
 import asyncio
 import logging
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -38,7 +40,7 @@ class HealthCheckResponse(BaseModel):
     """Overall health check response."""
     status: str = Field(..., description="Overall status (healthy, degraded, unhealthy)")
     timestamp: str = Field(..., description="Check timestamp (ISO 8601)")
-    uptime_seconds: Optional[float] = Field(None, description="Application uptime")
+    duration_ms: Optional[float] = Field(None, description="Check duration in milliseconds")
     services: dict[str, ServiceStatus] = Field(..., description="Individual service statuses")
     version: str = Field(..., description="API version")
     environment: str = Field(..., description="Environment name")
@@ -55,25 +57,31 @@ async def check_mongodb_health(mongo_client) -> tuple[str, Optional[str], Option
     Returns:
         Tuple of (status, version, latency_ms)
     """
-    try:
-        start_time = datetime.utcnow()
-        health_result = await mongo_client.health_check()
-        latency = (datetime.utcnow() - start_time).total_seconds() * 1000
+    if mongo_client is None:
+        logger.warning("⚠️  MongoDB client not initialized")
+        return "unhealthy", None, None
 
-        if health_result.get("connected"):
-            version = health_result.get("server_info", {}).get("version", "unknown")
-            logger.debug(f"✅ MongoDB healthy (latency: {latency:.0f}ms)")
-            return "healthy", version, latency
-        else:
-            error = health_result.get("error", "Unknown error")
-            logger.warning(f"⚠️  MongoDB unhealthy: {error}")
-            return "unhealthy", None, latency
+    try:
+        start_time = time.time()
+
+        # Wrap blocking call with asyncio.to_thread for async compatibility
+        server_info = await asyncio.wait_for(
+            asyncio.to_thread(mongo_client.server_info),
+            timeout=5.0
+        )
+
+        latency = (time.time() - start_time) * 1000
+        version = server_info.get("version", "unknown")
+
+        logger.debug(f"✅ MongoDB healthy (latency: {latency:.0f}ms, version: {version})")
+        return "healthy", version, latency
 
     except asyncio.TimeoutError:
-        logger.warning("⚠️  MongoDB health check timeout")
+        logger.warning("⚠️  MongoDB health check timeout (5s)")
         return "unhealthy", None, None
+
     except Exception as e:
-        logger.warning(f"⚠️  MongoDB health check failed: {e}")
+        logger.warning(f"⚠️  MongoDB health check failed: {type(e).__name__}: {e}")
         return "unhealthy", None, None
 
 
@@ -82,27 +90,42 @@ async def check_minio_health(minio_client) -> tuple[str, Optional[str], Optional
     Check MinIO connectivity and health.
 
     Args:
-        minio_client: MinIO client
+        minio_client: MinIO client wrapper
 
     Returns:
-        Tuple of (status, bucket_name, latency_ms)
+        Tuple of (status, bucket_count, latency_ms)
     """
+    if minio_client is None:
+        logger.warning("⚠️  MinIO client not initialized")
+        return "unhealthy", None, None
+
     try:
-        start_time = datetime.utcnow()
+        start_time = time.time()
 
-        # Attempt to list buckets
-        await minio_client.list_buckets()
-        latency = (datetime.utcnow() - start_time).total_seconds() * 1000
+        # ✅ FIX: Access the underlying Minio client and call list_buckets()
+        # MinIO SDK's list_buckets() is a synchronous blocking call
+        if not hasattr(minio_client, 'client'):
+            logger.warning("⚠️  MinIO wrapper missing 'client' attribute")
+            return "unhealthy", None, None
 
-        bucket = getattr(minio_client, "bucket_name", "unknown")
-        logger.debug(f"✅ MinIO healthy (latency: {latency:.0f}ms)")
-        return "healthy", bucket, latency
+        # Wrap blocking call with asyncio.to_thread for async compatibility
+        buckets = await asyncio.wait_for(
+            asyncio.to_thread(minio_client.client.list_buckets),
+            timeout=5.0
+        )
+
+        latency = (time.time() - start_time) * 1000
+        bucket_count = len(list(buckets)) if buckets else 0
+
+        logger.debug(f"✅ MinIO healthy (latency: {latency:.0f}ms, buckets: {bucket_count})")
+        return "healthy", str(bucket_count), latency
 
     except asyncio.TimeoutError:
-        logger.warning("⚠️  MinIO health check timeout")
+        logger.warning("⚠️  MinIO health check timeout (5s)")
         return "unhealthy", None, None
+
     except Exception as e:
-        logger.warning(f"⚠️  MinIO health check failed: {e}")
+        logger.warning(f"⚠️  MinIO health check failed: {type(e).__name__}: {e}")
         return "unhealthy", None, None
 
 
@@ -116,11 +139,15 @@ async def check_form_processor_health(form_processor) -> tuple[str, Optional[str
     Returns:
         Tuple of (status, error_message)
     """
-    try:
-        if form_processor is None:
-            return "unhealthy", "FormProcessor not initialized"
+    if form_processor is None:
+        logger.warning("⚠️  FormProcessor not initialized")
+        return "unhealthy", "FormProcessor not initialized"
 
+    try:
         # Check if processor has required attributes
+        if not hasattr(form_processor, "process"):
+            return "unhealthy", "FormProcessor missing 'process' method"
+
         if not hasattr(form_processor, "storage_service"):
             return "unhealthy", "FormProcessor missing storage service"
 
@@ -128,7 +155,7 @@ async def check_form_processor_health(form_processor) -> tuple[str, Optional[str
         return "healthy", None
 
     except Exception as e:
-        logger.warning(f"⚠️  FormProcessor check failed: {e}")
+        logger.warning(f"⚠️  FormProcessor check failed: {type(e).__name__}: {e}")
         return "unhealthy", str(e)
 
 
@@ -150,6 +177,7 @@ async def health_check(request: Request) -> HealthCheckResponse:
     **Response:**
     - status: Overall health (healthy, degraded, unhealthy)
     - timestamp: Check timestamp (ISO 8601)
+    - duration_ms: Total check duration in milliseconds
     - services: Individual service statuses with latency
     - version: API version
     - environment: Running environment (development, production)
@@ -167,24 +195,24 @@ async def health_check(request: Request) -> HealthCheckResponse:
     **Examples:**
     ```bash
     # Basic health check
-    curl http://localhost:6000/api/health/
+    curl https://localhost:6443/api/health/
 
     # From Docker health check
     curl --fail https://localhost:6443/api/health/ || exit 1
     ```
     """
 
-    check_start = datetime.utcnow()
+    check_start = time.time()
     logger.debug("🏥 Health check initiated")
 
     try:
-        # ✅ CHANGE 1: Access services from app.state
+        # ✅ Access services from app.state (type-safe container)
         services = request.app.state.services
         mongo_client = request.app.state.mongo
         minio_client = request.app.state.minio
         form_processor = request.app.state.form_processor
 
-        if not services:
+        if services is None:
             logger.error("❌ Services container not initialized")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -201,34 +229,22 @@ async def health_check(request: Request) -> HealthCheckResponse:
         )
 
         # MongoDB status
-        if mongo_client:
-            db_status, db_version, db_latency = await check_mongodb_health(mongo_client)
-            service_statuses["mongodb"] = ServiceStatus(
-                status=db_status,
-                version=db_version,
-                latency_ms=db_latency,
-                error="Connection failed" if db_status == "unhealthy" else None,
-            )
-        else:
-            service_statuses["mongodb"] = ServiceStatus(
-                status="unhealthy",
-                error="MongoDB client not initialized",
-            )
+        db_status, db_version, db_latency = await check_mongodb_health(mongo_client)
+        service_statuses["mongodb"] = ServiceStatus(
+            status=db_status,
+            version=db_version,
+            latency_ms=db_latency,
+            error=None if db_status == "healthy" else "Connection failed",
+        )
 
-        # MinIO status
-        if minio_client:
-            minio_status, minio_bucket, minio_latency = await check_minio_health(minio_client)
-            service_statuses["minio"] = ServiceStatus(
-                status=minio_status,
-                version=minio_bucket,
-                latency_ms=minio_latency,
-                error="Connection failed" if minio_status == "unhealthy" else None,
-            )
-        else:
-            service_statuses["minio"] = ServiceStatus(
-                status="unhealthy",
-                error="MinIO client not initialized",
-            )
+        # MinIO status - ✅ FIXED: Proper async handling of list_buckets()
+        minio_status, minio_bucket_count, minio_latency = await check_minio_health(minio_client)
+        service_statuses["minio"] = ServiceStatus(
+            status=minio_status,
+            version=minio_bucket_count,  # Shows bucket count instead of bucket name
+            latency_ms=minio_latency,
+            error=None if minio_status == "healthy" else "Connection failed",
+        )
 
         # FormProcessor status
         processor_status, processor_error = await check_form_processor_health(form_processor)
@@ -243,26 +259,36 @@ async def health_check(request: Request) -> HealthCheckResponse:
             if svc.status == "unhealthy"
         ]
 
-        if not unhealthy_services:
+        # Don't count "api" as critical for overall status
+        unhealthy_critical = [
+            name for name in unhealthy_services
+            if name != "api"
+        ]
+
+        if not unhealthy_critical:
             overall_status = "healthy"
             http_status = status.HTTP_200_OK
+        elif len(unhealthy_critical) == 1:
+            overall_status = "degraded"
+            http_status = status.HTTP_503_SERVICE_UNAVAILABLE
         else:
-            overall_status = "degraded" if len(unhealthy_services) < 2 else "unhealthy"
+            overall_status = "unhealthy"
             http_status = status.HTTP_503_SERVICE_UNAVAILABLE
 
-        check_duration = (datetime.utcnow() - check_start).total_seconds() * 1000
+        check_duration = (time.time() - check_start) * 1000
 
         logger.info(
             f"✅ Health check completed: {overall_status} "
             f"(duration: {check_duration:.0f}ms)"
         )
 
-        if unhealthy_services:
-            logger.warning(f"⚠️  Unhealthy services: {', '.join(unhealthy_services)}")
+        if unhealthy_critical:
+            logger.warning(f"⚠️  Unhealthy services: {', '.join(unhealthy_critical)}")
 
         response = HealthCheckResponse(
             status=overall_status,
-            timestamp=check_start.isoformat(),
+            timestamp=datetime.utcnow().isoformat(),
+            duration_ms=check_duration,
             services=service_statuses,
             version=settings.API_VERSION,
             environment=settings.ENVIRONMENT,
@@ -270,11 +296,9 @@ async def health_check(request: Request) -> HealthCheckResponse:
 
         # Return with appropriate status code
         if http_status != status.HTTP_200_OK:
-            # We need to return the response but with a 503 status
-            # FastAPI doesn't support this with response_model, so we raise
             raise HTTPException(
                 status_code=http_status,
-                detail="One or more services are unhealthy"
+                detail=f"Services unhealthy: {', '.join(unhealthy_critical)}"
             )
 
         return response
@@ -283,7 +307,7 @@ async def health_check(request: Request) -> HealthCheckResponse:
         raise
 
     except Exception as e:
-        logger.error(f"❌ Health check failed: {e}", exc_info=True)
+        logger.error(f"❌ Health check failed: {type(e).__name__}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Health check failed: {str(e)}"
@@ -308,7 +332,7 @@ async def liveness_probe(request: Request) -> dict:
 
     **Example:**
     ```bash
-    curl http://localhost:6000/api/health/live
+    curl https://localhost:6443/api/health/live
     ```
     """
     logger.debug("💚 Liveness probe")
@@ -340,18 +364,18 @@ async def readiness_probe(request: Request) -> dict:
 
     **Example:**
     ```bash
-    curl http://localhost:6000/api/health/ready
+    curl https://localhost:6443/api/health/ready
     ```
     """
     logger.debug("🟢 Readiness probe")
 
     try:
-        # ✅ CHANGE 2: Access services from app.state
+        # Access services from app.state
         mongo_client = request.app.state.mongo
         minio_client = request.app.state.minio
         form_processor = request.app.state.form_processor
 
-        # Check critical services
+        # Check critical services exist
         is_ready = all([
             mongo_client is not None,
             minio_client is not None,
@@ -366,17 +390,25 @@ async def readiness_probe(request: Request) -> dict:
                 "timestamp": datetime.utcnow().isoformat(),
             }
         else:
-            logger.warning("⚠️  Application not ready - services missing")
+            missing = []
+            if mongo_client is None:
+                missing.append("mongodb")
+            if minio_client is None:
+                missing.append("minio")
+            if form_processor is None:
+                missing.append("form_processor")
+
+            logger.warning(f"⚠️  Application not ready - missing: {', '.join(missing)}")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Services not initialized"
+                detail=f"Services not initialized: {', '.join(missing)}"
             )
 
     except HTTPException:
         raise
 
     except Exception as e:
-        logger.error(f"❌ Readiness check failed: {e}")
+        logger.error(f"❌ Readiness check failed: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Readiness check failed"
@@ -405,13 +437,13 @@ async def startup_probe(request: Request) -> dict:
 
     **Example:**
     ```bash
-    curl http://localhost:6000/api/health/startup
+    curl https://localhost:6443/api/health/startup
     ```
     """
     logger.debug("🚀 Startup probe")
 
     try:
-        # ✅ CHANGE 3: Access services from app.state
+        # Access services from app.state
         services = request.app.state.services
 
         if services is None:
@@ -432,7 +464,7 @@ async def startup_probe(request: Request) -> dict:
         raise
 
     except Exception as e:
-        logger.error(f"❌ Startup check failed: {e}")
+        logger.error(f"❌ Startup check failed: {type(e).__name__}: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Startup check failed"

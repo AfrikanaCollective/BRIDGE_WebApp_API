@@ -108,6 +108,14 @@ async def lifespan(app: FastAPI):
                 region=minio_config["region"],
             )
 
+            # ✅ VERIFY: Check that client has list_buckets capability
+            try:
+                buckets = minio_client.client.list_buckets()  # Test call
+                logger.info(f"✅ MinIO initialized with {len(buckets)} buckets")
+            except Exception as e:
+                logger.error(f"❌ MinIO initialization failed: {e}")
+                raise
+
             # Ensure bucket exists
             await minio_client.ensure_bucket_exists()
             logger.info(f"✅ MinIO ready: {minio_config['bucket_name']}")
