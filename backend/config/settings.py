@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     def __init__(self, **data):
         """Initialize settings and log configuration."""
         super().__init__(**data)
-        self._log_configuration()
+        self.log_configuration()
 
     @staticmethod
     def _mask_url(url: str, show_chars: int = 3) -> str:
@@ -270,7 +270,7 @@ class Settings(BaseSettings):
         return self.ENVIRONMENT.lower() == "development"
 
     # ==================== LOGGING CONFIGURATION ====================
-    def _log_configuration(self) -> None:
+    def log_configuration(self) -> None:
         """Log configuration settings (with masked secrets)."""
         logger.info("=" * 60)
         logger.info("📋 Configuration Summary")
