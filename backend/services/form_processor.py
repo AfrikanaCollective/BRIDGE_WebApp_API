@@ -13,10 +13,10 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 
-from app.config.settings import settings
-from app.agents.itf_agent import ITFAgent
-from app.agents.nar_agent import NARAgent
-from app.services.storage_service import StorageService
+from config.settings import settings
+from agents.itf_agent import ITFAgent
+from agents.nar_agent import NARAgent
+from services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 

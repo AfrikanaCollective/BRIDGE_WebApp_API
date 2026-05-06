@@ -1,7 +1,7 @@
 # backend/app/routes/history.py
 import logging
 from fastapi import APIRouter, HTTPException, Query
-from app.clients.mongo_client import MongoClient
+from clients.mongo_client import MongoClient
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/history", tags=["history"])

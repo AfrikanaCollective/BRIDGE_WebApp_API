@@ -9,9 +9,9 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
 
-from app.config.settings import settings
-from app.clients.mongo_client import MongoClient
-from app.clients.minio_client import MinIOClient
+from config.settings import settings
+from clients.mongo_client import MongoClient
+from clients.minio_client import MinIOClient
 
 logger = logging.getLogger(__name__)
 

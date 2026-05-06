@@ -3,7 +3,7 @@ ITF Page 1 Schema - Infant Treatment Form
 Contains: Mother's Details, Labour & Birth, Infant Details
 """
 
-from app.agents.config import FieldType, SectionType, ClinicalCategory, ENUM_MAPPINGS
+from agents.config import FieldType, SectionType, ClinicalCategory, ENUM_MAPPINGS
 
 # ==================== ITF PAGE 1 SCHEMA ====================
 

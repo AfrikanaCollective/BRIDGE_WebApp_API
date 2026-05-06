@@ -11,12 +11,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config.settings import settings
-from app.clients.mongo_client import MongoClient
-from app.clients.minio_client import MinIOClient
-from app.services.form_processor import FormProcessor
-from app.services.storage_service import StorageService
-from app.routes import upload, history, health
+from config.settings import settings
+from clients.mongo_client import MongoClient
+from clients.minio_client import MinIOClient
+from services.form_processor import FormProcessor
+from services.storage_service import StorageService
+from routes import upload, history, health
 
 logger = logging.getLogger(__name__)
 

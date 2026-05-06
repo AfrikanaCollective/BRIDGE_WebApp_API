@@ -1,6 +1,6 @@
 """NAR (Neonatal Activity Record) schemas."""
 
-from app.agents.config import get_form_schema
+from agents.config import get_form_schema
 
 __all__ = ['get_nar_schema']
 

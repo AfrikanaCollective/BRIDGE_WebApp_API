@@ -7,8 +7,8 @@ import sys
 import logging
 import uvicorn
 from pathlib import Path
-from app.main import app
-from app.config.settings import settings
+from main import app
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def configure_logging() -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(Path("logs/app.log").absolute()),
+            logging.FileHandler(Path("../logs/app.log").absolute()),
         ],
     )
 

@@ -4,7 +4,7 @@
 NAR Page 2 Schema - Neonatal Admission Record (Page 2)
 """
 
-from app.agents.config import FieldType, SectionType, ClinicalCategory, ENUM_MAPPINGS
+from agents.config import FieldType, SectionType, ClinicalCategory, ENUM_MAPPINGS
 
 NAR_PAGE_2_SCHEMA = {
 

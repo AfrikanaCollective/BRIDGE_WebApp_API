@@ -1,6 +1,6 @@
 """ITF (Internal Transfer Form) schemas."""
 
-from app.agents.config import get_form_schema
+from agents.config import get_form_schema
 
 __all__ = ['get_itf_schema']
 

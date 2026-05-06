@@ -23,11 +23,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p /app/certs /app/logs /app/uploads /tmp
+# Create necessary directories with proper permissions
+RUN mkdir -p \
+    /app/certs \
+    /app/logs \
+    /app/tmp/uploads \
+    && chmod 755 /app/logs \
+    && chmod 755 /app/tmp/uploads
 
-# Ensure proper permissions
-RUN chmod 755 /app/logs
+# Set proper permissions for certificates (if they exist in image)
+# Note: These will be overridden by volume mounts in docker-compose
+RUN if [ -f /app/certs/public.crt ]; then chmod 644 /app/certs/public.crt; fi && \
+    if [ -f /app/certs/private.key ]; then chmod 600 /app/certs/private.key; fi
+
 
 # Expose port
 EXPOSE 6443 6000

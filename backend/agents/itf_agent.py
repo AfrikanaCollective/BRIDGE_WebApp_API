@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-from app.agents.itf_tools import ITFTools
-from app.agents.config import get_form_schema, ClinicalCategory, FieldType
+from agents.itf_tools import ITFTools
+from agents.config import get_form_schema, ClinicalCategory, FieldType
 
 logger = logging.getLogger(__name__)
 

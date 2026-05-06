@@ -1,47 +1,35 @@
-"""NAR-specific tools for form processing."""
+"""ITF-specific tools for form processing."""
 
 import logging
 from typing import Dict, Any, List, Tuple, Optional
 
-from app.agents.config import (
+from agents.config import (
     get_form_schema, ClinicalCategory,
-    SectionType, NAR_SECTION_VARIATIONS, CLINICAL_CONCEPT_FIELDS,
+    SectionType, ITF_SECTION_VARIATIONS, CLINICAL_CONCEPT_FIELDS,
     FieldType
 )
-from app.agents.tools import MedicalFormTools
+from agents.tools import MedicalFormTools
 
 logger = logging.getLogger(__name__)
 
 
-class NARTools(MedicalFormTools):
-    """NAR-specific form processing tools."""
+class ITFTools(MedicalFormTools):
+    """ITF-specific form processing tools."""
 
-    def __init__(self, page_number: int = 1):
-        """
-        Initialize NAR tools.
+    def __init__(self):
+        """Initialize ITF tools."""
+        super().__init__("ITF", 1)
+        self.schema = get_form_schema('ITF', 1)  # Page 1
+        self.section_variations = ITF_SECTION_VARIATIONS
+        self.clinical_concept_fields = CLINICAL_CONCEPT_FIELDS.get("ITF", {}).get(1, {})
 
-        Args:
-            page_number: NAR page number (1 or 2)
-        """
-        super().__init__("NAR", page_number)
-        self.page_number = page_number
-        self.schema = get_form_schema('NAR', page_number)
-        self.section_variations = NAR_SECTION_VARIATIONS
-        self.clinical_concept_fields = CLINICAL_CONCEPT_FIELDS.get("NAR", {}).get(page_number, {})
-
-        logger.info(f"🏥 NAR Tools initialized (Page {page_number})")
+        logger.info("🏥 ITF Tools initialized")
 
     def normalize_section_name(self, raw_section: str) -> Optional[SectionType]:
         """
         Normalize section name to standard SectionType.
 
         Uses fuzzy matching against known variations.
-
-        Args:
-            raw_section: Raw section name from form
-
-        Returns:
-            SectionType if matched, None otherwise
         """
         raw_lower = raw_section.lower().strip()
 
@@ -49,25 +37,18 @@ class NARTools(MedicalFormTools):
             for variation in variations:
                 if variation.lower() == raw_lower:
                     # Convert string key to SectionType
-                    section_type_map = {
-                        "INFANT_DETAILS": SectionType.INFANT_DETAILS,
-                        "MOTHER_DETAILS": SectionType.MOTHER_DETAILS,
-                        "INFANT_HISTORY": SectionType.INFANT_HISTORY,
-                        "GENERAL_EXAMINATION": SectionType.GENERAL_EXAMINATION,
-                        "FURTHER_EXAMINATION": SectionType.FURTHER_EXAMINATION,
-                        "SUMMARY": SectionType.SUMMARY,
-                        "INVESTIGATIONS": SectionType.INVESTIGATIONS,
-                        "DIAGNOSIS": SectionType.DIAGNOSIS,
-                        "INTERVENTIONS": SectionType.INTERVENTIONS,
-                        "ACTION_PLAN": SectionType.ACTION_PLAN,
-                    }
-                    return section_type_map.get(canonical)
+                    if canonical == "MOTHER_DETAILS":
+                        return SectionType.MOTHER_DETAILS
+                    elif canonical == "LABOUR_BIRTH":
+                        return SectionType.LABOUR_BIRTH
+                    elif canonical == "INFANT_DETAILS":
+                        return SectionType.INFANT_DETAILS
 
         return None
 
-    def parse_nar_form(self, content: str) -> Dict[str, Any]:
+    def parse_itf_form(self, content: str) -> Dict[str, Any]:
         """
-        Parse NAR form markdown content.
+        Parse ITF form markdown content.
 
         Returns:
             {
@@ -80,7 +61,7 @@ class NARTools(MedicalFormTools):
                 "parse_errors": [errors]
             }
         """
-        logger.info(f"📖 Parsing NAR Page {self.page_number} form content")
+        logger.info("📖 Parsing ITF form content")
 
         sections = {}
         unstructured_by_section = {}
@@ -145,7 +126,7 @@ class NARTools(MedicalFormTools):
             if current_unstructured:
                 unstructured_by_section[current_section_type] = current_unstructured
 
-        logger.info(f"✅ Parsed {len(sections)} sections from NAR Page {self.page_number}")
+        logger.info(f"✅ Parsed {len(sections)} sections")
 
         return {
             "sections": sections,
@@ -179,7 +160,7 @@ class NARTools(MedicalFormTools):
                 }
             }
         """
-        logger.info(f"🔍 Extracting clinical concept fields from NAR Page {self.page_number}")
+        logger.info("🔍 Extracting clinical concept fields")
 
         clinical_concepts = {}
 
@@ -215,7 +196,7 @@ class NARTools(MedicalFormTools):
             sections: Dict[SectionType, Dict[str, str]]
     ) -> Tuple[bool, List[str]]:
         """
-        Validate that all required NAR fields are present.
+        Validate that all required ITF fields are present.
 
         Returns:
             (is_valid, missing_fields)
@@ -237,9 +218,9 @@ class NARTools(MedicalFormTools):
         is_valid = len(missing) == 0
 
         if missing:
-            logger.warning(f"⚠️  Missing required fields (NAR Page {self.page_number}): {missing}")
+            logger.warning(f"⚠️  Missing required fields: {missing}")
         else:
-            logger.info(f"✅ All required fields present (NAR Page {self.page_number})")
+            logger.info(f"✅ All required fields present")
 
         return is_valid, missing
 
@@ -324,7 +305,7 @@ class NARTools(MedicalFormTools):
                 "observation": [...]
             }
         """
-        logger.info(f"🚩 Identifying clinical risk flags (NAR Page {self.page_number})")
+        logger.info("🚩 Identifying clinical risk flags")
 
         flags = {
             "critical": [],
@@ -397,6 +378,6 @@ class NARTools(MedicalFormTools):
                     pass
 
         total = sum(len(v) for v in flags.values())
-        logger.info(f"✅ Identified {total} risk flags (NAR Page {self.page_number})")
+        logger.info(f"✅ Identified {total} risk flags")
 
         return flags

@@ -12,9 +12,9 @@ from typing import Optional
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.config.settings import settings
-from app.services.form_processor import FormProcessor
-from app.services.storage_service import StorageService
+from config.settings import settings
+from services.form_processor import FormProcessor
+from services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
