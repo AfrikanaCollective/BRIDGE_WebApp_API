@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
-from routes import upload, history, health
+from routes import upload, history, health, stats
 from clients.mongo_client import MongoClient
 from clients.minio_client import MinIOClient
 from services.form_processor import FormProcessor
@@ -209,12 +209,14 @@ def create_app() -> FastAPI:
         allow_credentials=settings.CORS_CREDENTIALS,
         allow_methods=settings.CORS_METHODS,
         allow_headers=settings.CORS_HEADERS,
+        expose_headers=["*"],  # Ensure response headers are exposed
     )
 
     # ==================== ROUTES ====================
     app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
     app.include_router(history.router, prefix="/api/history", tags=["history"])
     app.include_router(health.router, prefix="/api/health", tags=["health"])
+    app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
 
     # ==================== ROOT ENDPOINT ====================
     @app.get("/")
