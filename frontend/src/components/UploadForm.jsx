@@ -35,7 +35,7 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
     const [uploadStatus, setUploadStatus] = useState(null); // 'pending', 'processing', 'success', 'error'
     const [errorMessage, setErrorMessage] = useState('');
 
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
 
     // Supported file types
     const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'pdf', 'tiff'];

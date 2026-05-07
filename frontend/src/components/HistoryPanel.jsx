@@ -24,7 +24,7 @@ const HistoryPanel = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/api/history`
+          `${process.env.REACT_APP_API_URL}/api/history`
       );
       setResponses(response.data || []);
     } catch (error) {
@@ -51,7 +51,7 @@ const HistoryPanel = () => {
       onOk: async () => {
         try {
           await axios.delete(
-              `${process.env.REACT_APP_API_BASE_URL}/api/history/${processingId}`
+              `${process.env.REACT_APP_API_URL}/api/history/${processingId}`
           );
           message.success('Record deleted successfully');
           fetchResponses(); // Refresh the list
