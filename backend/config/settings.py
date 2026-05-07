@@ -340,7 +340,7 @@ class Settings(BaseSettings):
 
         # CORS Configuration
         logger.info("🌐 CORS Configuration:")
-        logger.info(f"   Origins: {', '.join(self.CORS_ORIGINS[:5])}...")
+        logger.info(f"   Origins: {', '.join(self.CORS_ORIGINS[:20])}...")
         logger.info(f"   Credentials: {self.CORS_CREDENTIALS}")
 
         logger.info("=" * 60)
