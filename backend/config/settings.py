@@ -2,12 +2,13 @@
 Application settings loaded from environment variables and .env file.
 """
 import ssl
+import json
 import logging
 from typing import List
 from pathlib import Path
 from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,25 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = True
         extra = "allow"  # Allow extra fields from .env
+
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS_ORIGINS from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                # Remove quotes and parse JSON
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse CORS_ORIGINS JSON: {e}")
+                # Fallback: treat as single origin
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return ["http://localhost:3000", "https://bridge.kemri-wellcome.org"]
 
     def __init__(self, **data):
         """Initialize settings and log configuration."""
