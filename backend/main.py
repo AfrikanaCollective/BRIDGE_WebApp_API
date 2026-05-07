@@ -203,14 +203,18 @@ def create_app() -> FastAPI:
     )
 
     # ==================== CORS MIDDLEWARE ====================
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["*"],
-        expose_headers=["Content-Type", "X-Total-Count", "X-Page", "X-Page-Size"],
-    )
+    if settings.CORS_ORIGINS:
+        logger.info(f"CORS origins {settings.CORS_ORIGINS}")
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.CORS_ORIGINS,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+            allow_headers=["*"],
+            expose_headers=["Content-Type", "X-Total-Count", "X-Page", "X-Page-Size"],
+        )
+    else:
+        logger.warning("⚠️  CORS_ORIGINS is empty!")
 
     # ==================== ROUTES ====================
     app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
