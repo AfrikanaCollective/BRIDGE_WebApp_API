@@ -67,6 +67,25 @@ class MongoClient:
             raise
 
     # ==================== CONNECTION MANAGEMENT ====================
+    @property
+    def db(self):
+        """
+        ✅ FIXED: Get the default database instance.
+
+        This property allows accessing the database as mongo_client.db
+        which is what stats.py expects.
+
+        Returns:
+            pymongo.database.Database: Database instance for self.db_name
+
+        Example:
+            # In stats.py:
+            db = mongo_client.db
+            collection = db[settings.MONGODB_DB_COLLECTION]
+        """
+        return self.get_database()
+
+    # ==================== CONNECTION MANAGEMENT ====================
 
     async def close(self):
         """
