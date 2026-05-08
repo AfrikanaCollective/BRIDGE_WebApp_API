@@ -93,14 +93,13 @@ async def get_stats_overview(
 
         # ✅ FIXED: Access database and collection properly
         db = mongo_client.db
-        if not db:
+        if db is None:
             logger.error("❌ MongoDB database not accessible")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="MongoDB database not available"
             )
 
-        # ✅ FIXED: Get the correct collection name from settings
         from config.settings import settings
         forms_collection = db.get_collection(settings.MONGODB_DB_COLLECTION)
 
