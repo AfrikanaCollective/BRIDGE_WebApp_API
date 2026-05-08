@@ -39,7 +39,6 @@ class Services:
         self.storage = storage
         self.form_processor = form_processor
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle management."""
@@ -165,10 +164,6 @@ async def lifespan(app: FastAPI):
         # (Routes will access services via request.app.state)
         logger.info("✅ Services stored in app.state and ready for injection")
         logger.info("=" * 60)
-
-        logger.info(f"📋 CORS_ORIGINS from config: {settings.CORS_ORIGINS}")
-        logger.info(f"📋 CORS_ORIGINS type: {type(settings.CORS_ORIGINS)}")
-        logger.info(f"📋 CORS_ORIGINS length: {len(settings.CORS_ORIGINS)}")
 
     except Exception as e:
         logger.error(f"❌ Application startup failed: {e}", exc_info=True)
