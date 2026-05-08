@@ -36,7 +36,6 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:https": "HTTPS=true SSL_CRT_FILE=./certs/public.crt SSL_KEY_FILE=./certs/private.key HOST=bridge.kemri-wellcome.org react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
