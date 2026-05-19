@@ -1,0 +1,98 @@
+# frontend/src/design-system/tokens.yaml
+version: "1.0.0"
+name: "the data BRIDGE Web Form Processing UI"
+
+colors:
+  primary:
+    50: "#f0f9ff"
+    100: "#e0f2fe"
+    500: "#0ea5e9"
+    600: "#0284c7"
+    900: "#082f49"
+
+  secondary:
+    500: "#8b5cf6"
+    600: "#7c3aed"
+
+  semantic:
+    success: "#10b981"
+    warning: "#f59e0b"
+    error: "#ef4444"
+    info: "#3b82f6"
+
+  neutral:
+    white: "#ffffff"
+    gray-50: "#f9fafb"
+    gray-100: "#f3f4f6"
+    gray-500: "#6b7280"
+    gray-900: "#111827"
+    black: "#000000"
+
+typography:
+  fonts:
+    primary: "Inter"
+    secondary: "Poppins"
+    mono: "JetBrains Mono"
+
+  sizes:
+    sm: 14
+    base: 18
+    lg: 20
+    xl: 24
+    "2xl": 30
+    "3xl": 36
+
+  weights:
+    regular: 400
+    medium: 500
+    semibold: 600
+    bold: 700
+
+  line_height:
+    tight: 1.2
+    normal: 1.5
+    relaxed: 1.75
+
+  styles:
+    h1:
+      size: 36
+      weight: 700
+      line_height: 1.2
+    h2:
+      size: 30
+      weight: 600
+      line_height: 1.3
+    h3:
+      size: 24
+      weight: 600
+    body:
+      size: 18
+      weight: 400
+      line_height: 1.5
+    small:
+      size: 14
+      weight: 500
+
+spacing:
+  1: 4
+  2: 8
+  3: 12
+  4: 16
+  6: 24
+  8: 32
+  12: 48
+
+border_radius:
+  sm: 4
+  md: 8
+  lg: 16
+
+shadows:
+  sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+  base: "0 1px 3px 0 rgba(0, 0, 0, 0.1)"
+  md: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+
+breakpoints:
+  mobile: 320
+  tablet: 768
+  desktop: 1024

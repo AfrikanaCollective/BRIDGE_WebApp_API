@@ -1,391 +1,467 @@
 // frontend/src/components/HistoryPanel.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Space, Button, Modal, Spin, Empty, message, Tag, Tooltip, Drawer, Descriptions, Row, Col, Card } from 'antd';
-import {
-  DeleteOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  DownloadOutlined,
-  CopyOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons';
+import { toast } from 'react-toastify';
 import axios from 'axios';
 import '../styles/HistoryPanel.css';
 
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
+
 const HistoryPanel = () => {
-  const [responses, setResponses] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [detailsVisible, setDetailsVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+    const [responses, setResponses] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [selectedRecord, setSelectedRecord] = useState(null);
+    const [detailsVisible, setDetailsVisible] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [sortField, setSortField] = useState('timestamp');
+    const [sortOrder, setSortOrder] = useState('desc');
 
-  // Wrap fetchResponses in useCallback to memoize the function
-  const fetchResponses = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(
-          `${process.env.REACT_APP_API_URL}/api/history`
-      );
-      setResponses(response.data || []);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-      message.error('Failed to load history');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Now fetchResponses can be safely included in the dependency array
-  useEffect(() => {
-    fetchResponses();
-  }, [fetchResponses]);
-
-  const handleDelete = async (processingId) => {
-    Modal.confirm({
-      title: 'Delete Record',
-      icon: <ExclamationCircleOutlined />,
-      content: 'Are you sure you want to delete this record? This action cannot be undone.',
-      okText: 'Delete',
-      cancelText: 'Cancel',
-      okType: 'danger',
-      onOk: async () => {
+    const fetchResponses = useCallback(async () => {
+        setLoading(true);
         try {
-          await axios.delete(
-              `${process.env.REACT_APP_API_URL}/api/history/${processingId}`
-          );
-          message.success('Record deleted successfully');
-          fetchResponses(); // Refresh the list
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/history`);
+            setResponses(response.data || []);
         } catch (error) {
-          console.error('Error deleting record:', error);
-          message.error('Failed to delete record');
+            console.error('Error fetching history:', error);
+            toast.error('Failed to load history');
+        } finally {
+            setLoading(false);
         }
-      },
-    });
-  };
+    }, []);
 
-  const handleViewDetails = (record) => {
-    setSelectedRecord(record);
-    setDetailsVisible(true);
-  };
+    useEffect(() => { fetchResponses(); }, [fetchResponses]);
 
-  const handleDownload = (record) => {
-    if (record.documentUrl) {
-      try {
+    const handleDelete = async (processingId) => {
+        if (!window.confirm('Delete this record? This action cannot be undone.')) return;
+        try {
+            await axios.delete(`${process.env.REACT_APP_API_URL}/api/history/${processingId}`);
+            toast.success('Record deleted successfully');
+            fetchResponses();
+        } catch (error) {
+            console.error('Error deleting record:', error);
+            toast.error('Failed to delete record');
+        }
+    };
+
+    const handleViewDetails = (record) => {
+        setSelectedRecord(record);
+        setDetailsVisible(true);
+    };
+
+    const handleDownload = (record) => {
+        if (!record.documentUrl) return;
         const link = document.createElement('a');
         link.href = record.documentUrl;
         link.download = `${record.processingId}.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        message.success('Download started');
-      } catch (error) {
-        console.error('Error downloading file:', error);
-        message.error('Failed to download file');
-      }
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchResponses();
-    setRefreshing(false);
-  };
-
-  const handleCopyId = (processingId) => {
-    navigator.clipboard.writeText(processingId);
-    message.success('Processing ID copied to clipboard');
-  };
-
-  // Status badge renderer with improved styling
-  const renderStatus = (status) => {
-    const statusConfig = {
-      completed: {
-        color: 'success',
-        className: 'status-badge completed',
-        label: 'Completed',
-      },
-      processing: {
-        color: 'processing',
-        className: 'status-badge processing',
-        label: 'Processing',
-      },
-      failed: {
-        color: 'error',
-        className: 'status-badge failed',
-        label: 'Failed',
-      },
-      pending: {
-        color: 'warning',
-        className: 'status-badge pending',
-        label: 'Pending',
-      },
+        toast.success('Download started');
     };
 
-    const config = statusConfig[status] || { color: 'default', label: 'Unknown' };
-    return (
-        <Tag color={config.color} className={config.className}>
-          {config.label}
-        </Tag>
-    );
-  };
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await fetchResponses();
+        setRefreshing(false);
+    };
 
-  // Confidence renderer with visual indicator
-  const renderConfidence = (confidence) => {
-    if (!confidence && confidence !== 0) return <span className="confidence-empty">-</span>;
+    const handleCopyId = (id) => {
+        navigator.clipboard.writeText(id);
+        toast.success('Processing ID copied to clipboard');
+    };
 
-    const percentage = confidence * 100;
-    let className = 'confidence-high';
+    const renderStatusBadge = (status) => {
+        const config = {
+            completed: { cls: 'completed', label: 'Completed' },
+            processing: { cls: 'processing', label: 'Processing' },
+            failed: { cls: 'failed', label: 'Failed' },
+            pending: { cls: 'pending', label: 'Pending' },
+        };
+        const c = config[status] || { cls: '', label: status || 'Unknown' };
+        return <span className={`status-badge ${c.cls}`}>{c.label}</span>;
+    };
 
-    if (percentage < 50) {
-      className = 'confidence-low';
-    } else if (percentage < 80) {
-      className = 'confidence-medium';
-    }
-
-    return (
-        <div className="confidence-wrapper">
-          <div className="confidence-bar">
-            <div className={`confidence-fill ${className}`} style={{ width: `${percentage}%` }} />
-          </div>
-          <span className={`confidence-text ${className}`}>{percentage.toFixed(0)}%</span>
-        </div>
-    );
-  };
-
-  const columns = [
-    {
-      title: 'Processing ID',
-      dataIndex: 'processingId',
-      key: 'processingId',
-      width: 140,
-      ellipsis: true,
-      render: (text) => (
-          <Tooltip title={text}>
-          <span className="processing-id-cell">
-            {text?.substring(0, 8)}...
-            <CopyOutlined
-                className="copy-icon"
-                onClick={() => handleCopyId(text)}
-                style={{ marginLeft: '8px', cursor: 'pointer' }}
-            />
-          </span>
-          </Tooltip>
-      ),
-    },
-    {
-      title: 'Form Type',
-      dataIndex: 'formType',
-      key: 'formType',
-      width: 110,
-      render: (formType) => (
-          <Tag color="blue" className="form-type-tag">
-            {formType || 'Unknown'}
-          </Tag>
-      ),
-    },
-    {
-      title: 'Case ID',
-      dataIndex: 'caseId',
-      key: 'caseId',
-      width: 110,
-      ellipsis: true,
-      render: (caseId) => caseId || <span className="text-muted">-</span>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      width: 110,
-      render: (status) => renderStatus(status),
-      filters: [
-        { text: 'Completed', value: 'completed' },
-        { text: 'Processing', value: 'processing' },
-        { text: 'Failed', value: 'failed' },
-        { text: 'Pending', value: 'pending' },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: 'Confidence',
-      dataIndex: 'confidence',
-      key: 'confidence',
-      width: 130,
-      render: (confidence) => renderConfidence(confidence),
-      sorter: (a, b) => (a.confidence || 0) - (b.confidence || 0),
-    },
-    {
-      title: 'Timestamp',
-      dataIndex: 'timestamp',
-      key: 'timestamp',
-      width: 160,
-      render: (timestamp) => {
-        if (!timestamp) return <span className="text-muted">-</span>;
+    const renderConfidence = (confidence) => {
+        if (confidence == null) return <span className="confidence-empty">—</span>;
+        const pct = confidence * 100;
+        const cls = pct >= 80 ? 'confidence-high' : pct >= 50 ? 'confidence-medium' : 'confidence-low';
         return (
-            <Tooltip title={new Date(timestamp).toLocaleString()}>
-              <span>{new Date(timestamp).toLocaleDateString()} {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-            </Tooltip>
+            <div className="confidence-wrapper">
+                <div className="confidence-bar">
+                    <div className={`confidence-fill ${cls}`} style={{ width: `${pct}%` }} />
+                </div>
+                <span className={`confidence-text ${cls}`}>{pct.toFixed(0)}%</span>
+            </div>
         );
-      },
-      sorter: (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
-      defaultSortOrder: 'descend',
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 140,
-      fixed: 'right',
-      render: (_, record) => (
-          <Space size="small" className="actions-space">
-            <Tooltip title="View Details">
-              <Button
-                  type="primary"
-                  size="small"
-                  icon={<EyeOutlined />}
-                  onClick={() => handleViewDetails(record)}
-                  className="action-btn-view"
-              />
-            </Tooltip>
-            <Tooltip title={record.documentUrl ? 'Download' : 'No document available'}>
-              <Button
-                  type="default"
-                  size="small"
-                  icon={<DownloadOutlined />}
-                  onClick={() => handleDownload(record)}
-                  disabled={!record.documentUrl}
-                  className="action-btn-download"
-              />
-            </Tooltip>
-            <Tooltip title="Delete">
-              <Button
-                  type="primary"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDelete(record.processingId)}
-                  className="action-btn-delete"
-              />
-            </Tooltip>
-          </Space>
-      ),
-    },
-  ];
+    };
 
-  return (
-      <div className="history-panel">
-        <div className="history-header">
-          <div className="history-header-left">
-            <h1 className="history-title">Processing History</h1>
-            <span className="history-count">{responses.length} record{responses.length !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="history-actions">
-            <Button
-                type="primary"
-                icon={<ReloadOutlined />}
-                onClick={handleRefresh}
-                loading={refreshing}
-                className="refresh-btn"
-            >
-              Refresh
-            </Button>
-          </div>
-        </div>
+    // Filter + sort + paginate
+    const filtered = responses.filter(r => statusFilter === 'all' || r.status === statusFilter);
+    const sorted = [...filtered].sort((a, b) => {
+        let av = sortField === 'timestamp'
+            ? (a.timestamp ? new Date(a.timestamp).getTime() : 0)
+            : (a[sortField] ?? 0);
+        let bv = sortField === 'timestamp'
+            ? (b.timestamp ? new Date(b.timestamp).getTime() : 0)
+            : (b[sortField] ?? 0);
+        if (av < bv) return sortOrder === 'asc' ? -1 : 1;
+        if (av > bv) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
-        <div className="history-content">
-          <Spin spinning={loading} tip="Loading history records...">
-            {responses.length === 0 && !loading ? (
-                <Empty
-                    description="No history records found"
-                    className="history-empty"
-                    style={{ paddingTop: '60px' }}
-                />
-            ) : (
-                <Table
-                    columns={columns}
-                    dataSource={responses}
-                    rowKey="processingId"
-                    pagination={{
-                      pageSize: 10,
-                      showSizeChanger: true,
-                      showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} records`,
-                      pageSizeOptions: ['5', '10', '20', '50'],
-                    }}
-                    scroll={{ x: 1200 }}
-                    className="history-table"
-                    size="middle"
-                />
-            )}
-          </Spin>
-        </div>
+    const handleSort = (field) => {
+        if (sortField === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+        else { setSortField(field); setSortOrder('desc'); }
+        setPage(1);
+    };
 
-        {/* Details Drawer (better UX than Modal) */}
-        <Drawer
-            title="Record Details"
-            placement="right"
-            onClose={() => setDetailsVisible(false)}
-            open={detailsVisible}
-            width={600}
-            className="details-drawer"
-        >
-          {selectedRecord && (
-              <div className="details-content">
-                <Descriptions
-                    column={1}
-                    bordered
-                    size="small"
-                    className="details-descriptions"
-                >
-                  <Descriptions.Item label="Processing ID">
-                    <div className="details-id-row">
-                      <code>{selectedRecord.processingId}</code>
-                      <CopyOutlined
-                          onClick={() => handleCopyId(selectedRecord.processingId)}
-                          style={{ cursor: 'pointer', marginLeft: '8px' }}
-                      />
+    const sortIcon = (field) => {
+        if (sortField !== field) return <i className="bi bi-chevron-expand sort-icon" aria-hidden="true" />;
+        return sortOrder === 'asc'
+            ? <i className="bi bi-chevron-up sort-icon active" aria-hidden="true" />
+            : <i className="bi bi-chevron-down sort-icon active" aria-hidden="true" />;
+    };
+
+    // Pagination page range (up to 5 pages centred around current)
+    const pageRange = (() => {
+        const start = Math.max(1, Math.min(totalPages - 4, page - 2));
+        return Array.from({ length: Math.min(5, totalPages) }, (_, i) => start + i);
+    })();
+
+    return (
+        <div className="history-panel">
+            {/* Header */}
+            <div className="history-header">
+                <div className="history-header-left">
+                    <h1 className="history-title">Processing History</h1>
+                    <span className="history-count">
+                        {responses.length} record{responses.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+                <div className="history-actions">
+                    <select
+                        className="history-filter-select"
+                        value={statusFilter}
+                        onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                        aria-label="Filter by status"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="processing">Processing</option>
+                        <option value="failed">Failed</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                    <button
+                        type="button"
+                        className="refresh-btn"
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                        aria-label="Refresh history"
+                    >
+                        <i className={`bi bi-arrow-clockwise${refreshing ? ' spin' : ''}`} aria-hidden="true" />
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="history-content">
+                {loading ? (
+                    <div className="history-loading">
+                        <div className="spinner spinner-lg" role="status" aria-label="Loading history" />
+                        <p>Loading history records…</p>
                     </div>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Form Type">
-                    <Tag color="blue">{selectedRecord.formType || 'Unknown'}</Tag>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Case ID">
-                    {selectedRecord.caseId || '-'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Status">
-                    {renderStatus(selectedRecord.status)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Confidence">
-                    {renderConfidence(selectedRecord.confidence)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Timestamp">
-                    {selectedRecord.timestamp ? new Date(selectedRecord.timestamp).toLocaleString() : '-'}
-                  </Descriptions.Item>
-                  {selectedRecord.documentUrl && (
-                      <Descriptions.Item label="Document">
-                        <Button
-                            type="primary"
-                            size="small"
-                            icon={<DownloadOutlined />}
-                            onClick={() => handleDownload(selectedRecord)}
-                        >
-                          Download
-                        </Button>
-                      </Descriptions.Item>
-                  )}
-                </Descriptions>
+                ) : responses.length === 0 ? (
+                    <div className="history-empty">
+                        <i className="bi bi-inbox" aria-hidden="true" style={{ fontSize: '48px', color: 'var(--color-gray-400, #9ca3af)', display: 'block', marginBottom: '12px' }} />
+                        <p>No history records found</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Desktop table */}
+                        <div className="history-table-view">
+                            <table className="history-table-native">
+                                <thead>
+                                    <tr>
+                                        <th>Processing ID</th>
+                                        <th>Form Type</th>
+                                        <th>Case ID</th>
+                                        <th>Status</th>
+                                        <th>
+                                            <button type="button" className="sort-btn" onClick={() => handleSort('confidence')}>
+                                                Confidence {sortIcon('confidence')}
+                                            </button>
+                                        </th>
+                                        <th>
+                                            <button type="button" className="sort-btn" onClick={() => handleSort('timestamp')}>
+                                                Timestamp {sortIcon('timestamp')}
+                                            </button>
+                                        </th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginated.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-gray-500)' }}>
+                                                No records match the selected filter
+                                            </td>
+                                        </tr>
+                                    ) : paginated.map(record => (
+                                        <tr key={record.processingId}>
+                                            <td>
+                                                <span className="processing-id-cell" title={record.processingId}>
+                                                    {record.processingId?.substring(0, 8)}…
+                                                    <button
+                                                        type="button"
+                                                        className="copy-btn"
+                                                        onClick={() => handleCopyId(record.processingId)}
+                                                        aria-label="Copy full ID"
+                                                        title="Copy full ID"
+                                                    >
+                                                        <i className="bi bi-clipboard" aria-hidden="true" />
+                                                    </button>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className="form-type-tag">{record.formType || 'Unknown'}</span>
+                                            </td>
+                                            <td>{record.caseId || <span className="text-muted">—</span>}</td>
+                                            <td>{renderStatusBadge(record.status)}</td>
+                                            <td>{renderConfidence(record.confidence)}</td>
+                                            <td title={record.timestamp ? new Date(record.timestamp).toLocaleString() : ''}>
+                                                {record.timestamp ? (
+                                                    <span>
+                                                        {new Date(record.timestamp).toLocaleDateString()}{' '}
+                                                        {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                ) : <span className="text-muted">—</span>}
+                                            </td>
+                                            <td>
+                                                <div className="actions-space">
+                                                    <button
+                                                        type="button"
+                                                        className="action-btn-view"
+                                                        onClick={() => handleViewDetails(record)}
+                                                        title="View Details"
+                                                        aria-label="View Details"
+                                                    >
+                                                        <i className="bi bi-eye" aria-hidden="true" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="action-btn-download"
+                                                        onClick={() => handleDownload(record)}
+                                                        disabled={!record.documentUrl}
+                                                        title={record.documentUrl ? 'Download' : 'No document available'}
+                                                        aria-label="Download"
+                                                    >
+                                                        <i className="bi bi-download" aria-hidden="true" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="action-btn-delete"
+                                                        onClick={() => handleDelete(record.processingId)}
+                                                        title="Delete"
+                                                        aria-label="Delete"
+                                                    >
+                                                        <i className="bi bi-trash" aria-hidden="true" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
 
-                {/* Raw JSON Data */}
-                <Card
-                    title="Raw Data"
-                    size="small"
-                    style={{ marginTop: '20px' }}
-                    className="details-raw-card"
-                >
-                  <pre className="details-json">{JSON.stringify(selectedRecord, null, 2)}</pre>
-                </Card>
-              </div>
-          )}
-        </Drawer>
-      </div>
-  );
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="table-pagination">
+                                    <div className="pagination-info">
+                                        Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length} records
+                                    </div>
+                                    <div className="pagination-controls">
+                                        <select
+                                            className="page-size-select"
+                                            value={pageSize}
+                                            onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                                            aria-label="Records per page"
+                                        >
+                                            {PAGE_SIZE_OPTIONS.map(s => (
+                                                <option key={s} value={s}>{s} / page</option>
+                                            ))}
+                                        </select>
+                                        <div className="pagination">
+                                            <button className="pagination-item" onClick={() => setPage(1)} disabled={page === 1} aria-label="First page">«</button>
+                                            <button className="pagination-item" onClick={() => setPage(p => p - 1)} disabled={page === 1} aria-label="Previous page">‹</button>
+                                            {pageRange.map(p => (
+                                                <button
+                                                    key={p}
+                                                    className={`pagination-item${p === page ? ' active' : ''}`}
+                                                    onClick={() => setPage(p)}
+                                                    aria-label={`Page ${p}`}
+                                                    aria-current={p === page ? 'page' : undefined}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                            <button className="pagination-item" onClick={() => setPage(p => p + 1)} disabled={page === totalPages} aria-label="Next page">›</button>
+                                            <button className="pagination-item" onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label="Last page">»</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Mobile card view */}
+                        <div className="history-cards-mobile">
+                            {sorted.map(record => (
+                                <div key={record.processingId} className="history-card">
+                                    <div className="history-card-top">
+                                        {renderStatusBadge(record.status)}
+                                        <span className="form-type-tag">{record.formType || 'Unknown'}</span>
+                                        {record.confidence != null && (
+                                            <span className={`history-card-confidence confidence-${
+                                                record.confidence * 100 >= 80 ? 'high' :
+                                                record.confidence * 100 >= 50 ? 'medium' : 'low'
+                                            }`}>
+                                                {(record.confidence * 100).toFixed(0)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="history-card-id">
+                                        <code>{record.processingId?.substring(0, 16)}…</code>
+                                        <button
+                                            type="button"
+                                            className="copy-btn"
+                                            onClick={() => handleCopyId(record.processingId)}
+                                            aria-label="Copy ID"
+                                        >
+                                            <i className="bi bi-clipboard" aria-hidden="true" />
+                                        </button>
+                                    </div>
+                                    {record.caseId && (
+                                        <div className="history-card-meta">Case: {record.caseId}</div>
+                                    )}
+                                    <div className="history-card-time">
+                                        {record.timestamp ? new Date(record.timestamp).toLocaleString() : '—'}
+                                    </div>
+                                    <div className="history-card-actions">
+                                        <button type="button" className="btn btn-primary btn-sm" onClick={() => handleViewDetails(record)} style={{ flex: 1 }}>
+                                            <i className="bi bi-eye" aria-hidden="true" /> View
+                                        </button>
+                                        <button type="button" className="btn btn-error btn-sm" onClick={() => handleDelete(record.processingId)} style={{ flex: 1 }}>
+                                            <i className="bi bi-trash" aria-hidden="true" /> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Drawer overlay */}
+            <div
+                className={`drawer-overlay${detailsVisible ? ' open' : ''}`}
+                onClick={() => setDetailsVisible(false)}
+                aria-hidden="true"
+            />
+
+            {/* Details drawer */}
+            <aside
+                className={`details-drawer${detailsVisible ? ' open' : ''}`}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Record Details"
+            >
+                <div className="drawer-header">
+                    <h2 className="drawer-title">Record Details</h2>
+                    <button
+                        type="button"
+                        className="drawer-close"
+                        onClick={() => setDetailsVisible(false)}
+                        aria-label="Close"
+                    >
+                        <i className="bi bi-x-lg" aria-hidden="true" />
+                    </button>
+                </div>
+                <div className="drawer-body">
+                    {selectedRecord && (
+                        <div className="details-content">
+                            <dl className="details-list">
+                                <div className="details-row">
+                                    <dt>Processing ID</dt>
+                                    <dd>
+                                        <div className="details-id-row">
+                                            <code>{selectedRecord.processingId}</code>
+                                            <button
+                                                type="button"
+                                                className="copy-btn"
+                                                onClick={() => handleCopyId(selectedRecord.processingId)}
+                                                aria-label="Copy ID"
+                                            >
+                                                <i className="bi bi-clipboard" aria-hidden="true" />
+                                            </button>
+                                        </div>
+                                    </dd>
+                                </div>
+                                <div className="details-row">
+                                    <dt>Form Type</dt>
+                                    <dd><span className="form-type-tag">{selectedRecord.formType || 'Unknown'}</span></dd>
+                                </div>
+                                <div className="details-row">
+                                    <dt>Case ID</dt>
+                                    <dd>{selectedRecord.caseId || '—'}</dd>
+                                </div>
+                                <div className="details-row">
+                                    <dt>Status</dt>
+                                    <dd>{renderStatusBadge(selectedRecord.status)}</dd>
+                                </div>
+                                <div className="details-row">
+                                    <dt>Confidence</dt>
+                                    <dd>{renderConfidence(selectedRecord.confidence)}</dd>
+                                </div>
+                                <div className="details-row">
+                                    <dt>Timestamp</dt>
+                                    <dd>
+                                        {selectedRecord.timestamp
+                                            ? new Date(selectedRecord.timestamp).toLocaleString()
+                                            : '—'}
+                                    </dd>
+                                </div>
+                                {selectedRecord.documentUrl && (
+                                    <div className="details-row">
+                                        <dt>Document</dt>
+                                        <dd>
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => handleDownload(selectedRecord)}
+                                            >
+                                                <i className="bi bi-download" aria-hidden="true" /> Download
+                                            </button>
+                                        </dd>
+                                    </div>
+                                )}
+                            </dl>
+
+                            <div className="details-raw-section">
+                                <h4>Raw Data</h4>
+                                <pre className="details-json">
+                                    {JSON.stringify(selectedRecord, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </aside>
+        </div>
+    );
 };
 
 export default HistoryPanel;

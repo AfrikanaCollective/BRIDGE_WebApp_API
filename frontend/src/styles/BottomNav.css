@@ -1,0 +1,66 @@
+/* frontend/src/styles/BottomNav.css */
+
+.bottom-nav {
+    display: none; /* desktop: hidden */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--color-primary-900);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1001;
+    align-items: stretch;
+    justify-content: space-around;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    /* Ensure it sits above Ant Design modals baseline */
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none !important;
+    gap: 3px;
+    padding: 8px 4px 10px;
+    transition: color 0.2s ease;
+    border-top: 3px solid transparent;
+    /* Increase tap target */
+    min-width: 64px;
+}
+
+.bottom-nav-item:hover {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none !important;
+}
+
+.bottom-nav-item.active {
+    color: var(--color-primary-500);
+    border-top-color: var(--color-primary-500);
+}
+
+.bottom-nav-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.bottom-nav-label {
+    font-size: 10px;
+    font-family: var(--font-primary, 'Poppins', sans-serif);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+/* Show on mobile only */
+@media (max-width: 768px) {
+    .bottom-nav {
+        display: flex;
+    }
+}

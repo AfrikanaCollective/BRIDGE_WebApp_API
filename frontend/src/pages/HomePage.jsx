@@ -1,14 +1,7 @@
 // frontend/src/pages/HomePage.jsx
 import React from 'react';
-import { Card, Row, Col, Button, Space, Statistic, Tag } from 'antd';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import {
-    UploadOutlined,
-    HistoryOutlined,
-    FileOutlined,
-    CheckCircleOutlined,
-} from '@ant-design/icons';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
@@ -16,126 +9,108 @@ const HomePage = () => {
 
     return (
         <div className="home-page">
-            {/* Hero Section */}
-            <Card className="hero-card" style={{ marginBottom: '32px' }}>
-                <h1 style={{ fontSize: '32px', marginBottom: '16px' }}>
-                    the data BRIDGE clinical records collation & harmonisation system
+            {/* Hero */}
+            <article className="hero-card">
+                <h1>
+                    the data BRIDGE clinical records collation &amp; harmonisation system
                 </h1>
-                <p style={{ fontSize: '16px', color: '#666', marginBottom: '24px' }}>
+                <p>
                     Intelligent data extraction and processing powered by AI. Upload your forms
-                    and let our platform using natural language processing and generative AI models harmonise data items, even those collected for different clinical care domains. Currently fine-tuned for the Clinical Information Network (CIN) forms <b><i>only</i></b> found here: <a href={"https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/70WJ8O"} target="_blank" rel="noreferrer">Harvard Dataverse Repo</a>. Sample forms for "quick" testing can be found <a href={"https://github.com/AfrikanaCollective/BRIDGE_LLM_extension/tree/main/tests/test_data"} target="_blank" rel="noreferrer"><b>here</b></a>.
-                </p>
-                <Space>
-                    <Button
-                        type="primary"
-                        size="large"
-                        icon={<UploadOutlined />}
-                        style={{ height: '48px', fontSize: '16px' }}
+                    and let our platform using natural language processing and generative AI models
+                    harmonise data items, even those collected for different clinical care domains.
+                    Currently fine-tuned for the Clinical Information Network (CIN) forms{' '}
+                    <b><i>only</i></b> found here:{' '}
+                    <a
+                        href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/70WJ8O"
+                        target="_blank"
+                        rel="noreferrer"
                     >
-                        <Link to="/upload" style={{ color: 'white', textDecoration: 'none' }}>
-                            Get Started - Upload Form
-                        </Link>
-                    </Button>
-                    <Button
-                        size="large"
-                        icon={<HistoryOutlined />}
-                        style={{ height: '48px', fontSize: '16px' }}
+                        Harvard Dataverse Repo
+                    </a>.
+                    Sample forms for &quot;quick&quot; testing can be found{' '}
+                    <a
+                        href="https://github.com/AfrikanaCollective/BRIDGE_LLM_extension/tree/main/tests/test_data"
+                        target="_blank"
+                        rel="noreferrer"
                     >
-                        <Link to="/history" style={{ textDecoration: 'none' }}>
-                            View Processing History
-                        </Link>
-                    </Button>
-                </Space>
-            </Card>
-
-            {/* Features Section */}
-            <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card hoverable className="feature-card">
-                        <FileOutlined style={{ fontSize: '32px', color: '#1890ff', marginBottom: '16px' }} />
-                        <h3>Multiple Formats</h3>
-                        <p>Support for PNG, JPG and PDF formats</p>
-                        <Tag color="blue">Supported</Tag>
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card hoverable className="feature-card">
-                        <CheckCircleOutlined style={{ fontSize: '32px', color: '#52c41a', marginBottom: '16px' }} />
-                        <h3>AI Extraction</h3>
-                        <p>Powered by Large Language Models (LLMs) for accurate data extraction</p>
-                        <Tag color="green">Active</Tag>
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card hoverable className="feature-card">
-                        <UploadOutlined style={{ fontSize: '32px', color: '#faad14', marginBottom: '16px' }} />
-                        <h3>Batch Processing</h3>
-                        <p>Upload multiple forms at once for efficient processing</p>
-                        <Tag color="orange">Available</Tag>
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card hoverable className="feature-card">
-                        <HistoryOutlined style={{ fontSize: '32px', color: '#722ed1', marginBottom: '16px' }} />
-                        <h3>History Tracking</h3>
-                        <p>Complete audit trail of all processed forms</p>
-                        <Tag color="purple">Enabled</Tag>
-                    </Card>
-                </Col>
-            </Row>
-
-            {/* Statistics Section */}
-            <Card className="statistics-card" style={{ marginBottom: '32px' }}>
-                <Row gutter={[32, 32]}>
-                    <Col xs={24} sm={12} lg={6}>
-                        <Statistic
-                            title="Forms Processed"
-                            value={stats?.totalForms || 0}
-                            suffix="forms"
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} lg={6}>
-                        <Statistic
-                            title="Success Rate"
-                            value={stats?.successRate || 0}
-                            suffix="%"
-                            precision={1}
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} lg={6}>
-                        <Statistic
-                            title="Avg. Processing Time"
-                            value={stats?.avgProcessingTime || 0}
-                            suffix="s"
-                            precision={2}
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} lg={6}>
-                        <Statistic
-                            title="Active Sessions"
-                            value={stats?.activeSessions || 0}
-                        />
-                    </Col>
-                </Row>
-            </Card>
-
-            {/* Call to Action */}
-            <Card className="cta-card" style={{ textAlign: 'center', background: '#fafafa' }}>
-                <h2>Ready to process your forms?</h2>
-                <p style={{ fontSize: '16px', marginBottom: '24px' }}>
-                    Start uploading forms now and get structured data in seconds
+                        <b>here</b>
+                    </a>.
                 </p>
-                <Button
-                    type="primary"
-                    size="large"
-                    icon={<UploadOutlined />}
-                    style={{ height: '48px', fontSize: '16px', minWidth: '200px' }}
-                >
-                    <Link to="/upload" style={{ color: 'white', textDecoration: 'none' }}>
-                        Upload Your First Form
+                <div className="hero-actions">
+                    <Link to="/upload" className="btn btn-outline btn-lg">
+                        <i className="bi bi-cloud-upload" aria-hidden="true" />
+                        Get Started — Upload Form
                     </Link>
-                </Button>
-            </Card>
+                    <Link to="/history" className="btn btn-outline btn-lg">
+                        <i className="bi bi-clock-history" aria-hidden="true" />
+                        View Processing History
+                    </Link>
+                </div>
+            </article>
+
+            {/* Features */}
+            <div className="features-grid">
+                <article className="feature-card">
+                    <i className="bi bi-file-earmark-image feature-icon" aria-hidden="true" />
+                    <h3>Multiple Formats</h3>
+                    <p>Support for PNG, JPG and PDF formats</p>
+                    <span className="badge badge-info">Supported</span>
+                </article>
+                <article className="feature-card">
+                    <i className="bi bi-cpu feature-icon" aria-hidden="true" />
+                    <h3>AI Extraction</h3>
+                    <p>Powered by Large Language Models (LLMs) for accurate data extraction</p>
+                    <span className="badge badge-success">Active</span>
+                </article>
+                <article className="feature-card">
+                    <i className="bi bi-layers feature-icon" aria-hidden="true" />
+                    <h3>Batch Processing</h3>
+                    <p>Upload multiple forms at once for efficient processing</p>
+                    <span className="badge badge-warning">Available</span>
+                </article>
+                <article className="feature-card">
+                    <i className="bi bi-clock-history feature-icon" aria-hidden="true" />
+                    <h3>History Tracking</h3>
+                    <p>Complete audit trail of all processed forms</p>
+                    <span className="badge badge-secondary">Enabled</span>
+                </article>
+            </div>
+
+            {/* Statistics */}
+            <article className="statistics-card">
+                <div className="stats-grid">
+                    <div className="stat-item">
+                        <div className="stat-value">{stats?.totalForms ?? 0}</div>
+                        <div className="stat-label">Forms Processed</div>
+                    </div>
+                    <div className="stat-item">
+                        <div className="stat-value">
+                            {stats?.successRate != null ? `${Number(stats.successRate).toFixed(1)}%` : '0%'}
+                        </div>
+                        <div className="stat-label">Success Rate</div>
+                    </div>
+                    <div className="stat-item">
+                        <div className="stat-value">
+                            {stats?.avgProcessingTime != null ? `${Number(stats.avgProcessingTime).toFixed(2)}s` : '0s'}
+                        </div>
+                        <div className="stat-label">Avg. Processing Time</div>
+                    </div>
+                    <div className="stat-item">
+                        <div className="stat-value">{stats?.activeSessions ?? 0}</div>
+                        <div className="stat-label">Active Sessions</div>
+                    </div>
+                </div>
+            </article>
+
+            {/* CTA */}
+            <article className="cta-card">
+                <h2>Ready to process your forms?</h2>
+                <p>Start uploading forms now and get structured data in seconds</p>
+                <Link to="/upload" className="btn btn-primary btn-lg">
+                    <i className="bi bi-cloud-upload" aria-hidden="true" />
+                    Upload Your First Form
+                </Link>
+            </article>
         </div>
     );
 };

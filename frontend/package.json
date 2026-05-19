@@ -6,6 +6,7 @@
   "homepage": "/",
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
+    "@picocss/pico": "^2.1.1",
     "@reduxjs/toolkit": "^1.9.5",
     "antd": "^5.9.0",
     "axios": "^1.4.0",

@@ -1,217 +1,198 @@
 /* frontend/src/styles/Navbar.css */
 
-.navbar {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    height: 64px !important;
-    padding: 0 24px !important;
-    background: #001529 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    position: sticky;
-    top: 0;
-    z-index: 999;
+/* ============================================
+   INNER FLEX ROW
+   ============================================ */
+
+.navbar-inner {
+    display: flex;
+    align-items: center;
+    height: 64px;
+    /** padding: 0 16px; **/
+    gap: 16px;
 }
 
-/* Brand Container */
+/* ============================================
+   HAMBURGER — desktop sidebar toggle
+   ============================================ */
+
+.hamburger-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.2s, color 0.2s;
+    /* Override Pico button reset */
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+}
+
+.hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* ============================================
+   BRAND LINK
+   ============================================ */
+
 .navbar-brand {
     display: flex;
     align-items: center;
+    gap: 10px;
+    text-decoration: none !important;
     flex-shrink: 0;
-    margin-right: 24px;
 }
 
-.brand-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    height: 64px;
-    line-height: 64px;
+.navbar-brand:hover {
+    text-decoration: none !important;
 }
 
 .navbar-favicon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
-    transition: transform 0.3s ease;
+    flex-shrink: 0;
 }
 
-.navbar-favicon:hover {
-    transform: scale(1.1);
-}
-
-.navbar-brand h1 {
-    color: white !important;
-    margin: 0 !important;
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    line-height: 64px !important;
+.brand-text {
+    font-family: var(--font-primary, 'Inter', sans-serif);
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
     white-space: nowrap;
-    transition: color 0.3s ease;
+    line-height: 1;
 }
 
-.navbar-brand h1:hover {
-    color: #10b981 !important;
-}
+/* ============================================
+   NAV LINKS — desktop horizontal menu
+   ============================================ */
 
-/* Menu Styling */
-.navbar .ant-menu {
-    background: transparent !important;
-    border-bottom: none !important;
-    height: 64px !important;
-    line-height: 64px !important;
+.navbar-nav {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* Override Pico nav styles */
+    margin: 0;
+    padding: 0;
 }
 
-.navbar .ant-menu-item {
-    height: 64px !important;
-    line-height: 64px !important;
-    padding: 0 16px !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    color: rgba(255, 255, 255, 0.85) !important;
-    font-size: 14px !important;
-    border-bottom: 3px solid transparent !important;
-    transition: all 0.3s ease !important;
-}
-
-.navbar .ant-menu-item:hover {
-    color: #10b981 !important;
-    border-bottom-color: #10b981 !important;
-}
-
-.navbar .ant-menu-item-selected {
-    background: transparent !important;
-    color: #10b981 !important;
-    border-bottom-color: #10b981 !important;
-}
-
-.navbar .ant-menu-item-selected::after {
-    border-bottom-color: transparent !important;
-}
-
-.navbar .ant-menu-item a {
-    color: inherit !important;
-    text-decoration: none !important;
+.navbar-nav ul {
     display: flex;
     align-items: center;
-    gap: 8px;
-    line-height: 64px !important;
-    height: 64px !important;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 18px;
 }
 
-.navbar .ant-menu-item-icon {
-    font-size: 16px !important;
-    margin-right: 8px !important;
-    display: inline-flex !important;
-    align-items: center !important;
+.navbar-nav ul li {
+    margin: 0;
+    padding: 0;
 }
 
-/* Button Container */
-.navbar .ant-space {
+.navbar-nav ul li a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    height: 40px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none !important;
+    font-family: var(--font-primary, 'Inter', sans-serif);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: background 0.2s, color 0.2s;
+    border-bottom: 2px solid transparent;
+    line-height: 1;
+}
+
+.navbar-nav ul li a:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    text-decoration: none !important;
+}
+
+.navbar-nav ul li a.active {
+    color: var(--color-primary-500);
+    border-bottom-color: var(--color-primary-500);
+    background: rgba(14, 165, 233, 0.1);
+}
+
+/* ============================================
+   CTA BUTTON
+   ============================================ */
+
+.navbar-cta-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 18px;
+    height: var(--touch-min);
+    background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+    color: #fff !important;
+    text-decoration: none !important;
+    border-radius: 6px;
+    font-family: var(--font-primary, 'Inter', sans-serif);
+    font-size: 14px;
+    font-weight: 600;
     flex-shrink: 0;
-    margin-left: 24px;
-    display: flex;
-    align-items: center;
+    transition: opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+    white-space: nowrap;
 }
 
-.navbar .ant-btn {
-    height: 40px !important;
-    line-height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
-    padding: 0 20px !important;
-    font-size: 14px !important;
-    border-radius: 6px !important;
-    font-weight: 500 !important;
-}
-
-.navbar .ant-btn-primary {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    border-color: #10b981 !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    transition: all 0.3s ease;
-}
-
-.navbar .ant-btn-primary:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-    border-color: #059669 !important;
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-    transform: translateY(-2px);
-}
-
-.navbar .ant-btn-primary a {
-    color: white !important;
+.navbar-cta-btn:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
     text-decoration: none !important;
+    color: #fff !important;
 }
 
-/* Responsive Design */
-@media (max-width: 992px) {
-    .navbar {
-        padding: 0 16px !important;
-    }
-
-    .navbar-brand h1 {
-        font-size: 16px !important;
-    }
-
-    .navbar .ant-menu-item {
-        padding: 0 12px !important;
-    }
-
-    .navbar .ant-btn {
-        padding: 0 16px !important;
-    }
-}
+/* ============================================
+   RESPONSIVE — TABLET (≤ 768px)
+   ============================================ */
 
 @media (max-width: 768px) {
-    .navbar-brand h1 {
-        display: none;
+    .navbar-inner {
+        padding: 0 16px;
+        gap: 12px;
     }
 
-    .navbar .ant-menu {
-        justify-content: flex-start;
+    /* Hide desktop nav and CTA — bottom nav handles navigation */
+    .navbar-nav,
+    .navbar-cta-btn,
+    .navbar-hamburger {
+        display: none !important;
     }
 
-    .navbar .ant-menu-item {
-        padding: 0 10px !important;
-        font-size: 12px !important;
-    }
-
-    .navbar .ant-btn {
-        padding: 0 12px !important;
-        font-size: 12px !important;
-    }
-
-    .navbar .ant-menu-item a {
-        gap: 4px;
+    .brand-text {
+        font-size: 16px;
     }
 }
 
-@media (max-width: 576px) {
-    .navbar {
-        padding: 0 12px !important;
-    }
+/* ============================================
+   RESPONSIVE — SMALL PHONE (≤ 320px)
+   ============================================ */
 
+@media (max-width: 320px) {
     .navbar-favicon {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
     }
 
-    .navbar .ant-menu-item {
-        padding: 0 8px !important;
-    }
-
-    .navbar .ant-btn {
-        padding: 0 10px !important;
-        font-size: 11px !important;
-    }
-
-    .navbar .ant-menu-item-icon {
-        margin-right: 4px !important;
+    .brand-text {
+        font-size: 14px;
     }
 }

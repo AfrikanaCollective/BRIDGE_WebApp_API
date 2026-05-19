@@ -1,0 +1,412 @@
+/* frontend/src/styles/responsive.css */
+/* KEMRI Form Processor - Responsive Mobile-First Design */
+/* Breakpoints: 480px (sm), 768px (md), 1024px (lg), 1280px (xl) */
+
+/* ========================================
+   MOBILE FIRST (320px - 479px)
+   ======================================== */
+
+@media (max-width: 479px) {
+  /* Reduce headings slightly on very small screens */
+  h1 {
+    font-size: 36px;
+    margin-bottom: var(--space-4);
+  }
+
+  h2 {
+    font-size: 28px;
+  }
+
+  h3 {
+    font-size: 24px;
+  }
+
+  .container {
+    padding: var(--space-4);
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Ensure buttons are easy to tap */
+  button {
+    min-height: 48px;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+  }
+
+  /* Full-width inputs on mobile */
+  input,
+  textarea,
+  select {
+    font-size: 18px; /* iOS prevents zoom */
+  }
+
+  /* Hide table on mobile, show card view */
+  table {
+    display: none;
+  }
+
+  .table-mobile {
+    display: block;
+  }
+
+  /* Stack navigation items */
+  nav {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  nav a,
+  nav button {
+    width: 100%;
+  }
+}
+
+/* ========================================
+   SMALL DEVICES (480px - 767px)
+   ======================================== */
+
+@media (min-width: 480px) {
+  h1 {
+    font-size: 40px;
+    margin-bottom: var(--space-5);
+  }
+
+  h2 {
+    font-size: 32px;
+  }
+
+  h3 {
+    font-size: 26px;
+  }
+
+  .container {
+    max-width: 464px;
+    padding: var(--space-4);
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  button {
+    min-height: 48px;
+  }
+
+  /* Increase input comfort */
+  input,
+  textarea,
+  select {
+    font-size: 18px;
+  }
+}
+
+/* ========================================
+   TABLET (768px - 1023px)
+   ======================================== */
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: 44px;
+    margin-bottom: var(--space-6);
+  }
+
+  h2 {
+    font-size: 32px;
+    margin-bottom: var(--space-5);
+  }
+
+  h3 {
+    font-size: 26px;
+  }
+
+  .container {
+    max-width: 736px;
+    padding: var(--space-6);
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Show table on tablet and up */
+  table {
+    display: table;
+  }
+
+  .table-mobile {
+    display: none;
+  }
+
+  .hide-tablet {
+    display: none !important;
+  }
+
+  .show-tablet {
+    display: block !important;
+  }
+
+  /* Allow navigation to be horizontal */
+  nav {
+    flex-direction: row;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  nav a,
+  nav button {
+    width: auto;
+  }
+
+  /* Larger buttons */
+  button {
+    min-height: 48px;
+    font-size: var(--text-lg);
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: var(--text-lg);
+  }
+
+  .btn-lg {
+    font-size: var(--text-xl);
+    padding: var(--space-4) var(--space-8);
+  }
+}
+
+/* ========================================
+   DESKTOP (1024px - 1279px)
+   ======================================== */
+
+@media (min-width: 1024px) {
+  h1 {
+    font-size: 44px;
+  }
+
+  h2 {
+    font-size: 32px;
+  }
+
+  .container {
+    max-width: 992px;
+    padding: var(--space-6);
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .hide-desktop {
+    display: none !important;
+  }
+
+  .show-desktop {
+    display: block !important;
+  }
+
+  /* Optimal line length for reading */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  p {
+    max-width: 65ch;
+  }
+
+  /* Wider spacing for desktop */
+  .gap-6 {
+    gap: var(--space-6);
+  }
+
+  .gap-8 {
+    gap: var(--space-8);
+  }
+}
+
+/* ========================================
+   LARGE DESKTOP (1280px+)
+   ======================================== */
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1248px;
+  }
+
+  .grid-cols-5 {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  /* Sidebar layouts */
+  .layout-sidebar {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--space-8);
+  }
+}
+
+/* ========================================
+   TOUCH DEVICES (any size)
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  button {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 18px; /* Prevent iOS zoom */
+    padding: var(--space-4) var(--space-4);
+  }
+
+  /* Hover not available, remove subtle hover effects */
+  a:not(.btn) {
+    text-decoration: underline;
+  }
+
+  /* Better spacing for touch */
+  label {
+    margin-bottom: var(--space-4);
+  }
+
+  li {
+    margin-bottom: var(--space-3);
+  }
+
+  /* More generous padding on touch */
+  .card,
+  .alert {
+    padding: var(--space-6);
+  }
+}
+
+/* ========================================
+   LANDSCAPE MODE
+   ======================================== */
+
+@media (orientation: landscape) and (max-height: 600px) {
+  h1 {
+    margin-bottom: var(--space-3);
+    font-size: 32px;
+  }
+
+  h2 {
+    margin-bottom: var(--space-2);
+    font-size: 26px;
+  }
+
+  .container {
+    padding: var(--space-3);
+  }
+
+  body {
+    padding-top: 60px; /* Account for sticky header */
+  }
+}
+
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  button:hover {
+    transform: none;
+  }
+}
+
+/* ========================================
+   HIGH CONTRAST MODE
+   ======================================== */
+
+@media (prefers-contrast: more) {
+  button {
+    border: 2px solid currentColor;
+  }
+
+  input,
+  textarea,
+  select {
+    border-width: 2px;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+}
+
+/* ========================================
+   DARK MODE SUPPORT (Future)
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: var(--color-gray-900);
+    color: var(--color-gray-50);
+  }
+
+  input,
+  textarea,
+  select {
+    background-color: var(--color-gray-800);
+    color: var(--color-gray-50);
+    border-color: var(--color-gray-700);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    background-color: var(--color-primary-900);
+  }
+
+  table,
+  th,
+  td {
+    border-color: var(--color-gray-700);
+  }
+
+  tr:hover {
+    background-color: var(--color-gray-800);
+  }
+
+  code {
+    background-color: var(--color-gray-800);
+    color: var(--color-gray-100);
+  }
+
+  .alert {
+    color: var(--color-gray-900);
+  }
+}

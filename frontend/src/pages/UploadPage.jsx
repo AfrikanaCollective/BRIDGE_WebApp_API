@@ -1,6 +1,6 @@
 // frontend/src/pages/UploadPage.jsx
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import UploadForm from '../components/UploadForm';
 import '../styles/UploadPage.css';

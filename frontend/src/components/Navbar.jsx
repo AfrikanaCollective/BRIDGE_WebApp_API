@@ -1,88 +1,60 @@
 // frontend/src/components/Navbar.jsx
 import React from 'react';
-import { Layout, Menu, Button, Space } from 'antd';
-import { Link } from 'react-router-dom';
-import {
-    HomeOutlined,
-    UploadOutlined,
-    HistoryOutlined,
-    GithubOutlined,
-} from '@ant-design/icons';
-import '../styles/Navbar.css'
-import faviconImage from '../assets/favicon.ico'
+import { Link, useLocation } from 'react-router-dom';
+import '../styles/Navbar.css';
+import faviconImage from '../assets/favicon.ico';
 
-const { Header } = Layout;
+const NAV_LINKS = [
+    { path: '/', label: 'Home', icon: 'bi-house-fill', exact: true },
+    { path: '/upload', label: 'Upload', icon: 'bi-cloud-upload' },
+    { path: '/history', label: 'History', icon: 'bi-clock-history' },
+];
 
-const Navbar = () => {
+const Navbar = ({ onMenuClick }) => {
+    const { pathname } = useLocation();
+
+    const isActive = (path, exact) =>
+        exact ? pathname === path : pathname.startsWith(path);
+
     return (
-        <Header
-            className="navbar"
-            style={{
-                background: '#001529',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 24px',
-                height: '64px',
-                lineHeight: '64px',
-            }}
-        >
-            <div className="navbar-brand">
-                <div className="brand-container">
-                    <img
-                        src={faviconImage}
-                        alt="BRIDGE Logo"
-                        className="navbar-favicon"
-                        title="the data BRIDGE project"
-                    />
-                    <h1 style={{ color: 'white', margin: 0, fontSize: '20px', lineHeight: '64px' }}>
-                        the data BRIDGE project
-                    </h1>
-                </div>
-            </div>
-
-            <Menu
-                theme="dark"
-                mode="horizontal"
-                defaultSelectedKeys={['home']}
-                style={{
-                    flex: 1,
-                    justifyContent: 'center',
-                    border: 'none',
-                    height: '64px',
-                    lineHeight: '64px',
-                }}
-            >
-                <Menu.Item key="home" icon={<HomeOutlined />}>
-                    <Link to="/">Home</Link>
-                </Menu.Item>
-                <Menu.Item key="upload" icon={<UploadOutlined />}>
-                    <Link to="/upload">Upload</Link>
-                </Menu.Item>
-                <Menu.Item key="history" icon={<HistoryOutlined />}>
-                    <Link to="/history">History</Link>
-                </Menu.Item>
-            </Menu>
-
-            <Space>
-                <Button
-                    type="primary"
-                    size="large"
-                    icon={<UploadOutlined />}
-                    style={{
-                        background: '#1890ff',
-                        borderColor: '#1890ff',
-                        height: '40px',
-                        lineHeight: '40px',
-                    }}
+        <header className="app-header" role="banner">
+            <div className="navbar-inner">
+                <button
+                    className="hamburger-btn navbar-hamburger"
+                    onClick={onMenuClick}
+                    aria-label="Toggle sidebar"
+                    type="button"
                 >
-                    <Link to="/upload" style={{ color: 'white', textDecoration: 'none' }}>
-                        Upload Now
-                    </Link>
-                </Button>
-            </Space>
-        </Header>
+                    <i className="bi bi-list" aria-hidden="true" />
+                </button>
+
+                <Link to="/" className="navbar-brand">
+                    <img src={faviconImage} alt="" className="navbar-favicon" />
+                    <span className="brand-text">the data BRIDGE project</span>
+                </Link>
+
+                <nav className="navbar-nav" aria-label="Main navigation">
+                    <ul>
+                        {NAV_LINKS.map(({ path, label, icon, exact }) => (
+                            <li key={path}>
+                                <Link
+                                    to={path}
+                                    className={isActive(path, exact) ? 'active' : ''}
+                                >
+                                    <i className={`bi ${icon}`} aria-hidden="true" />
+                                    <span>{label}</span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+
+                <Link to="/upload" className="navbar-cta-btn">
+                    <i className="bi bi-cloud-upload" aria-hidden="true" />
+                    <span>Upload Now</span>
+                </Link>
+            </div>
+        </header>
     );
 };
 

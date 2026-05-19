@@ -1,276 +1,336 @@
-/* frontend/src/styles/UploadForm.css */
+/* frontend/src/styles/UploadForm.css
+   Mobile-first. Uses design tokens from design-system/tokens.css.
+   All selectors target actual class names used in UploadForm.jsx.
+*/
 
-.upload-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-    animation: fadeIn var(--transition-base);
+/* ── Outer wrapper ──────────────────────────────────────── */
+
+.upload-form-container {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
 }
 
-/* ============================================
-   FORM GROUPS
-   ============================================ */
+/* ── Card (native <div class="card">) ───────────────────── */
 
-.upload-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-}
-
-.upload-form-label {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-primary);
-    font-size: var(--font-size-sm);
-}
-
-.upload-form-label.required::after {
-    content: ' *';
-    color: var(--color-error);
-}
-
-.upload-form-input {
-    padding: var(--spacing-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-base);
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-primary);
-    transition: all var(--transition-fast);
-}
-
-.upload-form-input:focus {
-    outline: none;
-    border-color: var(--color-primary-light);
-    box-shadow: 0 0 0 3px rgba(45, 90, 140, 0.1);
-    background-color: var(--color-bg-primary);
-}
-
-.upload-form-input::placeholder {
-    color: var(--color-text-tertiary);
-}
-
-.upload-form-input:disabled {
-    background-color: var(--color-bg-secondary);
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* ============================================
-   FORM HINT TEXT
-   ============================================ */
-
-.upload-form-hint {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-tertiary);
-    line-height: var(--line-height-normal);
-}
-
-.upload-form-hint.error {
-    color: var(--color-error);
-}
-
-.upload-form-hint.warning {
-    color: var(--color-warning);
-}
-
-.upload-form-hint.success {
-    color: var(--color-accent);
-}
-
-/* ============================================
-   RADIO & CHECKBOX
-   ============================================ */
-
-.upload-form-radio-group,
-.upload-form-checkbox-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-}
-
-.upload-form-radio,
-.upload-form-checkbox {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    cursor: pointer;
-}
-
-.upload-form-radio input,
-.upload-form-checkbox input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: var(--color-accent);
-}
-
-.upload-form-radio label,
-.upload-form-checkbox label {
-    cursor: pointer;
-    margin: 0;
-    font-weight: var(--font-weight-normal);
-}
-
-/* ============================================
-   BUTTON STYLES
-   ============================================ */
-
-.upload-form-btn {
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-weight: var(--font-weight-bold);
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    font-size: var(--font-size-base);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-}
-
-.upload-form-btn.primary {
-    background-color: var(--color-accent);
-    color: white;
-    box-shadow: var(--shadow-sm);
-}
-
-.upload-form-btn.primary:hover {
-    background-color: var(--color-accent-dark);
+.upload-form-card {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-gray-200);
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    padding: var(--space-8, 32px);
 }
 
-.upload-form-btn.primary:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-sm);
-}
+/* ── Status alerts ──────────────────────────────────────── */
 
-.upload-form-btn.secondary {
-    background-color: var(--color-bg-secondary);
-    color: var(--color-text-secondary);
-    border: 1px solid var(--color-border);
-}
-
-.upload-form-btn.secondary:hover {
-    background-color: var(--color-bg-tertiary);
-    border-color: var(--color-border-dark);
-}
-
-.upload-form-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-/* ============================================
-   VALIDATION FEEDBACK
-   ============================================ */
-
-.upload-form-feedback {
-    font-size: var(--font-size-sm);
-    margin-top: var(--spacing-sm);
+.alert {
     display: flex;
+    gap: var(--space-3, 12px);
     align-items: flex-start;
-    gap: var(--spacing-sm);
-}
-
-.upload-form-feedback.error {
-    color: var(--color-error);
-}
-
-.upload-form-feedback.warning {
-    color: var(--color-warning);
-}
-
-.upload-form-feedback.success {
-    color: var(--color-accent);
-}
-
-.upload-form-feedback-icon {
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.upload-form-feedback-text {
-    flex: 1;
-    line-height: var(--line-height-normal);
-}
-
-/* ============================================
-   FILE UPLOAD SPECIFIC
-   ============================================ */
-
-.upload-form-file-input {
+    padding: var(--space-4, 16px);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-6, 24px);
+    border-left: 4px solid;
     position: relative;
 }
 
-.upload-form-file-input input[type='file'] {
+.alert-body {
+    flex: 1;
+    font-size: var(--text-base, 18px);
+}
+
+.alert-body strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.alert-body code {
+    font-family: var(--font-mono);
+    background: rgba(0,0,0,0.08);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.alert-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: var(--space-3, 12px);
+    flex-wrap: wrap;
+}
+
+.alert-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    min-height: unset;
+    min-width: unset;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    flex-shrink: 0;
+    align-self: flex-start;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.alert-close:hover { opacity: 1; }
+
+/* ── Header ─────────────────────────────────────────────── */
+
+.upload-form-header {
+    margin-bottom: var(--space-6, 24px);
+    text-align: center;
+}
+
+.upload-form-header h2 {
+    font-family: var(--font-secondary, 'Poppins', sans-serif);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--color-gray-900, #111827);
+    margin: 0 0 8px;
+    line-height: 1.2;
+}
+
+.upload-form-subtitle {
+    font-size: 18px;
+    color: var(--color-gray-500, #6b7280);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Camera capture — mobile only ───────────────────────── */
+
+.mobile-camera-section {
     display: none;
 }
 
-.upload-form-file-button {
-    padding: var(--spacing-md) var(--spacing-lg);
-    background-color: var(--color-primary-base);
-    color: white;
-    border: none;
+.camera-capture-btn {
+    min-height: 44px;
+    font-size: 16px;
+    font-weight: 600;
     border-radius: var(--radius-md);
-    font-weight: var(--font-weight-bold);
-    cursor: pointer;
-    transition: all var(--transition-fast);
+}
+
+/* ── Drop zone ───────────────────────────────────────────── */
+
+.drop-zone-icon {
+    font-size: 40px;
+    color: var(--color-primary-500, #0ea5e9);
+    display: block;
+    margin-bottom: 12px;
+}
+
+.drop-zone-hint {
+    font-size: var(--text-sm, 16px);
+    color: var(--color-gray-500, #6b7280);
+    margin: 0;
+}
+
+/* ── Divider with text ───────────────────────────────────── */
+
+.divider-with-text {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: 12px;
+    margin: 16px 0;
+    color: var(--color-gray-400, #9ca3af);
+    font-size: var(--text-sm, 16px);
 }
 
-.upload-form-file-button:hover {
-    background-color: var(--color-primary-dark);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+.divider-with-text::before,
+.divider-with-text::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-gray-200, #e5e7eb);
 }
 
-/* ============================================
-   PROGRESS INDICATOR
-   ============================================ */
+/* ── File list helpers ───────────────────────────────────── */
 
-.upload-form-progress {
-    width: 100%;
-    height: 6px;
-    background-color: var(--color-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-top: var(--spacing-md);
+.file-list-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: var(--text-base, 18px);
 }
 
-.upload-form-progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg,
-    var(--color-primary-light) 0%,
-    var(--color-accent) 100%);
-    width: 0%;
-    transition: width var(--transition-base);
-    border-radius: var(--radius-lg);
+.file-remove-btn {
+    min-height: 32px;
+    min-width: unset;
+    padding: 4px 10px;
+    font-size: 14px;
 }
 
-.upload-form-progress-text {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-secondary);
-    margin-top: var(--spacing-sm);
+/* ── Info boxes grid ─────────────────────────────────────── */
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4, 16px);
+    margin-top: var(--space-4, 16px);
+}
+
+/* ── Selected file list ─────────────────────────────────── */
+
+.upload-file-list {
+    margin-top: var(--space-4);
+}
+
+.file-list-items {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: var(--space-2);
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
+.file-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-sm);
+    min-height: var(--touch-min); /* touch-friendly row */
+}
+
+.file-icon {
+    color: var(--color-primary-500);
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.file-name {
+    flex: 1;
+    font-weight: var(--fw-medium);
+    color: var(--color-gray-900);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-size {
+    color: var(--color-gray-500);
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+/* ── Upload progress ────────────────────────────────────── */
+
+.upload-progress {
+    margin-top: var(--space-4);
+}
+
+.progress-text {
+    font-size: var(--fs-sm);
+    color: var(--color-gray-500);
+    text-align: center;
+    margin-top: var(--space-2);
+}
+
+/* ── Submit button ──────────────────────────────────────── */
+
+.upload-submit-btn {
+    min-height: 44px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    margin-top: var(--space-4, 16px);
+    gap: 8px;
+}
+
+/* ── Info boxes ─────────────────────────────────────────── */
+
+.info-box {
+    background: var(--color-gray-50, #f9fafb);
+    border: 1px solid var(--color-gray-200, #e5e7eb);
+    border-radius: var(--radius-md);
+    padding: var(--space-4, 16px);
+}
+
+.info-box h4 {
+    font-family: var(--font-secondary, 'Poppins', sans-serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-gray-900, #111827);
+    margin: 0 0 8px;
+}
+
+.info-box ul {
+    margin: 0;
+    padding-left: var(--space-4, 16px);
+    list-style: disc;
+}
+
+.info-box ul li {
+    font-size: var(--text-sm, 16px);
+    color: var(--color-gray-500, #6b7280);
+    line-height: 1.8;
+    min-height: unset;
+    min-width: unset;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — 768px (tablet) ↑: two-column info grid
+   ═══════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-    .upload-form-btn {
-        width: 100%;
+    .mobile-camera-section {
+        display: block;
     }
 
-    .upload-form-radio-group,
-    .upload-form-checkbox-group {
-        gap: var(--spacing-md);
+    .upload-form-header h2 {
+        font-size: 24px;
+    }
+
+    .upload-form-subtitle {
+        font-size: 16px;
+    }
+
+    .file-list-item {
+        flex-wrap: wrap;
+    }
+
+    .file-name {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — 375px (small phone): single column
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+    .upload-form-header h2 {
+        font-size: 20px;
+    }
+
+    .upload-form-subtitle {
+        font-size: 15px;
+    }
+
+    .file-list-item {
+        padding: var(--space-3);
+    }
+
+    /* Stack remove button below file info on tiny screens */
+    .file-list-item > button {
+        margin-top: var(--space-1);
+        width: 100%;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+    .upload-form-container * {
+        animation: none !important;
+        transition: none !important;
     }
 }

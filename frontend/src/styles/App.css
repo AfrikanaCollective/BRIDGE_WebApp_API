@@ -1,126 +1,207 @@
 /* frontend/src/styles/App.css */
 
-* {
+/* ============================================
+   APP SHELL — Semantic layout replacing Ant Design Layout
+   ============================================ */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
 html {
     height: 100%;
-    overflow: hidden;
+    scroll-behavior: smooth;
 }
 
 body {
     height: 100%;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
+    font-size: 18px; /* spec: 18px body */
+    overflow-x: hidden;
 }
 
 #root {
-    height: 100vh;
+    height: 100%;
+}
+
+.app-shell {
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ============================================
+   HEADER (replaces Ant Design Header)
+   ============================================ */
+
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 82px;
+    z-index: 1000;
+    background: var(--color-primary-900);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   APP BODY — sidebar + content row
+   ============================================ */
+
+.app-body {
+    display: flex;
+    flex: 1;
+    margin-top: 64px;
+    min-height: calc(100vh - 64px);
     overflow: hidden;
 }
 
-/* Ant Layout Structure */
-.ant-layout {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
+/* ============================================
+   SIDEBAR (replaces Ant Design Sider)
+   ============================================ */
 
-.ant-layout-header {
+.app-sidebar {
+    width: 180px;
     flex-shrink: 0;
-    position: relative;
-    z-index: 999;
-}
-
-.ant-layout-sider {
-    flex-shrink: 0;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    bottom: 0;
+    background: var(--color-primary-900);
     overflow-y: auto;
     overflow-x: hidden;
-    background-color: #001529;
+    z-index: 900;
+    transition: width 0.2s ease;
 }
 
-.ant-layout-content {
+.app-body.sidebar-collapsed .app-sidebar {
+    width: 80px;
+}
+
+/* ============================================
+   MAIN CONTENT (replaces Ant Design Content)
+   ============================================ */
+
+.app-content {
     flex: 1;
+    margin-left: 180px;
+    height: calc(100vh - 64px);
     overflow-y: auto;
     overflow-x: hidden;
-    background-color: #ffffff;
     display: flex;
     flex-direction: column;
+    background: #ffffff;
+    transition: margin-left 0.2s ease;
 }
 
-/* Main Layout Container */
-.ant-layout > .ant-layout {
+.app-body.sidebar-collapsed .app-content {
+    margin-left: 80px;
+}
+
+/* ============================================
+   PAGE WRAPPER — padded content area
+   ============================================ */
+
+.page-wrapper {
     flex: 1;
-    overflow: hidden;
-    display: flex;
+    padding: 24px;
 }
 
-.ant-layout > .ant-layout > .ant-layout {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+/* ============================================
+   FOOTER (replaces Ant Design Footer)
+   ============================================ */
+
+.app-footer {
+    background: linear-gradient(90deg, var(--color-primary-900) 0%, #0a3d6e 100%);
+    color: white;
+    text-align: center;
+    padding: 24px;
+    flex-shrink: 0;
+    font-family: var(--font-primary, 'Inter', sans-serif);
 }
 
-/* Scrollbar Styling - Custom */
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
 ::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
     background: #f1f5f9;
-    border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border-radius: 10px;
-    border: 2px solid #f1f5f9;
-    transition: background 0.3s ease;
+    background: #10b981;
+    border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    background: #059669;
 }
 
-::-webkit-scrollbar-corner {
-    background: #f1f5f9;
-}
-
-/* Firefox scrollbar */
 * {
     scrollbar-color: #10b981 #f1f5f9;
     scrollbar-width: thin;
 }
 
-/* Selection Color */
 ::selection {
     background-color: #10b981;
     color: #ffffff;
 }
 
-::-moz-selection {
-    background-color: #10b981;
-    color: #ffffff;
-}
+/* ============================================
+   BREAKPOINTS
+   320px  — smallest phones
+   768px  — tablet (sidebar hides, bottom nav shows)
+   1024px — desktop comfortable width
+   ============================================ */
 
-/* Prevent horizontal scroll */
-body,
-html {
-    overflow-x: hidden;
-    width: 100%;
-}
-
-/* Responsive - Sidebar scrollbar */
+/* Tablet and below */
 @media (max-width: 768px) {
-    ::-webkit-scrollbar {
-        width: 8px;
+    body {
+        font-size: 16px;
+    }
+
+    /* Hide sidebar — bottom nav replaces it */
+    .app-sidebar.desktop-sidebar {
+        display: none !important;
+    }
+
+    /* Full-width content, no sidebar margin */
+    .app-content,
+    .app-body.sidebar-collapsed .app-content {
+        margin-left: 0 !important;
+        height: calc(100vh - 64px - 60px); /* account for bottom nav */
+    }
+
+    /* Tighter page padding */
+    .page-wrapper {
+        padding: 16px;
+    }
+
+    /* Stack footer text */
+    .app-footer {
+        padding: 16px;
+    }
+}
+
+/* Small phones */
+@media (max-width: 320px) {
+    .page-wrapper {
+        padding: 12px;
+    }
+}
+
+/* Desktop comfortable layout */
+@media (min-width: 1024px) {
+    .page-wrapper {
+        padding: 28px 32px;
     }
 }
