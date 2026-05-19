@@ -1,4 +1,4 @@
-# backend/app/clients/minio_client.py
+# backend/clients/minio_client.py
 """
 MinIO S3 client for file storage.
 """

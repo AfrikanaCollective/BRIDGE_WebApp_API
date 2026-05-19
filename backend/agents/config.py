@@ -1,4 +1,4 @@
-# backend/app/agents/config.py
+# backend/agents/config.py
 """
 Agent configuration and constants - Enums, mappings, and utility functions.
 Page-specific schemas are loaded from separate files.

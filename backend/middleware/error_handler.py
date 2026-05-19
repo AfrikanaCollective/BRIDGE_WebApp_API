@@ -1,4 +1,5 @@
-# backend/app/middleware/error_handler.py
+# backend/middleware/error_handler.py
+
 import logging
 from fastapi import Request
 from fastapi.responses import JSONResponse

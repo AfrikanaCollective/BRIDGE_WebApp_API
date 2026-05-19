@@ -1,4 +1,4 @@
-# backend/app/main.py
+# backend/main.py
 """
 FastAPI application with lifespan management and service injection.
 Properly initializes MongoDB with authentication.

@@ -1,3 +1,5 @@
+# backend/routes/stats.py
+
 """
 Statistics and aggregate data routes.
 """

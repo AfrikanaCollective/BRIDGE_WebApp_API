@@ -1,4 +1,4 @@
-# backend/app/routes/health.py
+# backend/routes/health.py
 """Health check route with robust error handling."""
 import asyncio
 import logging

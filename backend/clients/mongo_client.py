@@ -1,4 +1,4 @@
-# backend/app/clients/mongo_client.py
+# backend/clients/mongo_client.py
 """
 MongoDB client for database operations.
 Handles authentication with special characters in password.

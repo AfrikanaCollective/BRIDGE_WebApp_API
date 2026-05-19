@@ -1,4 +1,4 @@
-# backend/app/server.py
+# backend/server.py
 """
 SSL-enabled Uvicorn server configuration.
 Handles SSL certificate loading and server startup.

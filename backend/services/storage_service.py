@@ -1,4 +1,4 @@
-# backend/app/services/storage_service.py
+# backend/services/storage_service.py
 """
 Storage service that handles persistence to MongoDB and MinIO.
 """
