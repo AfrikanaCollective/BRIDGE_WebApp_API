@@ -45,6 +45,16 @@ class StorageService:
             f"MongoDB({db_name}.{collection_name}), MinIO"
         )
 
+    @property
+    def db(self):
+        """Get MongoDB database instance."""
+        return self.mongo.client[self.db_name]
+
+    @property
+    def collection(self):
+        """Get MongoDB collection instance."""
+        return self.db[self.collection_name]
+
     async def get_records(
             self,
             page: int = 1,
@@ -69,10 +79,10 @@ class StorageService:
             skip = (page - 1) * limit
 
             # Count total matching documents
-            total = await self.db['records'].count_documents(filters)
+            total = await self.collection.count_documents(filters)
 
             # Fetch paginated records
-            cursor = self.db['records'].find(filters).skip(skip).limit(limit).sort("created_at", -1)
+            cursor = self.collection.find(filters).skip(skip).limit(limit).sort("created_at", -1)
             records = await cursor.to_list(length=limit)
 
             return {
@@ -85,7 +95,8 @@ class StorageService:
             logger.error(f"Error fetching records: {e}", exc_info=True)
             raise
 
-    def record_to_dict(record: dict) -> dict:
+
+    def record_to_dict(self, record: dict) -> dict:
         """
         Convert MongoDB record to response dictionary.
 
@@ -108,12 +119,13 @@ class StorageService:
             "extracted_data": record.get("extracted_data"),
         }
 
+
     async def get_record_by_processing_id(self,processing_id: str) -> Optional[dict]:
         """
         Retrieve a single record by processing_id.
         """
         try:
-            record = await self.db['records'].find_one({"processing_id": processing_id})
+            record = await self.collection.find_one({"processing_id": processing_id})
             return self.record_to_dict(record)
         except Exception as e:
             logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
@@ -174,9 +186,7 @@ class StorageService:
                 doc.update(metadata)
 
             # Save to MongoDB
-            db = self.mongo.client[self.db_name]
-            collection = db[self.collection_name]
-            inserted_id = collection.insert_one(doc).inserted_id
+            inserted_id = self.collection.insert_one(doc).inserted_id
 
             logger.info(f"✅ Saved to MongoDB: {inserted_id}")
 
@@ -268,10 +278,7 @@ class StorageService:
         try:
             from bson import ObjectId
 
-            db = self.mongo.client[self.db_name]
-            collection = db[self.collection_name]
-
-            doc = collection.find_one({"_id": ObjectId(doc_id)})
+            doc = self.collection.find_one({"_id": ObjectId(doc_id)})
 
             if doc:
                 # Convert ObjectId to string for JSON serialization
@@ -301,15 +308,12 @@ class StorageService:
             list: Form processing results
         """
         try:
-            db = self.mongo.client[self.db_name]
-            collection = db[self.collection_name]
-
             query = {}
             if form_type:
                 query["form_type"] = form_type.upper()
 
             results = list(
-                collection.find(query)
+                self.collection.find(query)
                 .sort("timestamp", -1)
                 .limit(limit)
             )
@@ -336,11 +340,7 @@ class StorageService:
         """
         try:
             from bson import ObjectId
-
-            db = self.mongo.client[self.db_name]
-            collection = db[self.collection_name]
-
-            result = collection.delete_one({"_id": ObjectId(doc_id)})
+            result = self.collection.delete_one({"_id": ObjectId(doc_id)})
 
             if result.deleted_count > 0:
                 logger.info(f"✅ Deleted result: {doc_id}")
@@ -352,6 +352,7 @@ class StorageService:
         except Exception as e:
             logger.error(f"❌ Error deleting result: {e}", exc_info=True)
             return False
+
 
     async def get_statistics(self) -> dict:
         """Get aggregate statistics."""
@@ -373,7 +374,7 @@ class StorageService:
                 }
             ]
 
-            result = await self.db['records'].aggregate(pipeline).to_list(None)
+            result = await self.collection.aggregate(pipeline).to_list(None)
             result = result[0] if result else {}
 
             total = result.get("total", [{}])[0].get("count", 0)
@@ -391,10 +392,11 @@ class StorageService:
             logger.error(f"Error fetching statistics: {e}", exc_info=True)
             raise
 
+    # ✅ FIX delete_record to use self.collection
     async def delete_record(self, processing_id: str) -> bool:
         """Delete a record and associated files."""
         try:
-            result = await self.db['records'].delete_one({"processing_id": processing_id})
+            result = await self.collection.delete_one({"processing_id": processing_id})
             return result.deleted_count > 0
         except Exception as e:
             logger.error(f"Error deleting record: {e}", exc_info=True)
