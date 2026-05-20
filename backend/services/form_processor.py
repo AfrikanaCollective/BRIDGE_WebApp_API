@@ -109,6 +109,63 @@ class FormProcessor:
         return None
 
     @staticmethod
+    def extract_form_type_from_filename(file_name: str) -> Optional[str]:
+        """
+        Extract form type from filename.
+
+        Supports patterns like:
+        - ITF_40000071_page_1.png -> ITF
+        - NAR_40000071_p1.png -> NAR
+        - DSC_40000071_1.png -> DSC
+        - ITF-40000071-page-1.png -> ITF
+        - itf_form_001.png -> ITF
+
+        Args:
+            file_name: Filename string (e.g., from file.filename)
+
+        Returns:
+            str: Form type if found (uppercase), None otherwise
+        """
+        if not file_name or not isinstance(file_name, str):
+            return None
+
+        # Get the stem (filename without extension)
+        stem = Path(file_name).stem.upper()
+
+        logger.debug(f"🔍 Extracting form type from: {file_name} (stem: {stem})")
+
+        # Known form type prefixes
+        # TODO: Set it in settings
+        FORM_TYPES = ["ITF", "NAR", "DSC", "DAI", "DOC"]
+
+        # Try exact prefix match (e.g., "ITF_40000071_page_1")
+        for form_type in FORM_TYPES:
+            if stem.startswith(form_type):
+                # Ensure it's a word boundary (e.g., ITF- or ITF_)
+                if len(stem) > len(form_type):
+                    next_char = stem[len(form_type)]
+                    if next_char in ["_", "-"]:
+                        logger.debug(f"✅ Detected form type: {form_type}")
+                        return form_type
+
+        # Try pattern matching with regex (e.g., "FORM_ITF_001")
+        pattern = r"(?:^|_|-)(" + "|".join(FORM_TYPES) + r")(?:_|-|$)"
+        match = re.search(pattern, stem)
+        if match:
+            form_type = match.group(1)
+            logger.debug(f"✅ Detected form type (regex): {form_type}")
+            return form_type
+
+        # Try containment check as last resort (e.g., "MY_ITF_FORM")
+        for form_type in FORM_TYPES:
+            if form_type in stem.split("_") or form_type in stem.split("-"):
+                logger.debug(f"✅ Detected form type (containment): {form_type}")
+                return form_type
+
+        logger.warning(f"⚠️  Could not detect form type from: {file_name}")
+        return None
+
+    @staticmethod
     def load_prompt_from_file(
         form_type: str,
         page_number: Optional[int] = None,

@@ -185,26 +185,14 @@ async def upload_file(
         # ==================== SAVE TO TEMP ====================
         temp_dir = Path(settings.UPLOAD_TEMP_DIR)
         temp_path = await save_upload_to_temp(file, temp_dir)
+        file_type = form_processor.extract_form_type_from_filename(file.filename)
 
         # ==================== PROCESS FORM ====================
         logger.info(f"🔄 Processing form: {file.filename}")
         try:
-            '''
-            processing_result = await form_processor.process(
-                file_path=str(temp_path),
-                original_filename=file.filename,
-                content_type=file.content_type,
-            )
-            '''
-
-            logger.info(
-                f"✅ Original file name: {file.filename} "
-                f"✅ Temp path: {temp_path}"
-            )
-
             processing_result = await form_processor.process(
                 image_path=str(temp_path),  # ✅ Correct parameter name
-                # "ITF",  # ✅ Optional: default is ITF
+                form_type=file_type,  # ✅ default is ITF
                 # page_number=None,  # ✅ Optional: auto-detect from filename
                 # case_id=None,  # ✅ Optional
                 save_to_storage=True,  # ✅ Save to MongoDB/MinIO
