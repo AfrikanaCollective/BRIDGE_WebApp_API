@@ -153,7 +153,7 @@ async def upload_file(
 
     **Example:**
     ```bash
-    curl -X POST http://localhost:6000/api/upload/upload \\
+    curl -X POST http://localhost:6000/api/upload \\
       -F "file=@form.png"
     ```
     """

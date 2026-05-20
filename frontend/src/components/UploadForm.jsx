@@ -76,10 +76,10 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
 
             if (isBatchMode) {
                 fileList.forEach(f => formData.append('files', f));
-                url = `${API_BASE_URL}/upload/form-batch`;
+                url = `${API_BASE_URL}/upload/`;
             } else {
                 formData.append('file', fileList[0]);
-                url = `${API_BASE_URL}/upload/form`;
+                url = `${API_BASE_URL}/upload/`;
             }
 
             const response = await axios.post(url, formData, {
