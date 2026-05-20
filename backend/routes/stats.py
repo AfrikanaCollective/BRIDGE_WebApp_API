@@ -120,7 +120,7 @@ async def get_stats_overview(
 
         # ==================== COUNT TOTAL PROCESSED ====================
         try:
-            total_processed = forms_collection.count_documents(filters)
+            total_processed = await forms_collection.count_documents(filters)
             logger.debug(f"✅ Total processed: {total_processed}")
         except Exception as e:
             logger.error(f"❌ Error counting documents: {e}", exc_info=True)
@@ -136,7 +136,9 @@ async def get_stats_overview(
                 }},
                 {"$sort": {"count": -1}}
             ]
-            status_results = list(forms_collection.aggregate(status_pipeline))
+            # ✅ FIXED: Await aggregate and convert to list
+            cursor = forms_collection.aggregate(status_pipeline)
+            status_results = await cursor.to_list(length=None)
             status_counts = {item["_id"]: item["count"] for item in status_results}
             logger.debug(f"✅ Status breakdown: {status_counts}")
         except Exception as e:
@@ -153,7 +155,9 @@ async def get_stats_overview(
                 }},
                 {"$sort": {"count": -1}}
             ]
-            form_type_results = list(forms_collection.aggregate(form_type_pipeline))
+            # ✅ FIXED: Await aggregate and convert to list
+            cursor = forms_collection.aggregate(form_type_pipeline)
+            form_type_results = await cursor.to_list(length=None)
             form_type_counts = {item["_id"]: item["count"] for item in form_type_results}
             logger.debug(f"✅ Form type breakdown: {form_type_counts}")
         except Exception as e:
@@ -171,7 +175,9 @@ async def get_stats_overview(
                     "min_processing_time": {"$min": "$processing_time_ms"}
                 }}
             ]
-            timing_results = list(forms_collection.aggregate(timing_pipeline))
+            # ✅ FIXED: Await aggregate and convert to list
+            cursor = forms_collection.aggregate(timing_pipeline)
+            timing_results = await cursor.to_list(length=None)
 
             if timing_results and timing_results[0]:
                 timing_stats = timing_results[0]
