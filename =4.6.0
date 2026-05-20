@@ -1,0 +1,2 @@
+Requirement already satisfied: pymongo[async] in /home/ttuti/anaconda3/envs/bridge3/lib/python3.11/site-packages (4.17.0)
+Requirement already satisfied: dnspython<3.0.0,>=2.6.1 in /home/ttuti/anaconda3/envs/bridge3/lib/python3.11/site-packages (from pymongo[async]) (2.8.0)

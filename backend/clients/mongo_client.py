@@ -1,6 +1,6 @@
 # backend/clients/mongo_client.py
 """
-MongoDB client for database operations using Motor (async driver).
+MongoDB client for database operations using PyMongo async driver.
 Handles authentication with special characters in password.
 Supports async health checks and operations.
 """
@@ -8,14 +8,13 @@ Supports async health checks and operations.
 import asyncio
 import logging
 from typing import Optional, Dict, Any
-import motor.motor_asyncio
-from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
+from pymongo import AsyncMongoClient
 
 logger = logging.getLogger(__name__)
 
 
 class MongoClient:
-    """Async MongoDB client wrapper using Motor with connection pooling and health checks."""
+    """Async MongoDB client wrapper using PyMongo AsyncMongoClient with connection pooling and health checks."""
 
     def __init__(
         self,
@@ -25,7 +24,7 @@ class MongoClient:
         connect_timeout: int = 10000,
     ):
         """
-        Initialize Motor AsyncClient for MongoDB.
+        Initialize PyMongo AsyncMongoClient for MongoDB.
 
         Args:
             uri: MongoDB connection URI
@@ -42,8 +41,8 @@ class MongoClient:
         self.uri = uri
         self.db_name = db_name
 
-        # Initialize Motor AsyncClient
-        self.client = motor.motor_asyncio.AsyncClient(
+        # Initialize PyMongo AsyncMongoClient (native async driver)
+        self.client = AsyncMongoClient(
             uri,
             serverSelectionTimeoutMS=server_selection_timeout,
             connectTimeoutMS=connect_timeout,
@@ -52,7 +51,7 @@ class MongoClient:
             w="majority",
         )
 
-        logger.info(f"✅ Motor AsyncClient initialized for: {db_name}")
+        logger.info(f"✅ PyMongo AsyncMongoClient initialized for: {db_name}")
 
     # ==================== CONNECTION MANAGEMENT ====================
 
@@ -65,7 +64,7 @@ class MongoClient:
         which is what StorageService expects.
 
         Returns:
-            motor.motor_asyncio.AsyncDatabase: Async database instance for self.db_name
+            AsyncDatabase: Async database instance for self.db_name
 
         Example:
             # In storage_service.py:
@@ -81,7 +80,7 @@ class MongoClient:
         Safe to call even if connection is already closed.
         """
         try:
-            self.client.close()
+            await self.client.close()
             logger.info("🔒 MongoDB connection closed")
         except Exception as e:
             logger.error(f"❌ Error closing MongoDB: {e}")
@@ -94,7 +93,7 @@ class MongoClient:
             db_name: Database name (default: self.db_name)
 
         Returns:
-            motor.motor_asyncio.AsyncDatabase: Async database instance
+            AsyncDatabase: Async database instance
         """
         return self.client[db_name or self.db_name]
 
@@ -111,7 +110,7 @@ class MongoClient:
             db_name: Database name (default: self.db_name)
 
         Returns:
-            motor.motor_asyncio.AsyncCollection: Async collection instance
+            AsyncCollection: Async collection instance
         """
         db = self.get_database(db_name)
         return db[collection_name]
