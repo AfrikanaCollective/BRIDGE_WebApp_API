@@ -67,7 +67,7 @@ async def validate_upload_file(file: UploadFile) -> tuple[bool, Optional[str]]:
     await file.seek(0)
 
     # Check file extension
-    file_extension = Path(file.filename).suffix.lower()
+    file_extension = Path(file.filename).suffix.lower().lstrip('.')
     if file_extension not in settings.ALLOWED_EXTENSIONS:
         return False, (
             f"File type '{file_extension}' not allowed. "
