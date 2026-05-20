@@ -93,17 +93,8 @@ async def get_stats_overview(
         # ✅ FIXED: Get MongoDB client using helper
         mongo_client = get_mongo_client(request)
 
-        # ✅ FIXED: Access database and collection properly
-        db = mongo_client.db
-        if db is None:
-            logger.error("❌ MongoDB database not accessible")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="MongoDB database not available"
-            )
-
         from config.settings import settings
-        forms_collection = db.get_collection(settings.MONGODB_DB_COLLECTION)
+        collection_name = settings.MONGODB_DB_COLLECTION
 
         # Calculate date range
         end_date = datetime.utcnow()
@@ -120,7 +111,10 @@ async def get_stats_overview(
 
         # ==================== COUNT TOTAL PROCESSED ====================
         try:
-            total_processed = await forms_collection.count_documents(filters)
+            total_processed = await mongo_client.count_documents(
+                collection_name,
+                filters
+            )
             logger.debug(f"✅ Total processed: {total_processed}")
         except Exception as e:
             logger.error(f"❌ Error counting documents: {e}", exc_info=True)
@@ -136,9 +130,11 @@ async def get_stats_overview(
                 }},
                 {"$sort": {"count": -1}}
             ]
-            # ✅ FIXED: Await aggregate and convert to list
-            cursor = forms_collection.aggregate(status_pipeline)
-            status_results = await cursor.to_list(length=None)
+            # ✅ FIXED: Use mongo_client.aggregate() which handles async properly
+            status_results = await mongo_client.aggregate(
+                collection_name,
+                status_pipeline
+            )
             status_counts = {item["_id"]: item["count"] for item in status_results}
             logger.debug(f"✅ Status breakdown: {status_counts}")
         except Exception as e:
@@ -155,9 +151,11 @@ async def get_stats_overview(
                 }},
                 {"$sort": {"count": -1}}
             ]
-            # ✅ FIXED: Await aggregate and convert to list
-            cursor = forms_collection.aggregate(form_type_pipeline)
-            form_type_results = await cursor.to_list(length=None)
+            # ✅ FIXED: Use mongo_client.aggregate() which handles async properly
+            form_type_results = await mongo_client.aggregate(
+                collection_name,
+                form_type_pipeline
+            )
             form_type_counts = {item["_id"]: item["count"] for item in form_type_results}
             logger.debug(f"✅ Form type breakdown: {form_type_counts}")
         except Exception as e:
@@ -175,11 +173,13 @@ async def get_stats_overview(
                     "min_processing_time": {"$min": "$processing_time_ms"}
                 }}
             ]
-            # ✅ FIXED: Await aggregate and convert to list
-            cursor = forms_collection.aggregate(timing_pipeline)
-            timing_results = await cursor.to_list(length=None)
+            # ✅ FIXED: Use mongo_client.aggregate() which handles async properly
+            timing_results = await mongo_client.aggregate(
+                collection_name,
+                timing_pipeline
+            )
 
-            if timing_results and timing_results[0]:
+            if timing_results and len(timing_results) > 0:
                 timing_stats = timing_results[0]
                 logger.debug(f"✅ Timing stats: avg={timing_stats.get('avg_processing_time')}")
             else:
