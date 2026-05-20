@@ -9,7 +9,7 @@ export const fetchHistory = createAsyncThunk(
     'history/fetchHistory',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/history`);
+            const response = await axios.get(`${API_BASE_URL}/history`);
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data || 'Failed to fetch history');
@@ -22,7 +22,7 @@ export const fetchHistoryDetail = createAsyncThunk(
     async (processingId, { rejectWithValue }) => {
         try {
             const response = await axios.get(
-                `${API_BASE_URL}/api/history/${processingId}`
+                `${API_BASE_URL}/history/${processingId}`
             );
             return response.data;
         } catch (error) {
@@ -36,7 +36,7 @@ export const fetchProcessingStatus = createAsyncThunk(
     async (processingId, { rejectWithValue }) => {
         try {
             const response = await axios.get(
-                `${API_BASE_URL}/api/upload/status/${processingId}`
+                `${API_BASE_URL}/upload/status/${processingId}`
             );
             return response.data;
         } catch (error) {

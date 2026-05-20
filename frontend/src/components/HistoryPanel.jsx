@@ -28,7 +28,7 @@ const HistoryPanel = () => {
     const fetchResponses = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/history`);
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/history`);
 
             // ✅ Map backend field names to frontend expectations
             const mappedRecords = (response.data.records || []).map(rec => ({
@@ -62,7 +62,7 @@ const HistoryPanel = () => {
     const handleDelete = async (processingId) => {
         if (!window.confirm('Delete this record? This action cannot be undone.')) return;
         try {
-            await axios.delete(`${process.env.REACT_APP_API_URL}/api/history/${processingId}`);
+            await axios.delete(`${process.env.REACT_APP_API_URL}/history/${processingId}`);
             toast.success('Record deleted successfully');
             fetchResponses();
         } catch (error) {
