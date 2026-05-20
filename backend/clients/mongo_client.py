@@ -486,10 +486,10 @@ class MongoClient:
             return 0
 
     async def aggregate(
-        self,
-        collection_name: str,
-        pipeline: list,
-        db_name: Optional[str] = None,
+            self,
+            collection_name: str,
+            pipeline: list,
+            db_name: Optional[str] = None,
     ) -> list:
         """
         Run aggregation pipeline (async).
@@ -504,10 +504,16 @@ class MongoClient:
         """
         try:
             collection = self.get_collection(collection_name, db_name)
-            cursor = collection.aggregate(pipeline)
+
+            # ✅ CRITICAL: In PyMongo async, aggregate() is a coroutine
+            # We must await it to get the async cursor, THEN call to_list()
+            cursor = await collection.aggregate(pipeline)
+
             result = await cursor.to_list(length=None)
+            logger.debug(f"✅ Aggregation returned {len(result)} results from {collection_name}")
             return result
 
         except Exception as e:
-            logger.error(f"❌ Error running aggregation: {e}")
+            logger.error(f"❌ Error running aggregation: {e}", exc_info=True)
             return []
+
