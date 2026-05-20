@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status
 from pydantic import BaseModel
@@ -97,9 +98,9 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
         temp_dir.mkdir(parents=True, exist_ok=True)
 
         # Create safe filename with timestamp
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        safe_filename = f"{timestamp}_{file.filename}"
-        temp_path = temp_dir / safe_filename
+        # timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        # safe_filename = f"{timestamp}_{file.filename}"
+        temp_path = temp_dir / f"{file.filename}"
 
         # Write file
         content = await file.read()
@@ -188,13 +189,35 @@ async def upload_file(
         # ==================== PROCESS FORM ====================
         logger.info(f"🔄 Processing form: {file.filename}")
         try:
+            '''
             processing_result = await form_processor.process(
                 file_path=str(temp_path),
                 original_filename=file.filename,
                 content_type=file.content_type,
             )
+            '''
 
-            processing_id = processing_result.get("processing_id")
+            logger.info(
+                f"✅ Original file name: {file.filename} "
+                f"✅ Temp path: {temp_path}"
+            )
+
+            processing_result = await form_processor.process(
+                image_path=str(temp_path),  # ✅ Correct parameter name
+                # "ITF",  # ✅ Optional: default is ITF
+                # page_number=None,  # ✅ Optional: auto-detect from filename
+                # case_id=None,  # ✅ Optional
+                save_to_storage=True,  # ✅ Save to MongoDB/MinIO
+                process_with_agent=True,  # ✅ Use form agent
+            )
+
+            logger.info(
+                f'✅ processing_id (Orig): {processing_result.get("processing_id")} '
+                f'✅ processing_id (Updated): {processing_result.get("mongo_id")}'
+            )
+
+            # processing_id = processing_result.get("processing_id")
+            processing_id = processing_result.get("mongo_id") #or str(uuid4())
             form_type = processing_result.get("form_type", "UNKNOWN")
             status_msg = processing_result.get("status", "processing")
 
