@@ -90,45 +90,6 @@ def get_storage_service(request: Request):
     return storage_service
 
 
-def record_to_dict(record: dict) -> dict:
-    """
-    Convert MongoDB record to response dictionary.
-
-    Maps MongoDB's '_id' field to 'id' for Pydantic model compatibility.
-    """
-    if record is None:
-        return None
-
-    return {
-        "id": str(record.get("_id", "")),
-        "processing_id": record.get("processing_id", ""),
-        "form_type": record.get("form_type", ""),
-        "case_id": record.get("case_id", ""),
-        "status": record.get("status", ""),
-        "confidence": record.get("confidence"),
-        "created_at": record.get("created_at", ""),
-        "updated_at": record.get("updated_at", ""),
-        "file_url": record.get("file_url"),
-        "error_message": record.get("error_message"),
-        "extracted_data": record.get("extracted_data"),
-    }
-
-
-async def get_record_by_processing_id(
-        storage_service,
-        processing_id: str,
-) -> Optional[dict]:
-    """
-    Retrieve a single record by processing_id.
-    """
-    try:
-        record = await storage_service.get_record_by_processing_id(processing_id)
-        return record_to_dict(record)
-    except Exception as e:
-        logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
-        raise
-
-
 # ==================== ROUTES ====================
 # ✅ FIXED: Base history endpoint (no path parameters)
 @router.get(
@@ -170,7 +131,7 @@ async def get_history(
         )
 
         records = [
-            FormRecord(**record_to_dict(rec))
+            FormRecord(**storage_service.record_to_dict(rec))
             for rec in result.get("records", [])
         ]
 
@@ -252,8 +213,7 @@ async def get_record(
 
     try:
         storage_service = get_storage_service(request)
-
-        record = await get_record_by_processing_id(storage_service, processing_id)
+        record = await storage_service.get_record_by_processing_id(processing_id)
 
         if not record:
             logger.warning(f"⚠️  Record not found: {processing_id}")
@@ -298,7 +258,7 @@ async def delete_record(
     try:
         storage_service = get_storage_service(request)
 
-        record = await get_record_by_processing_id(storage_service, processing_id)
+        record = await storage_service.get_record_by_processing_id(processing_id)
 
         if not record:
             logger.warning(f"⚠️  Record not found for deletion: {processing_id}")

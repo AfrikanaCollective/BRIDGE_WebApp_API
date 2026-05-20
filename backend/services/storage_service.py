@@ -45,6 +45,81 @@ class StorageService:
             f"MongoDB({db_name}.{collection_name}), MinIO"
         )
 
+    async def get_records(
+            self,
+            page: int = 1,
+            limit: int = 20,
+            filters: dict = None,
+    ) -> dict:
+        """
+        Retrieve paginated records from MongoDB.
+
+        Args:
+            page: Page number (1-indexed)
+            limit: Records per page
+            filters: Optional filters (form_type, status, etc.)
+
+        Returns:
+            Dictionary with 'records' list and 'total' count
+        """
+        try:
+            if filters is None:
+                filters = {}
+
+            skip = (page - 1) * limit
+
+            # Count total matching documents
+            total = await self.db['records'].count_documents(filters)
+
+            # Fetch paginated records
+            cursor = self.db['records'].find(filters).skip(skip).limit(limit).sort("created_at", -1)
+            records = await cursor.to_list(length=limit)
+
+            return {
+                "records": records,
+                "total": total,
+                "page": page,
+                "limit": limit,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching records: {e}", exc_info=True)
+            raise
+
+    def record_to_dict(record: dict) -> dict:
+        """
+        Convert MongoDB record to response dictionary.
+
+        Maps MongoDB's '_id' field to 'id' for Pydantic model compatibility.
+        """
+        if record is None:
+            return None
+
+        return {
+            "id": str(record.get("_id", "")),
+            "processing_id": record.get("processing_id", ""),
+            "form_type": record.get("form_type", ""),
+            "case_id": record.get("case_id", ""),
+            "status": record.get("status", ""),
+            "confidence": record.get("confidence"),
+            "created_at": record.get("created_at", ""),
+            "updated_at": record.get("updated_at", ""),
+            "file_url": record.get("file_url"),
+            "error_message": record.get("error_message"),
+            "extracted_data": record.get("extracted_data"),
+        }
+
+    async def get_record_by_processing_id(self,processing_id: str) -> Optional[dict]:
+        """
+        Retrieve a single record by processing_id.
+        """
+        try:
+            record = await self.db['records'].find_one({"processing_id": processing_id})
+            return self.record_to_dict(record)
+        except Exception as e:
+            logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
+            raise
+
+
     async def save_form_processing_result(
         self,
         result: Dict[str, Any],
@@ -277,3 +352,50 @@ class StorageService:
         except Exception as e:
             logger.error(f"❌ Error deleting result: {e}", exc_info=True)
             return False
+
+    async def get_statistics(self) -> dict:
+        """Get aggregate statistics."""
+        try:
+            pipeline = [
+                {
+                    "$facet": {
+                        "total": [{"$count": "count"}],
+                        "by_status": [
+                            {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+                        ],
+                        "avg_confidence": [
+                            {
+                                "$match": {"status": "completed", "confidence": {"$ne": None}}
+                            },
+                            {"$group": {"_id": None, "avg": {"$avg": "$confidence"}}}
+                        ]
+                    }
+                }
+            ]
+
+            result = await self.db['records'].aggregate(pipeline).to_list(None)
+            result = result[0] if result else {}
+
+            total = result.get("total", [{}])[0].get("count", 0)
+            by_status = {item["_id"]: item["count"] for item in result.get("by_status", [])}
+
+            return {
+                "total": total,
+                "completed": by_status.get("completed", 0),
+                "failed": by_status.get("failed", 0),
+                "pending": by_status.get("pending", 0),
+                "average_confidence": result.get("avg_confidence", [{}])[0].get("avg"),
+                "completion_rate": (by_status.get("completed", 0) / total * 100) if total > 0 else 0,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching statistics: {e}", exc_info=True)
+            raise
+
+    async def delete_record(self, processing_id: str) -> bool:
+        """Delete a record and associated files."""
+        try:
+            result = await self.db['records'].delete_one({"processing_id": processing_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f"Error deleting record: {e}", exc_info=True)
+            raise
