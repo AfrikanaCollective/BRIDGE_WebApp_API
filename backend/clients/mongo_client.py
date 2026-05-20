@@ -1,21 +1,21 @@
 # backend/clients/mongo_client.py
 """
-MongoDB client for database operations.
+MongoDB client for database operations using Motor (async driver).
 Handles authentication with special characters in password.
-Supports both sync and async health checks.
+Supports async health checks and operations.
 """
 
 import asyncio
 import logging
 from typing import Optional, Dict, Any
-from pymongo import MongoClient as PyMongoClient
+import motor.motor_asyncio
 from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
 
 logger = logging.getLogger(__name__)
 
 
 class MongoClient:
-    """MongoDB client wrapper with connection pooling and health checks."""
+    """Async MongoDB client wrapper using Motor with connection pooling and health checks."""
 
     def __init__(
         self,
@@ -25,7 +25,7 @@ class MongoClient:
         connect_timeout: int = 10000,
     ):
         """
-        Initialize MongoDB client.
+        Initialize Motor AsyncClient for MongoDB.
 
         Args:
             uri: MongoDB connection URI
@@ -42,50 +42,37 @@ class MongoClient:
         self.uri = uri
         self.db_name = db_name
 
-        try:
-            self.client = PyMongoClient(
-                uri,
-                serverSelectionTimeoutMS=server_selection_timeout,
-                connectTimeoutMS=connect_timeout,
-                socketTimeoutMS=30000,
-                retryWrites=True,
-                w="majority",
-            )
+        # Initialize Motor AsyncClient
+        self.client = motor.motor_asyncio.AsyncClient(
+            uri,
+            serverSelectionTimeoutMS=server_selection_timeout,
+            connectTimeoutMS=connect_timeout,
+            socketTimeoutMS=30000,
+            retryWrites=True,
+            w="majority",
+        )
 
-            # Test connection immediately
-            self.client.admin.command("ping")
-            logger.info(f"✅ MongoDB connected: {db_name}")
-
-        except ServerSelectionTimeoutError as e:
-            logger.error(f"❌ MongoDB connection timeout: {e}")
-            raise
-        except OperationFailure as e:
-            logger.error(f"❌ MongoDB authentication failed: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"❌ MongoDB connection error: {e}")
-            raise
+        logger.info(f"✅ Motor AsyncClient initialized for: {db_name}")
 
     # ==================== CONNECTION MANAGEMENT ====================
+
     @property
     def db(self):
         """
-        ✅ FIXED: Get the default database instance.
+        ✅ Get the default async database instance.
 
         This property allows accessing the database as mongo_client.db
-        which is what stats.py expects.
+        which is what StorageService expects.
 
         Returns:
-            pymongo.database.Database: Database instance for self.db_name
+            motor.motor_asyncio.AsyncDatabase: Async database instance for self.db_name
 
         Example:
-            # In stats.py:
+            # In storage_service.py:
             db = mongo_client.db
             collection = db[settings.MONGODB_DB_COLLECTION]
         """
         return self.get_database()
-
-    # ==================== CONNECTION MANAGEMENT ====================
 
     async def close(self):
         """
@@ -94,20 +81,20 @@ class MongoClient:
         Safe to call even if connection is already closed.
         """
         try:
-            await asyncio.to_thread(self.client.close)
+            self.client.close()
             logger.info("🔒 MongoDB connection closed")
         except Exception as e:
             logger.error(f"❌ Error closing MongoDB: {e}")
 
     def get_database(self, db_name: Optional[str] = None):
         """
-        Get database instance.
+        Get async database instance.
 
         Args:
             db_name: Database name (default: self.db_name)
 
         Returns:
-            pymongo.database.Database: Database instance
+            motor.motor_asyncio.AsyncDatabase: Async database instance
         """
         return self.client[db_name or self.db_name]
 
@@ -117,26 +104,23 @@ class MongoClient:
         db_name: Optional[str] = None,
     ):
         """
-        Get collection instance.
+        Get async collection instance.
 
         Args:
             collection_name: Collection name
             db_name: Database name (default: self.db_name)
 
         Returns:
-            pymongo.collection.Collection: Collection instance
+            motor.motor_asyncio.AsyncCollection: Async collection instance
         """
         db = self.get_database(db_name)
         return db[collection_name]
 
     # ==================== HEALTH CHECKS ====================
 
-    def server_info(self) -> Dict[str, Any]:
+    async def server_info(self) -> Dict[str, Any]:
         """
-        Get MongoDB server information (synchronous).
-
-        This is the primary method used by health checks.
-        Do NOT call this from async context directly - use asyncio.to_thread().
+        Get MongoDB server information (async).
 
         Returns:
             dict: Server information including version, os, etc.
@@ -145,14 +129,10 @@ class MongoClient:
             pymongo.errors.OperationFailure: If command fails
 
         Example:
-            # In sync context:
-            info = client.server_info()
-
-            # In async context:
-            info = await asyncio.to_thread(client.server_info)
+            info = await client.server_info()
         """
         try:
-            info = self.client.admin.command("serverStatus")
+            info = await self.client.admin.command("serverStatus")
             logger.debug(f"✅ MongoDB server_info: v{info.get('version', 'unknown')}")
             return info
         except Exception as e:
@@ -171,7 +151,7 @@ class MongoClient:
         """
         try:
             await asyncio.wait_for(
-                asyncio.to_thread(self._sync_ping),
+                self.client.admin.command("ping"),
                 timeout=timeout
             )
             logger.debug("✅ MongoDB ping successful")
@@ -183,22 +163,12 @@ class MongoClient:
             logger.error(f"❌ MongoDB ping failed: {e}")
             return False
 
-    def _sync_ping(self) -> None:
-        """
-        Synchronous ping operation.
-
-        Helper method for async ping().
-        """
-        self.client.admin.command("ping")
-
     async def health_check(
         self,
         timeout: float = 5.0,
     ) -> Dict[str, Any]:
         """
         Perform comprehensive health check asynchronously.
-
-        Runs server_info in thread pool to avoid blocking event loop.
 
         Args:
             timeout: Timeout in seconds for health check
@@ -219,9 +189,9 @@ class MongoClient:
                 print(f"Error: {health['error']}")
         """
         try:
-            # Run blocking server_info call in thread pool
+            # Run async server_info
             info = await asyncio.wait_for(
-                asyncio.to_thread(self.server_info),
+                self.server_info(),
                 timeout=timeout
             )
 
@@ -267,9 +237,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> bool:
         """
-        Create collection if it doesn't exist.
-
-        Runs in thread pool to avoid blocking event loop.
+        Create collection if it doesn't exist (async).
 
         Args:
             collection_name: Collection name
@@ -279,34 +247,20 @@ class MongoClient:
             bool: True if created or already exists, False on error
         """
         try:
-            success = await asyncio.to_thread(
-                self._sync_create_collection_if_not_exists,
-                collection_name,
-                db_name,
-            )
-            return success
+            db = self.get_database(db_name)
+            collections = await db.list_collection_names()
+
+            if collection_name not in collections:
+                await db.create_collection(collection_name)
+                logger.info(f"✅ Created collection: {collection_name}")
+            else:
+                logger.debug(f"✅ Collection exists: {collection_name}")
+
+            return True
 
         except Exception as e:
             logger.error(f"❌ Error creating collection: {e}")
             return False
-
-    def _sync_create_collection_if_not_exists(
-        self,
-        collection_name: str,
-        db_name: Optional[str] = None,
-    ) -> bool:
-        """
-        Synchronous helper for collection creation.
-        """
-        db = self.get_database(db_name)
-
-        if collection_name not in db.list_collection_names():
-            db.create_collection(collection_name)
-            logger.info(f"✅ Created collection: {collection_name}")
-        else:
-            logger.debug(f"✅ Collection exists: {collection_name}")
-
-        return True
 
     async def create_indexes(
         self,
@@ -315,9 +269,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> bool:
         """
-        Create indexes on collection.
-
-        Runs in thread pool to avoid blocking event loop.
+        Create indexes on collection (async).
 
         Args:
             collection_name: Collection name
@@ -338,40 +290,23 @@ class MongoClient:
             success = await client.create_indexes("results", indexes)
         """
         try:
-            success = await asyncio.to_thread(
-                self._sync_create_indexes,
-                collection_name,
-                indexes,
-                db_name,
-            )
-            return success
+            collection = self.get_collection(collection_name, db_name)
+
+            for field_name, direction in indexes.items():
+                try:
+                    await collection.create_index([(field_name, direction)])
+                    logger.info(
+                        f"✅ Created index: {collection_name}.{field_name} "
+                        f"({'asc' if direction > 0 else 'desc'})"
+                    )
+                except Exception as e:
+                    logger.warning(f"⚠️  Index may already exist: {field_name} ({e})")
+
+            return True
 
         except Exception as e:
             logger.error(f"❌ Error creating indexes: {e}")
             return False
-
-    def _sync_create_indexes(
-        self,
-        collection_name: str,
-        indexes: Dict[str, int],
-        db_name: Optional[str] = None,
-    ) -> bool:
-        """
-        Synchronous helper for index creation.
-        """
-        collection = self.get_collection(collection_name, db_name)
-
-        for field_name, direction in indexes.items():
-            try:
-                collection.create_index([(field_name, direction)])
-                logger.info(
-                    f"✅ Created index: {collection_name}.{field_name} "
-                    f"({'asc' if direction > 0 else 'desc'})"
-                )
-            except Exception as e:
-                logger.warning(f"⚠️  Index may already exist: {field_name} ({e})")
-
-        return True
 
     # ==================== DATABASE OPERATIONS ====================
 
@@ -382,7 +317,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> Optional[str]:
         """
-        Insert a single document.
+        Insert a single document (async).
 
         Args:
             collection_name: Collection name
@@ -393,9 +328,8 @@ class MongoClient:
             str: Inserted document ID, or None if failed
         """
         try:
-            result = await asyncio.to_thread(
-                lambda: self.get_collection(collection_name, db_name).insert_one(document)
-            )
+            collection = self.get_collection(collection_name, db_name)
+            result = await collection.insert_one(document)
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"❌ Error inserting document: {e}")
@@ -408,7 +342,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        Find a single document.
+        Find a single document (async).
 
         Args:
             collection_name: Collection name
@@ -419,9 +353,8 @@ class MongoClient:
             dict: Document, or None if not found
         """
         try:
-            result = await asyncio.to_thread(
-                lambda: self.get_collection(collection_name, db_name).find_one(query)
-            )
+            collection = self.get_collection(collection_name, db_name)
+            result = await collection.find_one(query)
             return result
         except Exception as e:
             logger.error(f"❌ Error finding document: {e}")
@@ -437,7 +370,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> list:
         """
-        Find multiple documents with pagination.
+        Find multiple documents with pagination (async).
 
         Args:
             collection_name: Collection name
@@ -451,13 +384,14 @@ class MongoClient:
             list: Documents matching query
         """
         try:
-            def _find():
-                cursor = self.get_collection(collection_name, db_name).find(query)
-                if sort:
-                    cursor = cursor.sort(sort)
-                return list(cursor.skip(skip).limit(limit))
+            collection = self.get_collection(collection_name, db_name)
+            cursor = collection.find(query)
 
-            result = await asyncio.to_thread(_find)
+            if sort:
+                cursor = cursor.sort(sort)
+
+            cursor = cursor.skip(skip).limit(limit)
+            result = await cursor.to_list(length=limit)
             return result
 
         except Exception as e:
@@ -472,7 +406,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> bool:
         """
-        Update a single document.
+        Update a single document (async).
 
         Args:
             collection_name: Collection name
@@ -484,6 +418,7 @@ class MongoClient:
             bool: True if document was updated
 
         Example:
+            from bson import ObjectId
             await client.update_one(
                 "results",
                 {"_id": ObjectId("...")},
@@ -491,12 +426,8 @@ class MongoClient:
             )
         """
         try:
-            result = await asyncio.to_thread(
-                lambda: self.get_collection(collection_name, db_name).update_one(
-                    query,
-                    update
-                )
-            )
+            collection = self.get_collection(collection_name, db_name)
+            result = await collection.update_one(query, update)
             return result.modified_count > 0
 
         except Exception as e:
@@ -510,7 +441,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> bool:
         """
-        Delete a single document.
+        Delete a single document (async).
 
         Args:
             collection_name: Collection name
@@ -521,9 +452,8 @@ class MongoClient:
             bool: True if document was deleted
         """
         try:
-            result = await asyncio.to_thread(
-                lambda: self.get_collection(collection_name, db_name).delete_one(query)
-            )
+            collection = self.get_collection(collection_name, db_name)
+            result = await collection.delete_one(query)
             return result.deleted_count > 0
 
         except Exception as e:
@@ -537,7 +467,7 @@ class MongoClient:
         db_name: Optional[str] = None,
     ) -> int:
         """
-        Count documents matching query.
+        Count documents matching query (async).
 
         Args:
             collection_name: Collection name
@@ -548,13 +478,37 @@ class MongoClient:
             int: Number of matching documents
         """
         try:
-            count = await asyncio.to_thread(
-                lambda: self.get_collection(collection_name, db_name).count_documents(
-                    query or {}
-                )
-            )
+            collection = self.get_collection(collection_name, db_name)
+            count = await collection.count_documents(query or {})
             return count
 
         except Exception as e:
             logger.error(f"❌ Error counting documents: {e}")
             return 0
+
+    async def aggregate(
+        self,
+        collection_name: str,
+        pipeline: list,
+        db_name: Optional[str] = None,
+    ) -> list:
+        """
+        Run aggregation pipeline (async).
+
+        Args:
+            collection_name: Collection name
+            pipeline: MongoDB aggregation pipeline
+            db_name: Database name (default: self.db_name)
+
+        Returns:
+            list: Aggregation results
+        """
+        try:
+            collection = self.get_collection(collection_name, db_name)
+            cursor = collection.aggregate(pipeline)
+            result = await cursor.to_list(length=None)
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Error running aggregation: {e}")
+            return []

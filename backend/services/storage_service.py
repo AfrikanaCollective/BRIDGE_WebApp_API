@@ -30,7 +30,7 @@ class StorageService:
         Initialize storage service.
 
         Args:
-            mongo_client: MongoDB client instance
+            mongo_client: MongoDB client instance (Motor async client)
             minio_client: MinIO client instance
             db_name: MongoDB database name
             collection_name: MongoDB collection name
@@ -47,12 +47,12 @@ class StorageService:
 
     @property
     def db(self):
-        """Get MongoDB database instance."""
+        """Get MongoDB database instance (async)."""
         return self.mongo.client[self.db_name]
 
     @property
     def collection(self):
-        """Get MongoDB collection instance."""
+        """Get MongoDB collection instance (async)."""
         return self.db[self.collection_name]
 
     async def get_records(
@@ -78,10 +78,10 @@ class StorageService:
 
             skip = (page - 1) * limit
 
-            # Count total matching documents
+            # ✅ Count total matching documents (async)
             total = await self.collection.count_documents(filters)
 
-            # Fetch paginated records
+            # ✅ Fetch paginated records (async)
             cursor = self.collection.find(filters).skip(skip).limit(limit).sort("created_at", -1)
             records = await cursor.to_list(length=limit)
 
@@ -94,7 +94,6 @@ class StorageService:
         except Exception as e:
             logger.error(f"Error fetching records: {e}", exc_info=True)
             raise
-
 
     def record_to_dict(self, record: dict) -> dict:
         """
@@ -119,18 +118,17 @@ class StorageService:
             "extracted_data": record.get("extracted_data"),
         }
 
-
-    async def get_record_by_processing_id(self,processing_id: str) -> Optional[dict]:
+    async def get_record_by_processing_id(self, processing_id: str) -> Optional[dict]:
         """
         Retrieve a single record by processing_id.
         """
         try:
+            # ✅ Use await with async find_one
             record = await self.collection.find_one({"processing_id": processing_id})
             return self.record_to_dict(record)
         except Exception as e:
             logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
             raise
-
 
     async def save_form_processing_result(
         self,
@@ -141,29 +139,6 @@ class StorageService:
     ) -> Optional[str]:
         """
         Save form processing result to MongoDB and MinIO.
-
-        Saves both JSON response and metadata to MongoDB,
-        and stores full result as JSON in MinIO.
-
-        Args:
-            result: Processing result from form_processor
-            image_filename: Original image filename
-            form_type: Form type (ITF, NAR, etc.)
-            metadata: Additional metadata to store
-
-        Returns:
-            str: Document ID in MongoDB, or None if failed
-
-        Example result structure:
-        {
-            "response": "...",
-            "raw_json": {...},
-            "cleaned_json": {...},
-            "case_summary": "...",
-            "model": "qwen-turbo",
-            "metrics": {...},
-            "agent_processed": True,
-        }
         """
         try:
             # Build document for MongoDB
@@ -185,8 +160,9 @@ class StorageService:
             if metadata:
                 doc.update(metadata)
 
-            # Save to MongoDB
-            inserted_id = self.collection.insert_one(doc).inserted_id
+            # ✅ Use await with async insert_one
+            insert_result = await self.collection.insert_one(doc)
+            inserted_id = insert_result.inserted_id
 
             logger.info(f"✅ Saved to MongoDB: {inserted_id}")
 
@@ -224,14 +200,6 @@ class StorageService:
     ) -> Optional[str]:
         """
         Save original form document (image) to MinIO.
-
-        Args:
-            file_path: Path to the form document
-            form_type: Form type (ITF, NAR, etc.)
-            case_id: Optional case ID for organization
-
-        Returns:
-            str: S3 key of uploaded file, or None if failed
         """
         try:
             file_path = Path(file_path)
@@ -268,17 +236,12 @@ class StorageService:
     async def get_form_result(self, doc_id: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve form processing result from MongoDB.
-
-        Args:
-            doc_id: MongoDB document ID
-
-        Returns:
-            dict: Document data, or None if not found
         """
         try:
             from bson import ObjectId
 
-            doc = self.collection.find_one({"_id": ObjectId(doc_id)})
+            # ✅ Use await with async find_one
+            doc = await self.collection.find_one({"_id": ObjectId(doc_id)})
 
             if doc:
                 # Convert ObjectId to string for JSON serialization
@@ -299,24 +262,15 @@ class StorageService:
     ) -> list:
         """
         List recent form processing results.
-
-        Args:
-            form_type: Filter by form type (optional)
-            limit: Maximum number of results
-
-        Returns:
-            list: Form processing results
         """
         try:
             query = {}
             if form_type:
                 query["form_type"] = form_type.upper()
 
-            results = list(
-                self.collection.find(query)
-                .sort("timestamp", -1)
-                .limit(limit)
-            )
+            # ✅ Use await with async find().to_list()
+            cursor = self.collection.find(query).sort("timestamp", -1).limit(limit)
+            results = await cursor.to_list(length=limit)
 
             # Convert ObjectIds to strings
             for doc in results:
@@ -331,16 +285,11 @@ class StorageService:
     async def delete_form_result(self, doc_id: str) -> bool:
         """
         Delete form processing result from MongoDB.
-
-        Args:
-            doc_id: MongoDB document ID
-
-        Returns:
-            bool: True if deleted
         """
         try:
             from bson import ObjectId
-            result = self.collection.delete_one({"_id": ObjectId(doc_id)})
+            # ✅ Use await with async delete_one
+            result = await self.collection.delete_one({"_id": ObjectId(doc_id)})
 
             if result.deleted_count > 0:
                 logger.info(f"✅ Deleted result: {doc_id}")
@@ -352,7 +301,6 @@ class StorageService:
         except Exception as e:
             logger.error(f"❌ Error deleting result: {e}", exc_info=True)
             return False
-
 
     async def get_statistics(self) -> dict:
         """Get aggregate statistics."""
@@ -374,7 +322,9 @@ class StorageService:
                 }
             ]
 
-            result = await self.collection.aggregate(pipeline).to_list(None)
+            # ✅ Use await with async aggregate().to_list()
+            cursor = self.collection.aggregate(pipeline)
+            result = await cursor.to_list(length=1)
             result = result[0] if result else {}
 
             total = result.get("total", [{}])[0].get("count", 0)
@@ -392,10 +342,10 @@ class StorageService:
             logger.error(f"Error fetching statistics: {e}", exc_info=True)
             raise
 
-    # ✅ FIX delete_record to use self.collection
     async def delete_record(self, processing_id: str) -> bool:
         """Delete a record and associated files."""
         try:
+            # ✅ Use await with async delete_one
             result = await self.collection.delete_one({"processing_id": processing_id})
             return result.deleted_count > 0
         except Exception as e:
