@@ -55,12 +55,12 @@ async def validate_upload_file(file: UploadFile) -> tuple[bool, Optional[str]]:
 
     # Check file size
     file_content = await file.read()
-    file_size = len(file_content)
+    file_size = len(file_content) / (1024 * 1024)
 
     if file_size > settings.MAX_FILE_SIZE:
         return False, (
-            f"File size {file_size} bytes exceeds maximum "
-            f"{settings.MAX_FILE_SIZE} bytes"
+            f"File size {file_size} MBs exceeds maximum "
+            f"{settings.MAX_FILE_SIZE} MBs"
         )
 
     # Reset file pointer for later processing
@@ -74,7 +74,7 @@ async def validate_upload_file(file: UploadFile) -> tuple[bool, Optional[str]]:
             f"Allowed types: {', '.join(settings.ALLOWED_EXTENSIONS)}"
         )
 
-    logger.info(f"✅ File validation passed: {file.filename} ({file_size} bytes)")
+    logger.info(f"✅ File validation passed: {file.filename} ({file_size} MBs)")
     return True, None
 
 
