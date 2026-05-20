@@ -199,13 +199,7 @@ async def upload_file(
                 process_with_agent=True,  # ✅ Use form agent
             )
 
-            logger.info(
-                f'✅ processing_id (Orig): {processing_result.get("processing_id")} '
-                f'✅ processing_id (Updated): {processing_result.get("mongo_id")}'
-            )
-
-            # processing_id = processing_result.get("processing_id")
-            processing_id = processing_result.get("mongo_id") #or str(uuid4())
+            processing_id = processing_result.get("mongo_id") or str(uuid4())
             form_type = processing_result.get("form_type", "UNKNOWN")
             status_msg = processing_result.get("status", "processing")
 
