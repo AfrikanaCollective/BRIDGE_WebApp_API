@@ -192,7 +192,7 @@ async def get_record(
                 detail=f"Record not found: {processing_id}"
             )
 
-        # ✅ FIXED: Handle record conversion with null fields gracefully
+        # Handle record conversion with null fields gracefully
         try:
             record_dict = storage_service.record_to_dict(record)
             if "_id" in record_dict:

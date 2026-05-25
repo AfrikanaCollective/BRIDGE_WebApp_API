@@ -498,7 +498,7 @@ class FormProcessor:
                 image_filename=image_path.name,
                 form_type=form_type_upper,
                 metadata={
-                    "case_id": case_id,
+                    "case_id": image_path.name,
                     "page_number": page_number,
                     "file_size_mb": file_size_mb,
                     "processing_time_llm_seconds": llm_elapsed,

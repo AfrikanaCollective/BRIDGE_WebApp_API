@@ -51,7 +51,7 @@ class FormRecord(BaseModel):
     )
 
     # Processing metadata
-    # ✅ FIXED: Make status Optional with default
+    # Make status Optional with default
     status: Optional[str] = Field(
         default=None,
         description="Processing status (success, error, pending)"
