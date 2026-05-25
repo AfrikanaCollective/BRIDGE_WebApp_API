@@ -4,7 +4,7 @@
 Data models for history and form records.
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -16,9 +16,24 @@ class FormRecord(BaseModel):
     Fields can be optional to handle incomplete or partially processed records.
     """
     id: str = Field(..., alias="_id", description="MongoDB document ID")
-    timestamp: datetime = Field(..., description="When the form was processed")
-    image_filename: str = Field(..., description="Original filename of the image")
-    form_type: str = Field(..., description="Type of form (ITF, NAR, DSC, DAI, DOC)")
+
+    # Make timestamp Optional and add validator to parse strings
+    timestamp: Optional[datetime] = Field(
+        default=None,
+        description="When the form was processed"
+    )
+
+    # Make image_filename Optional (may not exist in older records)
+    image_filename: Optional[str] = Field(
+        default=None,
+        description="Original filename of the image"
+    )
+
+    # Make form_type Optional (may not exist in older records)
+    form_type: Optional[str] = Field(
+        default=None,
+        description="Type of form (ITF, NAR, DSC, DAI, DOC)"
+    )
 
     case_id: Optional[str] = Field(
         default=None,
@@ -29,17 +44,24 @@ class FormRecord(BaseModel):
         default=None,
         description="Page number if multi-page form"
     )
+
     file_size_mb: Optional[float] = Field(
         default=None,
         description="Size of the uploaded file in MB"
     )
 
     # Processing metadata
-    status: str = Field(..., description="Processing status (success, error, pending)")
+    # ✅ FIXED: Make status Optional with default
+    status: Optional[str] = Field(
+        default=None,
+        description="Processing status (success, error, pending)"
+    )
+
     model: Optional[str] = Field(
         default=None,
         description="LLM model used for processing"
     )
+
     agent_processed: bool = Field(
         default=False,
         description="Whether agent-based extraction was performed"
@@ -50,6 +72,7 @@ class FormRecord(BaseModel):
         default=None,
         description="Time spent in LLM processing (seconds)"
     )
+
     processing_time_agent_seconds: Optional[float] = Field(
         default=None,
         description="Time spent in agent processing (seconds)"
@@ -60,14 +83,17 @@ class FormRecord(BaseModel):
         default=None,
         description="Preview of extracted data (text format)"
     )
+
     raw_json_preview: Optional[str] = Field(
         default=None,
         description="Raw JSON response from LLM"
     )
+
     cleaned_json: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Cleaned and structured JSON data"
     )
+
     case_summary: Optional[str] = Field(
         default=None,
         description="Summary of extracted case information"
@@ -79,10 +105,33 @@ class FormRecord(BaseModel):
         description="Processing metrics from LLM/agent"
     )
 
+    # Add validator to parse string timestamps to datetime
+    @field_validator('timestamp', mode='before')
+    @classmethod
+    def parse_timestamp(cls, v):
+        """Convert string timestamps to datetime objects."""
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            try:
+                # Try ISO format with timezone (like '2026-05-25T05:46:02.671741+00:00')
+                return datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                try:
+                    # Try ISO format without timezone
+                    return datetime.fromisoformat(v)
+                except (ValueError, AttributeError):
+                    # If parsing fails, log and return None
+                    return None
+        return v
+
     # Use ConfigDict for Pydantic v2
     model_config = ConfigDict(
         populate_by_name=True,  # Allow both 'id' and aliased '_id'
         from_attributes=True,
+        extra='allow',  # Allow extra fields from MongoDB documents
     )
 
 
