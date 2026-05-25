@@ -11,66 +11,18 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Request, HTTPException, status, Path, Query
-from pydantic import BaseModel, Field, ConfigDict
+
+from models.history import (
+    FormRecord,
+    HistoryResponse,
+    HistoryStats,
+    RecordResponse,
+    DeleteResponse
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-# ==================== RESPONSE MODELS ====================
-class FormRecord(BaseModel):
-    """Individual form processing record."""
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        from_attributes=True,
-    )
-
-    id: str = Field(..., alias="_id", description="MongoDB ObjectId")
-    processing_id: str = Field(..., description="Unique processing identifier")
-    form_type: str = Field(..., description="Type of form (ITF, NAR)")
-    case_id: str = Field(..., description="Associated case identifier")
-    status: str = Field(..., description="Processing status (pending, completed, failed)")
-    confidence: Optional[float] = Field(None, description="Extraction confidence score")
-    created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
-    updated_at: str = Field(..., description="Last update timestamp (ISO 8601)")
-    file_url: Optional[str] = Field(None, description="MinIO file URL")
-    error_message: Optional[str] = Field(None, description="Error details if failed")
-    extracted_data: Optional[dict] = Field(None, description="Extracted form data")
-
-
-class HistoryResponse(BaseModel):
-    """Paginated history response."""
-    total: int = Field(..., description="Total number of records")
-    page: int = Field(..., description="Current page number")
-    limit: int = Field(..., description="Records per page")
-    records: list[FormRecord] = Field(..., description="Form records for this page")
-
-
-class StatsOverview(BaseModel):
-    """Aggregate statistics overview."""
-    total: int = Field(..., description="Total records processed")
-    completed: int = Field(..., description="Successfully completed records")
-    failed: int = Field(..., description="Failed processing records")
-    pending: int = Field(..., description="Pending/in-progress records")
-    average_confidence: Optional[float] = Field(
-        None, description="Average confidence score (completed records)"
-    )
-    completion_rate: float = Field(..., description="Percentage of completed records")
-
-
-class RecordResponse(BaseModel):
-    """Single record response."""
-    record: FormRecord = Field(..., description="Form record details")
-    file_url: Optional[str] = Field(None, description="Associated file URL")
-
-
-class DeleteResponse(BaseModel):
-    """Deletion confirmation response."""
-    deleted: bool = Field(..., description="Deletion success status")
-    processing_id: str = Field(..., description="Deleted processing identifier")
-    message: str = Field(..., description="Deletion details")
 
 
 # ==================== HELPER FUNCTIONS ====================
@@ -130,15 +82,27 @@ async def get_history(
             filters=filters,
         )
 
-        records = [
-            FormRecord(**storage_service.record_to_dict(rec))
-            for rec in result.get("records", [])
-        ]
+        # ✅ FIXED: Handle null case_id and other optional fields gracefully
+        records = []
+        for rec in result.get("records", []):
+            try:
+                record_dict = storage_service.record_to_dict(rec)
+                # Ensure _id is present
+                if "_id" not in record_dict and "_id" in rec:
+                    record_dict["_id"] = str(rec["_id"])
 
+                form_record = FormRecord(**record_dict)
+                records.append(form_record)
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to parse record {rec.get('_id')}: {e}")
+                continue
+
+        # ✅ FIXED: Match HistoryResponse field names
         response = HistoryResponse(
-            total=result.get("total", 0),
+            total_count=result.get("total", 0),
             page=page,
-            limit=limit,
+            page_size=limit,
+            total_pages=(result.get("total", 0) + limit - 1) // limit if limit > 0 else 0,
             records=records,
         )
 
@@ -158,13 +122,14 @@ async def get_history(
 # ✅ FIXED: Stats route BEFORE parameterized route
 @router.get(
     "/stats/overview",
-    response_model=StatsOverview,
+    response_model=HistoryStats,
     summary="Get statistics overview",
     tags=["history"]
 )
-async def get_stats_overview(request: Request) -> StatsOverview:
+async def get_stats_overview(request: Request) -> HistoryStats:
     """
     Retrieve aggregate statistics across all records.
+    Includes counts by status and form type, plus overall success rate.
     """
     logger.debug("📊 Fetching statistics overview")
 
@@ -173,13 +138,16 @@ async def get_stats_overview(request: Request) -> StatsOverview:
 
         stats = await storage_service.get_statistics()
 
-        response = StatsOverview(
-            total=stats.get("total", 0),
-            completed=stats.get("completed", 0),
-            failed=stats.get("failed", 0),
-            pending=stats.get("pending", 0),
-            average_confidence=stats.get("average_confidence"),
-            completion_rate=stats.get("completion_rate", 0.0),
+        # ✅ FIXED: Build response using HistoryStats model fields
+        response = HistoryStats(
+            total_processed=stats.get("total", 0),
+            by_status={
+                "success": stats.get("success", 0),
+                "failed": stats.get("failed", 0),
+                "pending": stats.get("pending", 0),
+            },
+            by_form_type=stats.get("by_form_type", {}),
+            success_rate=stats.get("success_rate", 0.0),
         )
 
         logger.debug(f"✅ Retrieved statistics: {response}")
@@ -222,8 +190,22 @@ async def get_record(
                 detail=f"Record not found: {processing_id}"
             )
 
+        # ✅ FIXED: Handle record conversion with null fields gracefully
+        try:
+            record_dict = storage_service.record_to_dict(record)
+            if "_id" not in record_dict:
+                record_dict["_id"] = str(record.get("_id", ""))
+
+            form_record = FormRecord(**record_dict)
+        except Exception as e:
+            logger.error(f"❌ Failed to parse record {processing_id}: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to parse record data: {str(e)}"
+            )
+
         response = RecordResponse(
-            record=FormRecord(**record),
+            record=form_record,
             file_url=record.get("file_url"),
         )
 
