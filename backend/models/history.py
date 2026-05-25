@@ -4,7 +4,7 @@
 Data models for history and form records.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -15,12 +15,11 @@ class FormRecord(BaseModel):
 
     Fields can be optional to handle incomplete or partially processed records.
     """
-    _id: str = Field(..., alias="_id", description="MongoDB document ID")
+    id: str = Field(..., alias="_id", description="MongoDB document ID")
     timestamp: datetime = Field(..., description="When the form was processed")
     image_filename: str = Field(..., description="Original filename of the image")
     form_type: str = Field(..., description="Type of form (ITF, NAR, DSC, DAI, DOC)")
 
-    # ✅ FIXED: Make case_id optional since it can be null
     case_id: Optional[str] = Field(
         default=None,
         description="Case or patient identifier (optional, may be null)"
@@ -80,10 +79,11 @@ class FormRecord(BaseModel):
         description="Processing metrics from LLM/agent"
     )
 
-    class Config:
-        """Pydantic model configuration."""
-        populate_by_name = True  # Allow both 'case_id' and aliased '_id'
-        from_attributes = True
+    # Use ConfigDict for Pydantic v2
+    model_config = ConfigDict(
+        populate_by_name=True,  # Allow both 'id' and aliased '_id'
+        from_attributes=True,
+    )
 
 
 class HistoryResponse(BaseModel):
@@ -94,6 +94,8 @@ class HistoryResponse(BaseModel):
     total_pages: int = Field(..., description="Total number of pages")
     records: list[FormRecord] = Field(..., description="List of form records")
 
+    model_config = ConfigDict(populate_by_name=True)
+
 
 class HistoryStats(BaseModel):
     """Statistics about processing history."""
@@ -102,11 +104,15 @@ class HistoryStats(BaseModel):
     by_form_type: Dict[str, int] = Field(..., description="Count by form type")
     success_rate: float = Field(..., description="Percentage of successful processing")
 
+    model_config = ConfigDict(populate_by_name=True)
+
 
 class RecordResponse(BaseModel):
     """Single record response."""
     record: FormRecord = Field(..., description="Form record details")
     file_url: Optional[str] = Field(None, description="Associated file URL")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class DeleteResponse(BaseModel):
@@ -114,3 +120,5 @@ class DeleteResponse(BaseModel):
     deleted: bool = Field(..., description="Deletion success status")
     processing_id: str = Field(..., description="Deleted processing identifier")
     message: str = Field(..., description="Deletion details")
+
+    model_config = ConfigDict(populate_by_name=True)

@@ -88,8 +88,10 @@ async def get_history(
             try:
                 record_dict = storage_service.record_to_dict(rec)
                 # Ensure _id is present
-                if "_id" not in record_dict and "_id" in rec:
-                    record_dict["_id"] = str(rec["_id"])
+                if "_id" in record_dict:
+                    record_dict["id"] = str(record_dict.pop("_id"))
+                elif "_id" in rec:
+                    record_dict["id"] = str(rec["_id"])
 
                 form_record = FormRecord(**record_dict)
                 records.append(form_record)
@@ -193,8 +195,10 @@ async def get_record(
         # ✅ FIXED: Handle record conversion with null fields gracefully
         try:
             record_dict = storage_service.record_to_dict(record)
-            if "_id" not in record_dict:
-                record_dict["_id"] = str(record.get("_id", ""))
+            if "_id" in record_dict:
+                record_dict["id"] = str(record_dict.pop("_id"))
+            elif "_id" in record:
+                record_dict["id"] = str(record.get("_id", ""))
 
             form_record = FormRecord(**record_dict)
         except Exception as e:
