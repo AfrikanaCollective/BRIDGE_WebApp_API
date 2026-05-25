@@ -6,7 +6,7 @@ Storage service that handles persistence to MongoDB and MinIO.
 import json
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 
 from config.settings import settings
@@ -143,7 +143,7 @@ class StorageService:
         try:
             # Build document for MongoDB
             doc = {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "image_filename": image_filename,
                 "form_type": form_type,
                 "response_preview": result.get("response", "")[:500],

@@ -1,6 +1,6 @@
 # backend/models/form.py
 
-from datetime import datetime
+from datetime import datetime, UTC
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 
@@ -21,8 +21,8 @@ class FormResponse(BaseModel):
     confidence_score: float
 
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now(UTC).isoformat())
+    updated_at: datetime = Field(default_factory=datetime.now(UTC).isoformat())
 
     # Cache
     cached: bool = False

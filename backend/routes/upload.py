@@ -6,7 +6,7 @@ Handles file uploads, validation, and processing pipeline.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -213,7 +213,7 @@ async def upload_file(
                 status=status_msg,
                 message=f"Form processing initiated. "
                         f"Track progress using processing_id: {processing_id}",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 file_name=file.filename,
                 form_type=form_type,
             )

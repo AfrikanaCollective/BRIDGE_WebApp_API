@@ -11,7 +11,7 @@ import aiohttp
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
-from datetime import datetime
+from datetime import datetime, UTC
 
 from config.settings import settings
 from agents.itf_agent import ITFAgent
@@ -448,9 +448,9 @@ class FormProcessor:
         # ==================== STEP 3: SEND TO LLM ====================
         logger.info(f"🔗 Sending to Qwen: {settings.QWEN_SERVICE_URL}")
 
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
         result = await self._call_qwen_api(image_path, prompt)
-        elapsed = (datetime.utcnow() - start_time).total_seconds()
+        llm_elapsed = (datetime.now(UTC) - start_time).total_seconds()
 
         if "error" in result:
             logger.error(f"❌ LLM error: {result['error']}")
@@ -481,9 +481,12 @@ class FormProcessor:
             result["cleaned_json"] = {}
             result["case_summary"] = ""
 
+        agent_elapsed = (datetime.now(UTC) - start_time).total_seconds()
+
         result["form_type"] = form_type_upper
         result["agent_processed"] = process_with_agent
-        result["processing_time_seconds"] = elapsed
+        result["processing_time_llm_seconds"] = llm_elapsed
+        result["processing_time_agent_seconds"] = agent_elapsed
 
         # ==================== STEP 5: SAVE TO STORAGE ====================
         mongo_id = None
