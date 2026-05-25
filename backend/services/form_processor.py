@@ -461,6 +461,7 @@ class FormProcessor:
 
         # ==================== STEP 4: PROCESS WITH AGENT ====================
         if process_with_agent:
+            start_process_time = datetime.now(UTC)
             logger.info(f"🤖 Processing with {form_type_upper} agent...")
             raw_json, cleaned_json, case_summary = await self._process_with_agent(
                 response_text,
@@ -468,6 +469,8 @@ class FormProcessor:
                 form_type=form_type,
                 page_number=page_number,
             )
+
+            agent_elapsed = (datetime.now(UTC) - start_process_time).total_seconds()
 
             result["raw_json"] = raw_json
             result["cleaned_json"] = cleaned_json
@@ -481,12 +484,8 @@ class FormProcessor:
             result["cleaned_json"] = {}
             result["case_summary"] = ""
 
-        agent_elapsed = (datetime.now(UTC) - start_time).total_seconds()
-
         result["form_type"] = form_type_upper
         result["agent_processed"] = process_with_agent
-        result["processing_time_llm_seconds"] = llm_elapsed
-        result["processing_time_agent_seconds"] = agent_elapsed
 
         # ==================== STEP 5: SAVE TO STORAGE ====================
         mongo_id = None
@@ -502,6 +501,8 @@ class FormProcessor:
                     "case_id": case_id,
                     "page_number": page_number,
                     "file_size_mb": file_size_mb,
+                    "processing_time_llm_seconds": llm_elapsed,
+                    "processing_time_agent_seconds": agent_elapsed
                 },
             )
 

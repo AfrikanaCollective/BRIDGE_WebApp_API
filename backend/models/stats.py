@@ -20,3 +20,28 @@ class StatsOverview(BaseModel):
     by_form_type: Dict[str, int] = Field(..., description="Count by form type")
     processing_time_ms: ProcessingTimeStats = Field(..., description="Processing time stats")
     success_rate: float = Field(..., description="Percentage of successful completions")
+
+
+# ==================== EXTENDED RESPONSE MODELS ====================
+class ProcessingTimeBreakdown(BaseModel):
+    """Processing time breakdown by component."""
+    llm_seconds: ProcessingTimeStats = Field(
+        ...,
+        description="LLM-only processing time (text generation only)"
+    )
+    agent_seconds: ProcessingTimeStats = Field(
+        ...,
+        description="Agent processing time (extraction + processing)"
+    )
+    total_seconds: ProcessingTimeStats = Field(
+        ...,
+        description="Combined LLM + Agent processing time"
+    )
+
+
+class StatsOverviewExtended(StatsOverview):
+    """Extended statistics with breakdown of processing times."""
+    processing_time_breakdown: ProcessingTimeBreakdown = Field(
+        ...,
+        description="Breakdown of processing times by component"
+    )

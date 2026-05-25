@@ -8,11 +8,11 @@ import logging
 from fastapi import APIRouter, Request, HTTPException, status
 from datetime import datetime, timedelta, UTC
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
-from models.stats import ProcessingTimeStats, StatsOverview
+from models.stats import ProcessingTimeStats, ProcessingTimeBreakdown, StatsOverviewExtended
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
 
 # ==================== HELPER FUNCTIONS ====================
 def get_mongo_client(request: Request):
@@ -34,127 +34,6 @@ def get_mongo_client(request: Request):
         )
 
     return mongo
-
-
-async def _calculate_processing_time_stats(
-        db,
-        collections: list,
-) -> dict:
-    """
-    Calculate processing time statistics from MongoDB records.
-
-    Aggregates process_time_llm and process_time_agent from metadata.
-    Uses percentiles instead of min/max to reduce outlier impact.
-
-    Returns:
-        dict: {
-            "median": float,           # 50th percentile
-            "p25": float,              # 2.5th percentile
-            "p975": float,             # 97.5th percentile
-            "total_samples": int,
-        }
-    """
-    all_processing_times: List[float] = []
-
-    for collection_name in collections:
-        if not collection_name.startswith("form_"):
-            continue
-
-        collection = db[collection_name]
-
-        # ==================== AGGREGATE TIMING ====================
-        # Pipeline to extract and sum LLM + Agent times
-        pipeline = [
-            {
-                "$match": {
-                    "metadata": {"$exists": True},
-                    "$or": [
-                        {"metadata.process_time_llm": {"$exists": True}},
-                        {"metadata.process_time_agent": {"$exists": True}},
-                    ]
-                }
-            },
-            {
-                "$project": {
-                    "total_time": {
-                        "$add": [
-                            {
-                                "$cond": [
-                                    {"$ne": ["$metadata.process_time_llm", None]},
-                                    "$metadata.process_time_llm",
-                                    0
-                                ]
-                            },
-                            {
-                                "$cond": [
-                                    {"$ne": ["$metadata.process_time_agent", None]},
-                                    "$metadata.process_time_agent",
-                                    0
-                                ]
-                            }
-                        ]
-                    }
-                }
-            },
-            {
-                "$match": {
-                    "total_time": {"$gt": 0}  # Exclude zero times
-                }
-            },
-            {
-                "$sort": {"total_time": 1}  # Sort for percentile calculation
-            }
-        ]
-
-        try:
-            async for doc in collection.aggregate(pipeline):
-                if doc.get("total_time") is not None:
-                    all_processing_times.append(doc["total_time"])
-                    logger.debug(
-                        f"  {collection_name}: {doc['total_time']:.2f}s"
-                    )
-        except Exception as e:
-            logger.warning(
-                f"⚠️  Error aggregating times from {collection_name}: {e}"
-            )
-            continue
-
-    logger.debug(f"📊 Collected {len(all_processing_times)} timing samples")
-
-    # ==================== CALCULATE PERCENTILES ====================
-    if not all_processing_times:
-        logger.warning("⚠️  No processing time data found")
-        return {
-            "median": 0.0,
-            "p25": 0.0,
-            "p975": 0.0,
-            "total_samples": 0,
-        }
-
-    # Sort for percentile calculation
-    sorted_times = sorted(all_processing_times)
-    n = len(sorted_times)
-
-    # Calculate percentiles
-    median = _calculate_percentile(sorted_times, 50)
-    p25 = _calculate_percentile(sorted_times, 2.5)
-    p975 = _calculate_percentile(sorted_times, 97.5)
-
-    logger.info(
-        f"⏱️  Processing Time Statistics:\n"
-        f"   Median (50th %ile): {median}s\n"
-        f"   2.5th %ile: {p25}s\n"
-        f"   97.5th %ile: {p975}s\n"
-        f"   Samples: {n}\n"
-        f"   Range: {sorted_times[0]:.2f}s - {sorted_times[-1]:.2f}s"
-    )
-
-    return {
-        "median": median,
-        "p25": p25,
-        "p975": p975,
-        "total_samples": n,
-    }
 
 
 def _calculate_percentile(
@@ -203,10 +82,88 @@ def _calculate_percentile(
     return round(result, 2)
 
 
+def _extract_processing_times(
+        documents: List[Dict[str, Any]],
+        time_key: str,
+) -> List[float]:
+    """
+    Extract processing times from documents.
+
+    Args:
+        documents: List of MongoDB documents
+        time_key: Metadata key to extract (e.g., 'processing_time_llm_seconds')
+
+    Returns:
+        List of processing times in seconds
+    """
+    times = []
+    for doc in documents:
+        metadata = doc.get("metadata", {})
+        time_value = metadata.get(time_key)
+
+        if time_value is not None and time_value > 0:
+            times.append(float(time_value))
+
+    return times
+
+
+def _calculate_time_stats(
+        times: List[float],
+        stat_name: str = "Processing Time"
+) -> Dict[str, float]:
+    """
+    Calculate percentile statistics for a list of times.
+
+    Args:
+        times: List of processing times in seconds
+        stat_name: Name for logging purposes
+
+    Returns:
+        dict: {
+            "median": float,
+            "p25": float,
+            "p975": float,
+            "total_samples": int,
+        }
+    """
+    if not times:
+        logger.warning(f"⚠️  No {stat_name} data found")
+        return {
+            "median": 0.0,
+            "p25": 0.0,
+            "p975": 0.0,
+            "total_samples": 0
+        }
+
+    sorted_times = sorted(times)
+    n = len(sorted_times)
+
+    # Calculate percentiles
+    median = _calculate_percentile(sorted_times, 50)
+    p25 = _calculate_percentile(sorted_times, 2.5)
+    p975 = _calculate_percentile(sorted_times, 97.5)
+
+    logger.info(
+        f"⏱️  {stat_name} Statistics:\n"
+        f"   Median (50th %ile): {median:.2f}s\n"
+        f"   2.5th %ile: {p25:.2f}s\n"
+        f"   97.5th %ile: {p975:.2f}s\n"
+        f"   Samples: {n}\n"
+        f"   Range: {sorted_times[0]:.2f}s - {sorted_times[-1]:.2f}s"
+    )
+
+    return {
+        "median": median,
+        "p25": p25,
+        "p975": p975,
+        "total_samples": n
+    }
+
+
 # ==================== ROUTES ====================
 @router.get(
     "/overview",
-    response_model=StatsOverview,
+    response_model=StatsOverviewExtended,
     summary="Get statistics overview",
     tags=["stats"],
     responses={
@@ -219,7 +176,7 @@ async def get_stats_overview(
         request: Request,
         days: int = 30,
         form_type: Optional[str] = None
-) -> StatsOverview:
+) -> StatsOverviewExtended:
     """
     Get aggregate statistics about processed forms.
 
@@ -228,8 +185,14 @@ async def get_stats_overview(
     - form_type: Filter by form type (ITF, NAR, or all)
 
     Returns:
-        StatsOverview: Comprehensive statistics including processing counts,
-        status breakdown, form types, and performance metrics.
+        StatsOverviewExtended: Comprehensive statistics including processing counts,
+        status breakdown, form types, and detailed processing time metrics broken
+        down by LLM, Agent, and combined processing.
+
+    Processing Time Breakdown:
+    - llm_seconds: LLM-only processing time (text generation)
+    - agent_seconds: Agent processing time (extraction + processing)
+    - total_seconds: Combined LLM + Agent processing time
 
     Raises:
         HTTPException: 503 if MongoDB not initialized
@@ -278,7 +241,6 @@ async def get_stats_overview(
                 }},
                 {"$sort": {"count": -1}}
             ]
-            # ✅ FIXED: Use mongo_client.aggregate() which handles async properly
             status_results = await mongo_client.aggregate(
                 collection_name,
                 status_pipeline
@@ -299,7 +261,6 @@ async def get_stats_overview(
                 }},
                 {"$sort": {"count": -1}}
             ]
-            # ✅ FIXED: Use mongo_client.aggregate() which handles async properly
             form_type_results = await mongo_client.aggregate(
                 collection_name,
                 form_type_pipeline
@@ -310,121 +271,98 @@ async def get_stats_overview(
             logger.error(f"❌ Error aggregating by form type: {e}", exc_info=True)
             form_type_counts = {}
 
-        # ==================== PROCESSING TIME STATS (PERCENTILE-BASED) ====================
+        # ==================== PROCESSING TIME STATS (LLM, AGENT, TOTAL) ====================
+        llm_stats = {
+            "median": 0.0,
+            "p25": 0.0,
+            "p975": 0.0,
+            "total_samples": 0
+        }
+        agent_stats = {
+            "median": 0.0,
+            "p25": 0.0,
+            "p975": 0.0,
+            "total_samples": 0
+        }
+        total_stats = {
+            "median": 0.0,
+            "p25": 0.0,
+            "p975": 0.0,
+            "total_samples": 0
+        }
+
         try:
-            # Fetch all processing times with metadata
+            # Fetch all documents with processing time metadata
             timing_pipeline = [
                 {"$match": filters},
                 {
-                    "$project": {
-                        "total_time": {
-                            "$add": [
-                                {
-                                    "$cond": [
-                                        {"$ne": ["$metadata.process_time_llm", None]},
-                                        "$metadata.process_time_llm",
-                                        0
-                                    ]
-                                },
-                                {
-                                    "$cond": [
-                                        {"$ne": ["$metadata.process_time_agent", None]},
-                                        "$metadata.process_time_agent",
-                                        0
-                                    ]
-                                }
-                            ]
-                        },
-                        "processing_time_ms": 1
-                    }
-                },
-                {
                     "$match": {
                         "$or": [
-                            {"total_time": {"$gt": 0}},
-                            {"processing_time_ms": {"$gt": 0}}
+                            {"metadata.processing_time_llm_seconds": {"$exists": True, "$gt": 0}},
+                            {"metadata.processing_time_agent_seconds": {"$exists": True, "$gt": 0}}
                         ]
                     }
                 },
                 {
-                    "$sort": {
-                        "total_time": 1
+                    "$project": {
+                        "metadata.processing_time_llm_seconds": 1,
+                        "metadata.processing_time_agent_seconds": 1,
+                        "timestamp": 1
                     }
                 }
             ]
 
-            timing_results = await mongo_client.aggregate(
+            timing_documents = await mongo_client.aggregate(
                 collection_name,
                 timing_pipeline
             )
 
-            logger.debug(f"📊 Collected {len(timing_results)} timing samples")
+            logger.debug(f"📊 Collected {len(timing_documents)} documents with timing data")
 
-            # Calculate percentiles from results
-            if timing_results and len(timing_results) > 0:
-                # Extract total_time values
-                processing_times = [
-                    doc.get("total_time", 0)
-                    for doc in timing_results
-                    if doc.get("total_time", 0) > 0
-                ]
+            if timing_documents and len(timing_documents) > 0:
+                # Extract separate time lists
+                llm_times = _extract_processing_times(
+                    timing_documents,
+                    "processing_time_llm_seconds"
+                )
+                agent_times = _extract_processing_times(
+                    timing_documents,
+                    "processing_time_agent_seconds"
+                )
 
-                if not processing_times:
-                    # Fallback to processing_time_ms if available
-                    processing_times = [
-                        doc.get("processing_time_ms", 0) / 1000  # Convert ms to seconds
-                        for doc in timing_results
-                        if doc.get("processing_time_ms", 0) > 0
-                    ]
+                # Calculate total times (LLM + Agent)
+                total_times = []
+                for doc in timing_documents:
+                    metadata = doc.get("metadata", {})
+                    llm_val = metadata.get("processing_time_llm_seconds", 0)
+                    agent_val = metadata.get("processing_time_agent_seconds", 0)
+                    if llm_val > 0 and agent_val > 0:
+                        total_times.append(float(llm_val + agent_val))
 
-                if processing_times:
-                    sorted_times = sorted(processing_times)
+                logger.debug(
+                    f"   LLM times: {len(llm_times)} samples\n"
+                    f"   Agent times: {len(agent_times)} samples\n"
+                    f"   Total times: {len(total_times)} samples"
+                )
 
-                    # Calculate percentiles
-                    median = _calculate_percentile(sorted_times, 50)
-                    p25 = _calculate_percentile(sorted_times, 2.5)
-                    p975 = _calculate_percentile(sorted_times, 97.5)
+                # Calculate statistics for each component
+                if llm_times:
+                    llm_stats = _calculate_time_stats(llm_times, "LLM Processing Time (text generation only)")
+                    logger.info(f"✅ LLM Stats - Samples: {llm_stats['total_samples']}")
 
-                    logger.info(
-                        f"⏱️  Processing Time Statistics:\n"
-                        f"   Median (50th %ile): {median}s\n"
-                        f"   2.5th %ile: {p25}s\n"
-                        f"   97.5th %ile: {p975}s\n"
-                        f"   Samples: {len(sorted_times)}\n"
-                        f"   Range: {sorted_times[0]:.2f}s - {sorted_times[-1]:.2f}s"
-                    )
+                if agent_times:
+                    agent_stats = _calculate_time_stats(agent_times, "Agent Processing Time (extraction + processing)")
+                    logger.info(f"✅ Agent Stats - Samples: {agent_stats['total_samples']}")
 
-                    timing_stats = {
-                        "median": median,
-                        "p25": p25,
-                        "p975": p975,
-                        "total_samples": len(sorted_times)
-                    }
-                else:
-                    logger.warning("⚠️  No valid processing times found")
-                    timing_stats = {
-                        "median": 0.0,
-                        "p25": 0.0,
-                        "p975": 0.0,
-                        "total_samples": 0
-                    }
+                if total_times:
+                    total_stats = _calculate_time_stats(total_times, "Total Processing Time (LLM + Agent)")
+                    logger.info(f"✅ Total Stats - Samples: {total_stats['total_samples']}")
+
             else:
                 logger.warning("⚠️  No processing time data found")
-                timing_stats = {
-                    "median": 0.0,
-                    "p25": 0.0,
-                    "p975": 0.0,
-                    "total_samples": 0
-                }
 
         except Exception as e:
-            logger.error(f"❌ Error calculating processing time percentiles: {e}", exc_info=True)
-            timing_stats = {
-                "median": 0.0,
-                "p25": 0.0,
-                "p975": 0.0,
-                "total_samples": 0
-            }
+            logger.error(f"❌ Error calculating processing time statistics: {e}", exc_info=True)
 
         # ==================== CALCULATE SUCCESS RATE ====================
         completed_count = status_counts.get("completed", 0)
@@ -435,8 +373,8 @@ async def get_stats_overview(
         )
 
         # ==================== BUILD RESPONSE ====================
-        # Convert percentile times from seconds to milliseconds for response
-        response = StatsOverview(
+        # Use total_stats for the main processing_time_ms field for backward compatibility
+        response = StatsOverviewExtended(
             period_days=days,
             date_range={
                 "start": start_date.isoformat(),
@@ -446,9 +384,26 @@ async def get_stats_overview(
             by_status=status_counts,
             by_form_type=form_type_counts,
             processing_time_ms=ProcessingTimeStats(
-                average=round(timing_stats.get("median", 0) * 1000, 2),  # Convert to ms
-                max=int(timing_stats.get("p975", 0) * 1000),  # Convert to ms
-                min=int(timing_stats.get("p25", 0) * 1000)  # Convert to ms
+                average=round(total_stats.get("median", 0) * 1000, 2),  # Convert to ms
+                max=int(total_stats.get("p975", 0) * 1000),  # Convert to ms
+                min=int(total_stats.get("p25", 0) * 1000)  # Convert to ms
+            ),
+            processing_time_breakdown=ProcessingTimeBreakdown(
+                llm_seconds=ProcessingTimeStats(
+                    average=round(llm_stats.get("median", 0), 2),
+                    max=int(llm_stats.get("p975", 0)),
+                    min=int(llm_stats.get("p25", 0))
+                ),
+                agent_seconds=ProcessingTimeStats(
+                    average=round(agent_stats.get("median", 0), 2),
+                    max=int(agent_stats.get("p975", 0)),
+                    min=int(agent_stats.get("p25", 0))
+                ),
+                total_seconds=ProcessingTimeStats(
+                    average=round(total_stats.get("median", 0), 2),
+                    max=int(total_stats.get("p975", 0)),
+                    min=int(total_stats.get("p25", 0))
+                )
             ),
             success_rate=success_rate
         )
@@ -486,7 +441,7 @@ async def get_stats(request: Request) -> Dict[str, str]:
     return {
         "message": "Use /api/stats/overview for detailed statistics",
         "endpoints": {
-            "overview": "GET /api/stats/overview - Get comprehensive statistics",
+            "overview": "GET /api/stats/overview - Get comprehensive statistics with LLM/Agent/Total breakdown",
         }
     }
 
