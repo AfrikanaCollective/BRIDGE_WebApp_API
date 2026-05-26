@@ -152,7 +152,7 @@ const HistoryPanel = () => {
                 <div className="coverage-bar">
                     <div className={`coverage-fill ${cls}`} style={{ width: `${pct}%` }} />
                 </div>
-                <span className={`coverage-text ${cls}`}>{pct.toFixed(0)}%</span>
+                <span className={`coverage-text ${cls}`}>{pct.toFixed(2)}%</span>
             </div>
         );
     };
