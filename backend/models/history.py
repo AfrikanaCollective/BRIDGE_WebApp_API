@@ -101,16 +101,9 @@ class FormRecord(BaseModel):
     )
 
     # Content fields
-    responsePreview: Optional[str] = Field(
+    rawJson: Optional[str] = Field(
         default=None,
-        alias="response_preview",
-        description="Preview of extracted data (text format)",
-        serialization_alias="responsePreview"
-    )
-
-    rawJsonPreview: Optional[str] = Field(
-        default=None,
-        alias="raw_json_preview",
+        alias="raw_json",
         description="Raw JSON response from LLM",
         serialization_alias="rawJsonPreview"
     )
@@ -137,10 +130,16 @@ class FormRecord(BaseModel):
     )
 
     # Additional optional fields
-    confidence: Optional[float] = Field(
+    coverage: Optional[float] = Field(
         default=None,
-        description="Confidence score of extraction",
-        serialization_alias="confidence"
+        description="Coverage of extracted required fields",
+        serialization_alias="coverage"
+    )
+
+    completeness: Optional[float] = Field(
+        default=None,
+        description="Completeness score of extraction",
+        serialization_alias="completeness"
     )
 
     processingId: Optional[str] = Field(

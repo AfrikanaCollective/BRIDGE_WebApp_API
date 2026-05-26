@@ -107,7 +107,7 @@ class NARAgent:
 
             # Step 7: Generate summary
             logger.info(f"STEP 10: Generate Summary...")
-            summary = self._generate_summary(typed_data, sections, risk_flags, validation)
+            summary, coverage, completeness = self._generate_summary(typed_data, sections, risk_flags, validation)
             logger.info(f"✅ Generated summary")
 
             # Step 8: Compile result
@@ -125,6 +125,8 @@ class NARAgent:
                 "clinical_concepts": clinical_concepts,
                 "risk_assessment": risk_flags,
                 "summary": summary,
+                "coverage": coverage,
+                "completeness": completeness,
                 "metadata": {
                     "page_number": self.page_number,
                     "sections_parsed": len(sections),
@@ -959,7 +961,9 @@ class NARAgent:
         else:
             summary.append(f"No significant risk flags identified")
 
-        return "\n".join(summary)
+        case_summary = "\n".join(summary)
+
+        return case_summary, data_coverage, data_req_completeness
 
     def _error_result(self, file_path: str, error: str) -> Dict[str, Any]:
         """Generate error result."""

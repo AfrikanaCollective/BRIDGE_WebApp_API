@@ -98,14 +98,14 @@ class StorageService:
             "processingTimeAgentSeconds": record.get("processing_time_agent_seconds"),
 
             # Content fields
-            "responsePreview": record.get("response_preview"),
-            "rawJsonPreview": record.get("raw_json_preview"),
+            "rawJson": record.get("raw_json"),
             "cleanedJson": record.get("cleaned_json"),
             "caseSummary": record.get("case_summary"),
 
             # Metrics
             "metrics": record.get("metrics"),
-            "confidence": record.get("confidence"),
+            "coverage": record.get("coverage"),
+            "completeness": record.get("completeness"),
 
             # Processing ID (use _id as fallback)
             "processingId": record.get("processing_id") or str(record.get("_id", "")),
@@ -214,8 +214,7 @@ class StorageService:
                 "timestamp": now.isoformat(),
                 "image_filename": image_filename,
                 "form_type": form_type,
-                "response_preview": result.get("response", "")[:500],
-                "raw_json_preview": json.dumps(result.get("raw_json", {}))[:500],
+                "raw_json": json.dumps(result.get("raw_json", {})),
                 "cleaned_json": result.get("cleaned_json", {}),
                 "case_summary": result.get("case_summary", ""),
                 "model": result.get("model", "unknown"),
@@ -227,7 +226,8 @@ class StorageService:
                 # ✅ ADD MISSING FIELDS
                 "processing_time_llm_seconds": result.get("processing_time_llm_seconds"),
                 "processing_time_agent_seconds": result.get("processing_time_agent_seconds"),
-                "confidence": result.get("confidence"),
+                "coverage": result.get("coverage"),
+                "completeness": result.get("completeness"),
                 "error_message": None,
                 "extracted_data": result.get("extracted_data"),
             }
@@ -399,11 +399,17 @@ class StorageService:
                         "by_form_type": [
                             {"$group": {"_id": "$form_type", "count": {"$sum": 1}}}
                         ],
-                        "avg_confidence": [
+                        "avg_coverage": [
                             {
-                                "$match": {"status": "success", "confidence": {"$ne": None}}
+                                "$match": {"status": "success", "coverage": {"$ne": None}}
                             },
-                            {"$group": {"_id": None, "avg": {"$avg": "$confidence"}}}
+                            {"$group": {"_id": None, "avg": {"$avg": "coverage"}}}
+                        ],
+                        "avg_completeness": [
+                            {
+                                "$match": {"status": "success", "completeness": {"$ne": None}}
+                            },
+                            {"$group": {"_id": None, "avg": {"$avg": "completeness"}}}
                         ]
                     }
                 }
@@ -429,11 +435,66 @@ class StorageService:
             raise
 
     async def delete_record(self, processing_id: str) -> bool:
-        """Delete a record and associated files."""
+        """
+        Delete a record by processing_id.
+        Handles both direct _id match and processing_id field match.
+        """
+        from bson import ObjectId
+
+        logger.debug(f"🗑️  Deleting record: {processing_id}")
+
         try:
-            # ✅ Use await with async delete_one
-            result = await self.collection.delete_one({"processing_id": processing_id})
-            return result.deleted_count > 0
+            # Try to match against _id first (in case processing_id is actually the MongoDB ID)
+            try:
+                object_id = ObjectId(processing_id)
+                query = {"_id": object_id}
+                logger.debug(f"🔍 Attempting deletion by _id: {object_id}")
+            except Exception:
+                # Fall back to processing_id field
+                query = {"processing_id": processing_id}
+                logger.debug(f"🔍 Attempting deletion by processing_id field: {processing_id}")
+
+            # Get the record first to extract file references
+            record = await self.db.processing_records.find_one(query)
+
+            if not record:
+                logger.warning(f"⚠️  Record not found for deletion: {processing_id}")
+                return False
+
+            logger.debug(f"📦 Found record to delete: {record.get('_id')}")
+
+            # Extract file references before deletion
+            image_filename = record.get("image_filename")
+            processing_id_from_doc = str(record.get("_id"))
+
+            # Delete from MongoDB
+            result = await self.db.processing_records.delete_one(query)
+
+            if result.deleted_count == 0:
+                logger.warning(f"⚠️  MongoDB deletion failed: {processing_id}")
+                return False
+
+            logger.info(f"✅ Deleted from MongoDB: {processing_id_from_doc}")
+
+            # Clean up MinIO files (if S3 service available)
+            try:
+                if hasattr(self, 's3_service') and self.s3_service:
+                    # Delete image file
+                    if image_filename:
+                        await self.s3_service.delete_file(image_filename)
+                        logger.info(f"✅ Deleted S3 file: {image_filename}")
+
+                    # Delete JSON result file
+                    json_filename = f"{processing_id_from_doc}_result.json"
+                    await self.s3_service.delete_file(json_filename)
+                    logger.info(f"✅ Deleted S3 JSON: {json_filename}")
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to delete S3 files: {e}")
+                # Don't fail the entire operation if S3 cleanup fails
+
+            logger.info(f"✅ Record deletion complete: {processing_id_from_doc}")
+            return True
+
         except Exception as e:
-            logger.error(f"Error deleting record: {e}", exc_info=True)
-            raise
+            logger.error(f"❌ Failed to delete record {processing_id}: {e}", exc_info=True)
+            return False

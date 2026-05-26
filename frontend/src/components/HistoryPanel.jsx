@@ -40,6 +40,7 @@ const HistoryPanel = () => {
                 documentUrl: rec.documentUrl || rec.file_url,
                 caseSummary: rec.caseSummary || rec.case_summary,
                 cleanedJson: rec.cleanedJson || rec.cleaned_json,
+                rawJson: rec.rawJson || rec.raw_json,
             }));
 
             setHistory({
@@ -111,7 +112,7 @@ const HistoryPanel = () => {
         if (!record.documentUrl) return;
         const link = document.createElement('a');
         link.href = record.documentUrl;
-        link.download = `${record.processingId}.pdf`;
+        link.download = `${record.processingId}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -142,16 +143,16 @@ const HistoryPanel = () => {
         return <span className={`status-badge ${c.cls}`}>{c.label}</span>;
     };
 
-    const renderConfidence = (confidence) => {
-        if (confidence == null) return <span className="confidence-empty">—</span>;
-        const pct = confidence * 100;
-        const cls = pct >= 80 ? 'confidence-high' : pct >= 50 ? 'confidence-medium' : 'confidence-low';
+    const renderCoverage = (coverage) => {
+        if (coverage == null) return <span className="coverage-empty">—</span>;
+        const pct = coverage * 100;
+        const cls = pct >= 80 ? 'coverage-high' : pct >= 50 ? 'coverage-medium' : 'coverage-low';
         return (
-            <div className="confidence-wrapper">
-                <div className="confidence-bar">
-                    <div className={`confidence-fill ${cls}`} style={{ width: `${pct}%` }} />
+            <div className="coverage-wrapper">
+                <div className="coverage-bar">
+                    <div className={`coverage-fill ${cls}`} style={{ width: `${pct}%` }} />
                 </div>
-                <span className={`confidence-text ${cls}`}>{pct.toFixed(0)}%</span>
+                <span className={`coverage-text ${cls}`}>{pct.toFixed(0)}%</span>
             </div>
         );
     };
@@ -285,9 +286,9 @@ const HistoryPanel = () => {
                                             <button
                                                 type="button"
                                                 className="sort-btn"
-                                                onClick={() => handleSort('confidence')}
+                                                onClick={() => handleSort('coverage')}
                                             >
-                                                Confidence {sortIcon('confidence')}
+                                                Coverage {sortIcon('coverage')}
                                             </button>
                                         </th>
                                         <th>
@@ -351,7 +352,7 @@ const HistoryPanel = () => {
                                                         )}
                                                     </td>
                                                     <td>{renderStatusBadge(record.status)}</td>
-                                                    <td>{renderConfidence(record.confidence)}</td>
+                                                    <td>{renderCoverage(record.coverage)}</td>
                                                     <td
                                                         title={
                                                             formattedDate
@@ -523,17 +524,17 @@ const HistoryPanel = () => {
                                             <span className="form-type-tag">
                                                 {record.formType || 'Unknown'}
                                             </span>
-                                            {record.confidence != null && (
+                                            {record.coverage != null && (
                                                 <span
-                                                    className={`history-card-confidence confidence-${
-                                                        record.confidence * 100 >= 80
+                                                    className={`history-card-coverage coverage-${
+                                                        record.coverage * 100 >= 80
                                                             ? 'high'
-                                                            : record.confidence * 100 >= 50
+                                                            : record.coverage * 100 >= 50
                                                                 ? 'medium'
                                                                 : 'low'
                                                     }`}
                                                 >
-                                                    {(record.confidence * 100).toFixed(0)}%
+                                                    {(record.coverage * 100).toFixed(0)}%
                                                 </span>
                                             )}
                                         </div>
@@ -658,8 +659,8 @@ const HistoryPanel = () => {
                                     <dd>{renderStatusBadge(selectedRecord.status)}</dd>
                                 </div>
                                 <div className="details-row">
-                                    <dt>Confidence</dt>
-                                    <dd>{renderConfidence(selectedRecord.confidence)}</dd>
+                                    <dt>Coverage</dt>
+                                    <dd>{renderCoverage(selectedRecord.coverage)}</dd>
                                 </div>
                                 <div className="details-row">
                                     <dt>Timestamp</dt>
@@ -729,7 +730,7 @@ const HistoryPanel = () => {
                             <div className="details-raw-section">
                                 <h4>Raw Data</h4>
                                 <pre className="details-json">
-                                    {JSON.stringify(selectedRecord, null, 2)}
+                                    {JSON.stringify(selectedRecord.rawJson, null, 2)}
                                 </pre>
                             </div>
                         </div>

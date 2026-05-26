@@ -285,39 +285,38 @@ async def get_record(
     summary="Delete a record and associated files",
     tags=["history"]
 )
+@router.delete(
+    "/{processing_id}",
+    response_model=DeleteResponse,
+    summary="Delete a record and associated files",
+    tags=["history"]
+)
 async def delete_record(
         request: Request,
-        processing_id: str = Path(..., description="Unique processing identifier"),
+        processing_id: str = Path(..., description="Unique processing identifier or MongoDB ID"),
 ) -> DeleteResponse:
     """
     Delete a form processing record and associated MinIO files.
 
     Removes the MongoDB document and cleans up any associated
     S3/MinIO objects (images, JSON results).
+
+    Parameters:
+    - processing_id: Can be either the processing_id field value or the MongoDB _id
     """
     logger.debug(f"🗑️  Deleting record: {processing_id}")
 
     try:
         storage_service = get_storage_service(request)
 
-        # ✅ Verify record exists before deletion
-        record = await storage_service.get_record_by_processing_id(processing_id)
-
-        if not record:
-            logger.warning(f"⚠️  Record not found for deletion: {processing_id}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Record not found: {processing_id}"
-            )
-
-        # ✅ Perform deletion
+        # ✅ Call delete_record which handles both _id and processing_id
         success = await storage_service.delete_record(processing_id)
 
         if not success:
-            logger.warning(f"⚠️  Deletion failed for: {processing_id}")
+            logger.warning(f"⚠️  Record not found or deletion failed: {processing_id}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete record"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Record not found: {processing_id}"
             )
 
         logger.info(f"✅ Record deleted successfully: {processing_id}")

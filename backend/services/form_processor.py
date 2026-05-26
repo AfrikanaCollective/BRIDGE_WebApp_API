@@ -354,9 +354,11 @@ class FormProcessor:
                     or {}
                 )
                 case_summary = result.get("summary") or result.get("report") or ""
+                coverage = result.get("coverage")
+                completeness = result.get("completeness")
 
                 logger.info(f"✅ Agent processing complete")
-                return raw_json, cleaned_json, case_summary
+                return raw_json, cleaned_json, case_summary, coverage, completeness
             else:
                 error_msg = result.get("error", "Unknown error")
                 logger.warning(f"⚠️  Agent error: {error_msg}")
@@ -463,7 +465,7 @@ class FormProcessor:
         if process_with_agent:
             start_process_time = datetime.now(UTC)
             logger.info(f"🤖 Processing with {form_type_upper} agent...")
-            raw_json, cleaned_json, case_summary = await self._process_with_agent(
+            raw_json, cleaned_json, case_summary, coverage, completeness = await self._process_with_agent(
                 response_text,
                 image_path,
                 form_type=form_type,
@@ -475,6 +477,8 @@ class FormProcessor:
             result["raw_json"] = raw_json
             result["cleaned_json"] = cleaned_json
             result["case_summary"] = case_summary
+            result["coverage"] = coverage
+            result["completeness"] = completeness
         else:
             try:
                 result["raw_json"] = json.loads(response_text)

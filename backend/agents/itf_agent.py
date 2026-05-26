@@ -79,7 +79,7 @@ class ITFAgent:
             logger.info(f"✅ Identified {len(self._flatten_risk_flags(risk_flags))} risk flags")
 
             # Step 7: Generate summary
-            summary = self._generate_summary(typed_data, sections, risk_flags, validation)
+            summary, coverage, completeness = self._generate_summary(typed_data, sections, risk_flags, validation)
             logger.info(f"✅ Generated summary")
 
             # Step 8: Compile result
@@ -97,6 +97,8 @@ class ITFAgent:
                 "clinical_concepts": clinical_concepts,
                 "risk_assessment": risk_flags,
                 "summary": summary,
+                "coverage": coverage,
+                "completeness": completeness,
                 "metadata": {
                     "sections_parsed": len(sections),
                     "fields_extracted": len(typed_data),
@@ -907,10 +909,9 @@ class ITFAgent:
         else:
             summary.append(f"No significant risk flags identified")
 
-        tst = '\n'.join(summary)
-        print(f"Summary {tst}")
+        case_summary = '\n'.join(summary)
 
-        return "\n".join(summary)
+        return case_summary, data_coverage, data_req_completeness
 
     def _error_result(self, file_path: str, error: str) -> Dict[str, Any]:
         """Generate error result."""
