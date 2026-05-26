@@ -72,6 +72,8 @@ const HistoryPanel = () => {
     };
 
     const handleViewDetails = (record) => {
+
+        console.log('Record:', record);
         setSelectedRecord(record);
         setDetailsVisible(true);
     };
