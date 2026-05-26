@@ -42,7 +42,7 @@ def get_storage_service(request: Request):
 
 
 # ==================== ROUTES ====================
-# ✅ FIXED: Stats route BEFORE parameterized route (avoid path conflicts)
+# Stats route BEFORE parameterized route (avoid path conflicts)
 @router.get(
     "/stats/overview",
     response_model=HistoryStats,
@@ -85,7 +85,7 @@ async def get_stats_overview(request: Request) -> HistoryStats:
         )
 
 
-# ✅ FIXED: Base history endpoint (no path parameters)
+# Base history endpoint (no path parameters)
 @router.get(
     "/",
     response_model=HistoryResponse,
@@ -279,12 +279,6 @@ async def get_record(
 
 
 # ✅ DELETE endpoint for record deletion
-@router.delete(
-    "/{processing_id}",
-    response_model=DeleteResponse,
-    summary="Delete a record and associated files",
-    tags=["history"]
-)
 @router.delete(
     "/{processing_id}",
     response_model=DeleteResponse,
