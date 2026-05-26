@@ -33,11 +33,13 @@ const HistoryPanel = () => {
             // ✅ Map backend field names to frontend expectations
             const mappedRecords = (response.data.records || []).map(rec => ({
                 ...rec,
-                processingId: rec.processingId || rec.processing_id,
+                processingId: rec.processingId || rec.processing_id || rec.id,
                 formType: rec.formType || rec.form_type,
                 caseId: rec.caseId || rec.case_id,
                 timestamp: rec.timestamp || rec.created_at,
                 documentUrl: rec.documentUrl || rec.file_url,
+                caseSummary: rec.caseSummary || rec.case_summary,
+                cleanedJson: rec.cleanedJson || rec.cleaned_json,
             }));
 
             setHistory({
@@ -72,10 +74,37 @@ const HistoryPanel = () => {
     };
 
     const handleViewDetails = (record) => {
-
-        console.log('Record:', record);
         setSelectedRecord(record);
         setDetailsVisible(true);
+    };
+
+    // ✅ NEW: Download cleaned_json as JSON file
+    const handleDownloadJson = (record) => {
+        if (!record.cleanedJson) {
+            toast.warning('No cleaned JSON data available for download');
+            return;
+        }
+
+        try {
+            const jsonData = typeof record.cleanedJson === 'string'
+                ? JSON.parse(record.cleanedJson)
+                : record.cleanedJson;
+
+            const dataStr = JSON.stringify(jsonData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${record.processingId || 'data'}_cleaned.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('JSON data downloaded');
+        } catch (error) {
+            console.error('Error downloading JSON:', error);
+            toast.error('Failed to download JSON data');
+        }
     };
 
     const handleDownload = (record) => {
@@ -106,6 +135,8 @@ const HistoryPanel = () => {
             processing: { cls: 'processing', label: 'Processing' },
             failed: { cls: 'failed', label: 'Failed' },
             pending: { cls: 'pending', label: 'Pending' },
+            success: { cls: 'completed', label: 'Success' },
+            error: { cls: 'failed', label: 'Error' },
         };
         const c = config[status] || { cls: '', label: status || 'Unknown' };
         return <span className={`status-badge ${c.cls}`}>{c.label}</span>;
@@ -125,18 +156,37 @@ const HistoryPanel = () => {
         );
     };
 
+    // ✅ Helper function to format timestamp safely
+    const formatTimestamp = (ts) => {
+        if (!ts) return null;
+        try {
+            const date = typeof ts === 'string' ? new Date(ts) : ts;
+            if (isNaN(date.getTime())) return null;
+            return date;
+        } catch (e) {
+            console.warn('Failed to parse timestamp:', ts, e);
+            return null;
+        }
+    };
+
     // ✅ Filter + sort + paginate using history.records
     const filtered = history.records.filter(
         r => statusFilter === 'all' || r.status === statusFilter
     );
 
     const sorted = [...filtered].sort((a, b) => {
-        let av = sortField === 'timestamp'
-            ? (a.timestamp ? new Date(a.timestamp).getTime() : 0)
-            : (a[sortField] ?? 0);
-        let bv = sortField === 'timestamp'
-            ? (b.timestamp ? new Date(b.timestamp).getTime() : 0)
-            : (b[sortField] ?? 0);
+        let av, bv;
+
+        if (sortField === 'timestamp') {
+            const dateA = formatTimestamp(a.timestamp);
+            const dateB = formatTimestamp(b.timestamp);
+            av = dateA ? dateA.getTime() : 0;
+            bv = dateB ? dateB.getTime() : 0;
+        } else {
+            av = a[sortField] ?? 0;
+            bv = b[sortField] ?? 0;
+        }
+
         if (av < bv) return sortOrder === 'asc' ? -1 : 1;
         if (av > bv) return sortOrder === 'asc' ? 1 : -1;
         return 0;
@@ -189,8 +239,10 @@ const HistoryPanel = () => {
                     >
                         <option value="all">All Status</option>
                         <option value="completed">Completed</option>
+                        <option value="success">Success</option>
                         <option value="processing">Processing</option>
                         <option value="failed">Failed</option>
+                        <option value="error">Error</option>
                         <option value="pending">Pending</option>
                     </select>
                     <button
@@ -265,120 +317,119 @@ const HistoryPanel = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        paginated.map(record => (
-                                            <tr key={record.processingId}>
-                                                <td>
-                                                    <span
-                                                        className="processing-id-cell"
-                                                        title={record.processingId}
-                                                    >
-                                                        {record.processingId?.substring(0, 8)}…
-                                                        <button
-                                                            type="button"
-                                                            className="copy-btn"
-                                                            onClick={() =>
-                                                                handleCopyId(record.processingId)
-                                                            }
-                                                            aria-label="Copy full ID"
-                                                            title="Copy full ID"
+                                        paginated.map(record => {
+                                            const formattedDate = formatTimestamp(record.timestamp);
+                                            return (
+                                                <tr key={record.processingId}>
+                                                    <td>
+                                                        <span
+                                                            className="processing-id-cell"
+                                                            title={record.processingId}
                                                         >
-                                                            <i className="bi bi-clipboard" aria-hidden="true" />
-                                                        </button>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="form-type-tag">
-                                                        {record.formType || 'Unknown'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    {record.caseId || (
-                                                        <span className="text-muted">—</span>
-                                                    )}
-                                                </td>
-                                                <td>{renderStatusBadge(record.status)}</td>
-                                                <td>{renderConfidence(record.confidence)}</td>
-                                                <td
-                                                    title={
-                                                        record.timestamp
-                                                            ? new Date(
-                                                                record.timestamp
-                                                            ).toLocaleString()
-                                                            : ''
-                                                    }
-                                                >
-                                                    {record.timestamp ? (
-                                                        <span>
-                                                            {new Date(
-                                                                record.timestamp
-                                                            ).toLocaleDateString()}{' '}
-                                                            {new Date(record.timestamp).toLocaleTimeString(
-                                                                [],
-                                                                {
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit',
+                                                            {record.processingId?.substring(0, 8)}…
+                                                            <button
+                                                                type="button"
+                                                                className="copy-btn"
+                                                                onClick={() =>
+                                                                    handleCopyId(record.processingId)
                                                                 }
-                                                            )}
+                                                                aria-label="Copy full ID"
+                                                                title="Copy full ID"
+                                                            >
+                                                                <i className="bi bi-clipboard" aria-hidden="true" />
+                                                            </button>
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-muted">—</span>
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    <div className="actions-space">
-                                                        <button
-                                                            type="button"
-                                                            className="action-btn-view"
-                                                            onClick={() =>
-                                                                handleViewDetails(record)
-                                                            }
-                                                            title="View Details"
-                                                            aria-label="View Details"
-                                                        >
-                                                            <i
-                                                                className="bi bi-eye"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="action-btn-download"
-                                                            onClick={() =>
-                                                                handleDownload(record)
-                                                            }
-                                                            disabled={!record.documentUrl}
-                                                            title={
-                                                                record.documentUrl
-                                                                    ? 'Download'
-                                                                    : 'No document available'
-                                                            }
-                                                            aria-label="Download"
-                                                        >
-                                                            <i
-                                                                className="bi bi-download"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="action-btn-delete"
-                                                            onClick={() =>
-                                                                handleDelete(
-                                                                    record.processingId
-                                                                )
-                                                            }
-                                                            title="Delete"
-                                                            aria-label="Delete"
-                                                        >
-                                                            <i
-                                                                className="bi bi-trash"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                    </td>
+                                                    <td>
+                                                        <span className="form-type-tag">
+                                                            {record.formType || 'Unknown'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {record.caseId || (
+                                                            <span className="text-muted">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td>{renderStatusBadge(record.status)}</td>
+                                                    <td>{renderConfidence(record.confidence)}</td>
+                                                    <td
+                                                        title={
+                                                            formattedDate
+                                                                ? formattedDate.toLocaleString()
+                                                                : 'Invalid date'
+                                                        }
+                                                    >
+                                                        {formattedDate ? (
+                                                            <span>
+                                                                {formattedDate.toLocaleDateString()}{' '}
+                                                                {formattedDate.toLocaleTimeString(
+                                                                    [],
+                                                                    {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                    }
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        <div className="actions-space">
+                                                            <button
+                                                                type="button"
+                                                                className="action-btn-view"
+                                                                onClick={() =>
+                                                                    handleViewDetails(record)
+                                                                }
+                                                                title="View Details"
+                                                                aria-label="View Details"
+                                                            >
+                                                                <i
+                                                                    className="bi bi-eye"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="action-btn-download"
+                                                                onClick={() =>
+                                                                    handleDownloadJson(record)
+                                                                }
+                                                                disabled={!record.cleanedJson}
+                                                                title={
+                                                                    record.cleanedJson
+                                                                        ? 'Download JSON'
+                                                                        : 'No JSON available'
+                                                                }
+                                                                aria-label="Download JSON"
+                                                            >
+                                                                <i
+                                                                    className="bi bi-file-earmark-json"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="action-btn-delete"
+                                                                onClick={() =>
+                                                                    handleDelete(
+                                                                        record.processingId
+                                                                    )
+                                                                }
+                                                                title="Delete"
+                                                                aria-label="Delete"
+                                                            >
+                                                                <i
+                                                                    className="bi bi-trash"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -463,76 +514,79 @@ const HistoryPanel = () => {
 
                         {/* Mobile card view */}
                         <div className="history-cards-mobile">
-                            {sorted.map(record => (
-                                <div key={record.processingId} className="history-card">
-                                    <div className="history-card-top">
-                                        {renderStatusBadge(record.status)}
-                                        <span className="form-type-tag">
-                                            {record.formType || 'Unknown'}
-                                        </span>
-                                        {record.confidence != null && (
-                                            <span
-                                                className={`history-card-confidence confidence-${
-                                                    record.confidence * 100 >= 80
-                                                        ? 'high'
-                                                        : record.confidence * 100 >= 50
-                                                            ? 'medium'
-                                                            : 'low'
-                                                }`}
-                                            >
-                                                {(record.confidence * 100).toFixed(0)}%
+                            {sorted.map(record => {
+                                const formattedDate = formatTimestamp(record.timestamp);
+                                return (
+                                    <div key={record.processingId} className="history-card">
+                                        <div className="history-card-top">
+                                            {renderStatusBadge(record.status)}
+                                            <span className="form-type-tag">
+                                                {record.formType || 'Unknown'}
                                             </span>
-                                        )}
-                                    </div>
-                                    <div className="history-card-id">
-                                        <code>
-                                            {record.processingId?.substring(0, 16)}…
-                                        </code>
-                                        <button
-                                            type="button"
-                                            className="copy-btn"
-                                            onClick={() =>
-                                                handleCopyId(record.processingId)
-                                            }
-                                            aria-label="Copy ID"
-                                        >
-                                            <i className="bi bi-clipboard" aria-hidden="true" />
-                                        </button>
-                                    </div>
-                                    {record.caseId && (
-                                        <div className="history-card-meta">
-                                            Case: {record.caseId}
+                                            {record.confidence != null && (
+                                                <span
+                                                    className={`history-card-confidence confidence-${
+                                                        record.confidence * 100 >= 80
+                                                            ? 'high'
+                                                            : record.confidence * 100 >= 50
+                                                                ? 'medium'
+                                                                : 'low'
+                                                    }`}
+                                                >
+                                                    {(record.confidence * 100).toFixed(0)}%
+                                                </span>
+                                            )}
                                         </div>
-                                    )}
-                                    <div className="history-card-time">
-                                        {record.timestamp
-                                            ? new Date(record.timestamp).toLocaleString()
-                                            : '—'}
+                                        <div className="history-card-id">
+                                            <code>
+                                                {record.processingId?.substring(0, 16)}…
+                                            </code>
+                                            <button
+                                                type="button"
+                                                className="copy-btn"
+                                                onClick={() =>
+                                                    handleCopyId(record.processingId)
+                                                }
+                                                aria-label="Copy ID"
+                                            >
+                                                <i className="bi bi-clipboard" aria-hidden="true" />
+                                            </button>
+                                        </div>
+                                        {record.caseId && (
+                                            <div className="history-card-meta">
+                                                Case: {record.caseId}
+                                            </div>
+                                        )}
+                                        <div className="history-card-time">
+                                            {formattedDate
+                                                ? formattedDate.toLocaleString()
+                                                : '—'}
+                                        </div>
+                                        <div className="history-card-actions">
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => handleViewDetails(record)}
+                                                style={{ flex: 1 }}
+                                            >
+                                                <i className="bi bi-eye" aria-hidden="true" />{' '}
+                                                View
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-error btn-sm"
+                                                onClick={() =>
+                                                    handleDelete(record.processingId)
+                                                }
+                                                style={{ flex: 1 }}
+                                            >
+                                                <i className="bi bi-trash" aria-hidden="true" />{' '}
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="history-card-actions">
-                                        <button
-                                            type="button"
-                                            className="btn btn-primary btn-sm"
-                                            onClick={() => handleViewDetails(record)}
-                                            style={{ flex: 1 }}
-                                        >
-                                            <i className="bi bi-eye" aria-hidden="true" />{' '}
-                                            View
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-error btn-sm"
-                                            onClick={() =>
-                                                handleDelete(record.processingId)
-                                            }
-                                            style={{ flex: 1 }}
-                                        >
-                                            <i className="bi bi-trash" aria-hidden="true" />{' '}
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </>
                 )}
@@ -610,11 +664,14 @@ const HistoryPanel = () => {
                                 <div className="details-row">
                                     <dt>Timestamp</dt>
                                     <dd>
-                                        {selectedRecord.timestamp
-                                            ? new Date(
+                                        {(() => {
+                                            const formattedDate = formatTimestamp(
                                                 selectedRecord.timestamp
-                                            ).toLocaleString()
-                                            : '—'}
+                                            );
+                                            return formattedDate
+                                                ? formattedDate.toLocaleString()
+                                                : '—';
+                                        })()}
                                     </dd>
                                 </div>
                                 {selectedRecord.documentUrl && (
@@ -632,12 +689,42 @@ const HistoryPanel = () => {
                                                     className="bi bi-download"
                                                     aria-hidden="true"
                                                 />{' '}
-                                                Download
+                                                Download PDF
+                                            </button>
+                                        </dd>
+                                    </div>
+                                )}
+                                {selectedRecord.cleanedJson && (
+                                    <div className="details-row">
+                                        <dt>Extracted Data</dt>
+                                        <dd>
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() =>
+                                                    handleDownloadJson(selectedRecord)
+                                                }
+                                            >
+                                                <i
+                                                    className="bi bi-file-earmark-json"
+                                                    aria-hidden="true"
+                                                />{' '}
+                                                Download JSON
                                             </button>
                                         </dd>
                                     </div>
                                 )}
                             </dl>
+
+                            {/* ✅ NEW: Display case_summary formatted */}
+                            {selectedRecord.caseSummary && (
+                                <div className="details-summary-section">
+                                    <h4>Case Summary</h4>
+                                    <pre className="details-summary">
+                                        {selectedRecord.caseSummary}
+                                    </pre>
+                                </div>
+                            )}
 
                             <div className="details-raw-section">
                                 <h4>Raw Data</h4>
