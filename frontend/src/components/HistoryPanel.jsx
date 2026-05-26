@@ -145,7 +145,7 @@ const HistoryPanel = () => {
 
     const renderCoverage = (coverage) => {
         if (coverage == null) return <span className="coverage-empty">—</span>;
-        const pct = coverage * 100;
+        const pct = coverage * 1;
         const cls = pct >= 80 ? 'coverage-high' : pct >= 50 ? 'coverage-medium' : 'coverage-low';
         return (
             <div className="coverage-wrapper">
@@ -527,14 +527,14 @@ const HistoryPanel = () => {
                                             {record.coverage != null && (
                                                 <span
                                                     className={`history-card-coverage coverage-${
-                                                        record.coverage * 100 >= 80
+                                                        record.coverage * 1 >= 80
                                                             ? 'high'
-                                                            : record.coverage * 100 >= 50
+                                                            : record.coverage * 1 >= 50
                                                                 ? 'medium'
                                                                 : 'low'
                                                     }`}
                                                 >
-                                                    {(record.coverage * 100).toFixed(0)}%
+                                                    {(record.coverage * 1).toFixed(0)}%
                                                 </span>
                                             )}
                                         </div>
