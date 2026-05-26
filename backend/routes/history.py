@@ -7,6 +7,7 @@ statistics, and deletion capabilities.
 
 """
 
+import json
 import logging
 from typing import Optional
 
@@ -82,11 +83,15 @@ async def get_history(
             filters=filters,
         )
 
-        # ✅ FIXED: Handle null case_id and other optional fields gracefully
+        raw_records = result.get("records", [])
+        if raw_records:
+            logger.info(f"🔍 RAW MONGODB RECORD (first): {json.dumps(raw_records[0], default=str, indent=2)}")
+
         records = []
-        for rec in result.get("records", []):
+        for rec in raw_records:
             try:
                 record_dict = storage_service.record_to_dict(rec)
+                logger.debug(f"📦 After record_to_dict: {json.dumps(record_dict, default=str, indent=2)}")
                 # Ensure _id is present
                 if "_id" in record_dict:
                     record_dict["id"] = str(record_dict.pop("_id"))
@@ -94,6 +99,8 @@ async def get_history(
                     record_dict["id"] = str(rec["_id"])
 
                 form_record = FormRecord(**record_dict)
+                logger.debug(f"✅ FormRecord created: {form_record.model_dump(by_alias=True)}")
+
                 records.append(form_record)
             except Exception as e:
                 logger.warning(f"⚠️  Failed to parse record {rec.get('_id')}: {e}")

@@ -20,11 +20,11 @@ class StorageService:
     """Handles persistence to MongoDB and MinIO."""
 
     def __init__(
-        self,
-        mongo_client: MongoClient,
-        minio_client: MinIOClient,
-        db_name: str = settings.MONGODB_DB_NAME,
-        collection_name: str = settings.MONGODB_DB_COLLECTION,
+            self,
+            mongo_client: MongoClient,
+            minio_client: MinIOClient,
+            db_name: str = settings.MONGODB_DB_NAME,
+            collection_name: str = settings.MONGODB_DB_COLLECTION,
     ):
         """
         Initialize storage service.
@@ -55,6 +55,67 @@ class StorageService:
         """Get MongoDB collection instance (async)."""
         return self.db[self.collection_name]
 
+    def record_to_dict(self, record: Optional[dict]) -> Optional[dict]:
+        """
+        Convert MongoDB record (snake_case) to API format (camelCase).
+
+        Maps all fields from MongoDB document to FormRecord schema.
+        Handles None/missing fields gracefully.
+
+        Args:
+            record: MongoDB document dict
+
+        Returns:
+            Dictionary with camelCase keys ready for FormRecord model
+        """
+        if record is None:
+            return None
+
+        # ✅ COMPREHENSIVE FIELD MAPPING: MongoDB → API
+        return {
+            # ID mapping (critical)
+            "id": str(record.get("_id", "")),
+
+            # Timestamps
+            "timestamp": record.get("timestamp"),
+            "createdAt": record.get("created_at"),
+            "updatedAt": record.get("updated_at"),
+
+            # Metadata
+            "imageFilename": record.get("image_filename"),
+            "formType": record.get("form_type"),
+            "caseId": record.get("case_id"),
+            "pageNumber": record.get("page_number"),
+            "fileSizeMb": record.get("file_size_mb"),
+
+            # Processing metadata
+            "status": record.get("status"),
+            "model": record.get("model"),
+            "agentProcessed": record.get("agent_processed", False),
+
+            # Processing times
+            "processingTimeLlmSeconds": record.get("processing_time_llm_seconds"),
+            "processingTimeAgentSeconds": record.get("processing_time_agent_seconds"),
+
+            # Content fields
+            "responsePreview": record.get("response_preview"),
+            "rawJsonPreview": record.get("raw_json_preview"),
+            "cleanedJson": record.get("cleaned_json"),
+            "caseSummary": record.get("case_summary"),
+
+            # Metrics
+            "metrics": record.get("metrics"),
+            "confidence": record.get("confidence"),
+
+            # Processing ID (use _id as fallback)
+            "processingId": record.get("processing_id") or str(record.get("_id", "")),
+
+            # Additional fields
+            "fileUrl": record.get("file_url"),
+            "errorMessage": record.get("error_message"),
+            "extractedData": record.get("extracted_data"),
+        }
+
     async def get_records(
             self,
             page: int = 1,
@@ -62,7 +123,7 @@ class StorageService:
             filters: dict = None,
     ) -> dict:
         """
-        Retrieve paginated records from MongoDB.
+        Retrieve paginated records from MongoDB with full field mapping.
 
         Args:
             page: Page number (1-indexed)
@@ -70,7 +131,7 @@ class StorageService:
             filters: Optional filters (form_type, status, etc.)
 
         Returns:
-            Dictionary with 'records' list and 'total' count
+            Dictionary with 'records' list (mapped to camelCase) and 'total' count
         """
         try:
             if filters is None:
@@ -78,72 +139,79 @@ class StorageService:
 
             skip = (page - 1) * limit
 
+            logger.debug(f"📜 Querying MongoDB: filters={filters}, skip={skip}, limit={limit}")
+
             # ✅ Count total matching documents (async)
             total = await self.collection.count_documents(filters)
 
             # ✅ Fetch paginated records (async)
             cursor = self.collection.find(filters).skip(skip).limit(limit).sort("created_at", -1)
-            records = await cursor.to_list(length=limit)
+            raw_records = await cursor.to_list(length=limit)
+
+            logger.debug(f"📦 Retrieved {len(raw_records)} raw records from MongoDB")
+
+            # ✅ MAP EACH RECORD FROM snake_case TO camelCase
+            mapped_records = []
+            for raw_record in raw_records:
+                try:
+                    mapped = self.record_to_dict(raw_record)
+                    if mapped:
+                        mapped_records.append(mapped)
+                        logger.debug(f"✅ Mapped record {mapped.get('id')}: {list(mapped.keys())}")
+                except Exception as e:
+                    logger.warning(f"⚠️  Failed to map record: {e}", exc_info=True)
+                    continue
 
             return {
-                "records": records,
+                "records": mapped_records,
                 "total": total,
                 "page": page,
                 "limit": limit,
             }
         except Exception as e:
-            logger.error(f"Error fetching records: {e}", exc_info=True)
+            logger.error(f"❌ Error fetching records: {e}", exc_info=True)
             raise
-
-    def record_to_dict(self, record: dict) -> dict:
-        """
-        Convert MongoDB record to response dictionary.
-
-        Maps MongoDB's '_id' field to 'id' for Pydantic model compatibility.
-        """
-        if record is None:
-            return None
-
-        return {
-            "id": str(record.get("_id", "")),
-            "processing_id": record.get("processing_id", ""),
-            "form_type": record.get("form_type", ""),
-            "case_id": record.get("case_id", ""),
-            "status": record.get("status", ""),
-            "confidence": record.get("confidence"),
-            "created_at": record.get("created_at", ""),
-            "updated_at": record.get("updated_at", ""),
-            "file_url": record.get("file_url"),
-            "error_message": record.get("error_message"),
-            "extracted_data": record.get("extracted_data"),
-        }
 
     async def get_record_by_processing_id(self, processing_id: str) -> Optional[dict]:
         """
-        Retrieve a single record by processing_id.
+        Retrieve a single record by processing_id with full field mapping.
         """
         try:
+            logger.debug(f"🔍 Searching for processing_id: {processing_id}")
+
             # ✅ Use await with async find_one
             record = await self.collection.find_one({"processing_id": processing_id})
-            return self.record_to_dict(record)
+
+            if not record:
+                logger.warning(f"⚠️  Record not found for processing_id: {processing_id}")
+                return None
+
+            # ✅ MAP ALL FIELDS
+            mapped = self.record_to_dict(record)
+            logger.debug(f"✅ Mapped record: {list(mapped.keys()) if mapped else 'None'}")
+            return mapped
+
         except Exception as e:
             logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
             raise
 
     async def save_form_processing_result(
-        self,
-        result: Dict[str, Any],
-        image_filename: str,
-        form_type: str,
-        metadata: Optional[Dict[str, Any]] = None,
+            self,
+            result: Dict[str, Any],
+            image_filename: str,
+            form_type: str,
+            metadata: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         """
         Save form processing result to MongoDB and MinIO.
+        Stores in snake_case for consistency.
         """
         try:
-            # Build document for MongoDB
+            now = datetime.now(UTC)
+
+            # Build document for MongoDB (snake_case)
             doc = {
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": now.isoformat(),
                 "image_filename": image_filename,
                 "form_type": form_type,
                 "response_preview": result.get("response", "")[:500],
@@ -154,6 +222,14 @@ class StorageService:
                 "agent_processed": result.get("agent_processed", False),
                 "metrics": result.get("metrics", {}),
                 "status": "success",
+                "created_at": now.isoformat(),
+                "updated_at": now.isoformat(),
+                # ✅ ADD MISSING FIELDS
+                "processing_time_llm_seconds": result.get("processing_time_llm_seconds"),
+                "processing_time_agent_seconds": result.get("processing_time_agent_seconds"),
+                "confidence": result.get("confidence"),
+                "error_message": None,
+                "extracted_data": result.get("extracted_data"),
             }
 
             # Add optional metadata
@@ -163,6 +239,13 @@ class StorageService:
             # ✅ Use await with async insert_one
             insert_result = await self.collection.insert_one(doc)
             inserted_id = insert_result.inserted_id
+
+            # ✅ SET processing_id if not already set
+            if "processing_id" not in doc:
+                await self.collection.update_one(
+                    {"_id": inserted_id},
+                    {"$set": {"processing_id": str(inserted_id)}}
+                )
 
             logger.info(f"✅ Saved to MongoDB: {inserted_id}")
 
@@ -193,10 +276,10 @@ class StorageService:
             return None
 
     async def save_form_document(
-        self,
-        file_path: str,
-        form_type: str,
-        case_id: Optional[str] = None,
+            self,
+            file_path: str,
+            form_type: str,
+            case_id: Optional[str] = None,
     ) -> Optional[str]:
         """
         Save original form document (image) to MinIO.
@@ -235,7 +318,7 @@ class StorageService:
 
     async def get_form_result(self, doc_id: str) -> Optional[Dict[str, Any]]:
         """
-        Retrieve form processing result from MongoDB.
+        Retrieve form processing result from MongoDB with mapping.
         """
         try:
             from bson import ObjectId
@@ -244,9 +327,7 @@ class StorageService:
             doc = await self.collection.find_one({"_id": ObjectId(doc_id)})
 
             if doc:
-                # Convert ObjectId to string for JSON serialization
-                doc["_id"] = str(doc["_id"])
-                return doc
+                return self.record_to_dict(doc)
 
             logger.warning(f"⚠️  Document not found: {doc_id}")
             return None
@@ -256,12 +337,12 @@ class StorageService:
             return None
 
     async def list_form_results(
-        self,
-        form_type: Optional[str] = None,
-        limit: int = 50,
+            self,
+            form_type: Optional[str] = None,
+            limit: int = 50,
     ) -> list:
         """
-        List recent form processing results.
+        List recent form processing results with mapping.
         """
         try:
             query = {}
@@ -269,14 +350,17 @@ class StorageService:
                 query["form_type"] = form_type.upper()
 
             # ✅ Use await with async find().to_list()
-            cursor = self.collection.find(query).sort("timestamp", -1).limit(limit)
-            results = await cursor.to_list(length=limit)
+            cursor = self.collection.find(query).sort("created_at", -1).limit(limit)
+            raw_results = await cursor.to_list(length=limit)
 
-            # Convert ObjectIds to strings
-            for doc in results:
-                doc["_id"] = str(doc["_id"])
+            # ✅ MAP ALL RECORDS
+            mapped_results = [
+                self.record_to_dict(doc)
+                for doc in raw_results
+                if doc is not None
+            ]
 
-            return results
+            return mapped_results
 
         except Exception as e:
             logger.error(f"❌ Error listing results: {e}", exc_info=True)
@@ -312,9 +396,12 @@ class StorageService:
                         "by_status": [
                             {"$group": {"_id": "$status", "count": {"$sum": 1}}}
                         ],
+                        "by_form_type": [
+                            {"$group": {"_id": "$form_type", "count": {"$sum": 1}}}
+                        ],
                         "avg_confidence": [
                             {
-                                "$match": {"status": "completed", "confidence": {"$ne": None}}
+                                "$match": {"status": "success", "confidence": {"$ne": None}}
                             },
                             {"$group": {"_id": None, "avg": {"$avg": "$confidence"}}}
                         ]
@@ -329,14 +416,13 @@ class StorageService:
 
             total = result.get("total", [{}])[0].get("count", 0)
             by_status = {item["_id"]: item["count"] for item in result.get("by_status", [])}
+            by_form_type = {item["_id"]: item["count"] for item in result.get("by_form_type", [])}
 
             return {
                 "total": total,
-                "completed": by_status.get("completed", 0),
-                "failed": by_status.get("failed", 0),
-                "pending": by_status.get("pending", 0),
-                "average_confidence": result.get("avg_confidence", [{}])[0].get("avg"),
-                "completion_rate": (by_status.get("completed", 0) / total * 100) if total > 0 else 0,
+                "byStatus": by_status,
+                "byFormType": by_form_type,
+                "successRate": (by_status.get("success", 0) / total * 100) if total > 0 else 0,
             }
         except Exception as e:
             logger.error(f"Error fetching statistics: {e}", exc_info=True)
