@@ -1,10 +1,8 @@
 # backend/routes/history.py
-
 """
 History and record management route.
 Provides paginated access to form processing records with filtering,
 statistics, and deletion capabilities.
-
 """
 
 import json
@@ -44,91 +42,7 @@ def get_storage_service(request: Request):
 
 
 # ==================== ROUTES ====================
-# ✅ FIXED: Base history endpoint (no path parameters)
-@router.get(
-    "/",
-    response_model=HistoryResponse,
-    summary="Get form processing history",
-    tags=["history"]
-)
-async def get_history(
-        request: Request,
-        page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-        limit: int = Query(20, ge=1, le=100, description="Records per page"),
-        form_type: Optional[str] = Query(None, description="Filter by form type (ITF, NAR)"),
-        status_filter: Optional[str] = Query(None, description="Filter by status (pending, completed, failed)"),
-) -> HistoryResponse:
-    """
-    Retrieve paginated form processing history.
-
-    Supports filtering by form_type and status. Default ordering is by
-    creation date (most recent first).
-    """
-    logger.debug(f"📜 Fetching history: page={page}, limit={limit}, form_type={form_type}, status={status_filter}")
-
-    try:
-        storage_service = get_storage_service(request)
-
-        filters = {}
-        if form_type:
-            filters["form_type"] = form_type.upper()
-        if status_filter:
-            filters["status"] = status_filter.lower()
-
-        logger.debug(f"Applying filters: {filters}")
-
-        result = await storage_service.get_records(
-            page=page,
-            limit=limit,
-            filters=filters,
-        )
-
-        raw_records = result.get("records", [])
-        if raw_records:
-            logger.info(f"🔍 RAW MONGODB RECORD (first): {json.dumps(raw_records[0], default=str, indent=2)}")
-
-        records = []
-        for rec in raw_records:
-            try:
-                record_dict = storage_service.record_to_dict(rec)
-                logger.debug(f"📦 After record_to_dict: {json.dumps(record_dict, default=str, indent=2)}")
-                # Ensure _id is present
-                if "_id" in record_dict:
-                    record_dict["id"] = str(record_dict.pop("_id"))
-                elif "_id" in rec:
-                    record_dict["id"] = str(rec["_id"])
-
-                form_record = FormRecord(**record_dict)
-                logger.debug(f"✅ FormRecord created: {form_record.model_dump(by_alias=True)}")
-
-                records.append(form_record)
-            except Exception as e:
-                logger.warning(f"⚠️  Failed to parse record {rec.get('_id')}: {e}")
-                continue
-
-        # ✅ FIXED: Match HistoryResponse field names
-        response = HistoryResponse(
-            total_count=result.get("total", 0),
-            page=page,
-            page_size=limit,
-            total_pages=(result.get("total", 0) + limit - 1) // limit if limit > 0 else 0,
-            records=records,
-        )
-
-        logger.debug(f"✅ Retrieved {len(records)} records")
-        return response
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Failed to fetch history: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch history: {str(e)}"
-        )
-
-
-# ✅ FIXED: Stats route BEFORE parameterized route
+# ✅ FIXED: Stats route BEFORE parameterized route (avoid path conflicts)
 @router.get(
     "/stats/overview",
     response_model=HistoryStats,
@@ -144,19 +58,18 @@ async def get_stats_overview(request: Request) -> HistoryStats:
 
     try:
         storage_service = get_storage_service(request)
-
         stats = await storage_service.get_statistics()
 
         # ✅ FIXED: Build response using HistoryStats model fields
         response = HistoryStats(
             total_processed=stats.get("total", 0),
             by_status={
-                "success": stats.get("success", 0),
+                "success": stats.get("completed", 0),  # Map 'completed' → 'success'
                 "failed": stats.get("failed", 0),
                 "pending": stats.get("pending", 0),
             },
             by_form_type=stats.get("by_form_type", {}),
-            success_rate=stats.get("success_rate", 0.0),
+            success_rate=stats.get("completion_rate", 0.0),
         )
 
         logger.debug(f"✅ Retrieved statistics: {response}")
@@ -169,6 +82,117 @@ async def get_stats_overview(request: Request) -> HistoryStats:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch statistics: {str(e)}"
+        )
+
+
+# ✅ FIXED: Base history endpoint (no path parameters)
+@router.get(
+    "/",
+    response_model=HistoryResponse,
+    summary="Get form processing history",
+    tags=["history"]
+)
+async def get_history(
+        request: Request,
+        page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+        limit: int = Query(20, ge=1, le=100, description="Records per page"),
+        form_type: Optional[str] = Query(None, description="Filter by form type (ITF, NAR)"),
+        status_filter: Optional[str] = Query(None, description="Filter by status (pending, success, failed)"),
+) -> HistoryResponse:
+    """
+    Retrieve paginated form processing history.
+
+    Supports filtering by form_type and status. Default ordering is by
+    creation date (most recent first).
+
+    Query Parameters:
+    - page: Page number starting from 1
+    - limit: Records per page (max 100)
+    - form_type: Optional filter (ITF, NAR, etc.)
+    - status_filter: Optional filter (pending, success, failed)
+    """
+    logger.debug(
+        f"📜 Fetching history: page={page}, limit={limit}, "
+        f"form_type={form_type}, status={status_filter}"
+    )
+
+    try:
+        storage_service = get_storage_service(request)
+
+        # ✅ Build filters dict
+        filters = {}
+        if form_type:
+            filters["form_type"] = form_type.upper()
+        if status_filter:
+            filters["status"] = status_filter.lower()
+
+        logger.debug(f"Applying filters: {filters}")
+
+        # ✅ Call storage service to get pre-mapped records
+        result = await storage_service.get_records(
+            page=page,
+            limit=limit,
+            filters=filters,
+        )
+
+        raw_records = result.get("records", [])
+        logger.debug(f"📦 Retrieved {len(raw_records)} records from storage service")
+
+        # ✅ Log first raw record for diagnostic
+        if raw_records:
+            logger.info(
+                f"🔍 RAW MONGODB RECORD (first): "
+                f"{json.dumps(raw_records[0], default=str, indent=2)}"
+            )
+
+        # ✅ SIMPLIFIED: Records are already mapped from storage_service.get_records()
+        # No need to call record_to_dict() again
+        records = []
+        for mapped_record in raw_records:
+            try:
+                logger.debug(
+                    f"📦 Processing mapped record: "
+                    f"{json.dumps(mapped_record, default=str, indent=2)}"
+                )
+
+                # ✅ Create FormRecord directly from pre-mapped data
+                form_record = FormRecord(**mapped_record)
+                logger.debug(
+                    f"✅ FormRecord created: id={form_record.id}, "
+                    f"processingId={form_record.processingId}"
+                )
+
+                records.append(form_record)
+
+            except Exception as e:
+                logger.warning(
+                    f"⚠️  Failed to create FormRecord from mapped data: {e}",
+                    exc_info=True
+                )
+                continue
+
+        # ✅ Build response with correct field names
+        response = HistoryResponse(
+            total_count=result.get("total", 0),
+            page=page,
+            page_size=limit,
+            total_pages=(result.get("total", 0) + limit - 1) // limit if limit > 0 else 0,
+            records=records,
+        )
+
+        logger.debug(
+            f"✅ Retrieved {len(records)} records successfully "
+            f"(total: {response.total_count}, pages: {response.total_pages})"
+        )
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch history: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch history: {str(e)}"
         )
 
 
@@ -185,39 +209,53 @@ async def get_record(
 ) -> RecordResponse:
     """
     Retrieve a single form processing record by processing_id.
+
+    Returns complete record details including all field mappings
+    and associated file URLs.
     """
     logger.debug(f"🔍 Fetching record: {processing_id}")
 
     try:
         storage_service = get_storage_service(request)
-        record = await storage_service.get_record_by_processing_id(processing_id)
 
-        if not record:
+        # ✅ get_record_by_processing_id() already returns fully mapped data
+        mapped_record = await storage_service.get_record_by_processing_id(processing_id)
+
+        if not mapped_record:
             logger.warning(f"⚠️  Record not found: {processing_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Record not found: {processing_id}"
             )
 
-        # Handle record conversion with null fields gracefully
-        try:
-            record_dict = storage_service.record_to_dict(record)
-            if "_id" in record_dict:
-                record_dict["id"] = str(record_dict.pop("_id"))
-            elif "_id" in record:
-                record_dict["id"] = str(record.get("_id", ""))
+        # ✅ Log mapped data for diagnostic
+        logger.debug(
+            f"📦 Mapped record data: "
+            f"{json.dumps(mapped_record, default=str, indent=2)}"
+        )
 
-            form_record = FormRecord(**record_dict)
+        # ✅ SIMPLIFIED: Create FormRecord directly from pre-mapped data
+        try:
+            form_record = FormRecord(**mapped_record)
+            logger.debug(
+                f"✅ FormRecord created: id={form_record.id}, "
+                f"processingId={form_record.processingId}"
+            )
+
         except Exception as e:
-            logger.error(f"❌ Failed to parse record {processing_id}: {e}", exc_info=True)
+            logger.error(
+                f"❌ Failed to create FormRecord for {processing_id}: {e}",
+                exc_info=True
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to parse record data: {str(e)}"
             )
 
+        # ✅ Build response with fileUrl from mapped data
         response = RecordResponse(
             record=form_record,
-            file_url=record.get("file_url"),
+            file_url=mapped_record.get("fileUrl"),  # Use camelCase key
         )
 
         logger.debug(f"✅ Retrieved record: {processing_id}")
@@ -233,6 +271,7 @@ async def get_record(
         )
 
 
+# ✅ DELETE endpoint for record deletion
 @router.delete(
     "/{processing_id}",
     response_model=DeleteResponse,
@@ -245,12 +284,16 @@ async def delete_record(
 ) -> DeleteResponse:
     """
     Delete a form processing record and associated MinIO files.
+
+    Removes the MongoDB document and cleans up any associated
+    S3/MinIO objects (images, JSON results).
     """
     logger.debug(f"🗑️  Deleting record: {processing_id}")
 
     try:
         storage_service = get_storage_service(request)
 
+        # ✅ Verify record exists before deletion
         record = await storage_service.get_record_by_processing_id(processing_id)
 
         if not record:
@@ -260,6 +303,7 @@ async def delete_record(
                 detail=f"Record not found: {processing_id}"
             )
 
+        # ✅ Perform deletion
         success = await storage_service.delete_record(processing_id)
 
         if not success:
@@ -269,7 +313,7 @@ async def delete_record(
                 detail="Failed to delete record"
             )
 
-        logger.info(f"✅ Record deleted: {processing_id}")
+        logger.info(f"✅ Record deleted successfully: {processing_id}")
 
         return DeleteResponse(
             deleted=True,
