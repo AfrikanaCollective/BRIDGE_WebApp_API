@@ -2,6 +2,7 @@
 
 """
 Data models for history and form records.
+Supports both snake_case (internal) and camelCase (API) field names.
 """
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
@@ -12,109 +13,190 @@ from datetime import datetime
 class FormRecord(BaseModel):
     """
     Represents a single processed form record.
-
-    Fields can be optional to handle incomplete or partially processed records.
+    Uses camelCase for API responses while supporting snake_case internally.
     """
-    id: str = Field(..., alias="_id", description="MongoDB document ID")
 
-    # Make timestamp Optional and add validator to parse strings
+    id: str = Field(
+        ...,
+        alias="_id",
+        description="MongoDB document ID",
+        serialization_alias="id"
+    )
+
+    # Metadata fields with camelCase aliases
     timestamp: Optional[datetime] = Field(
         default=None,
-        description="When the form was processed"
+        description="When the form was processed",
+        serialization_alias="timestamp"
     )
 
-    # Make image_filename Optional (may not exist in older records)
-    image_filename: Optional[str] = Field(
+    imageFilename: Optional[str] = Field(
         default=None,
-        description="Original filename of the image"
+        alias="image_filename",
+        description="Original filename of the image",
+        serialization_alias="imageFilename"
     )
 
-    # Make form_type Optional (may not exist in older records)
-    form_type: Optional[str] = Field(
+    formType: Optional[str] = Field(
         default=None,
-        description="Type of form (ITF, NAR, DSC, DAI, DOC)"
+        alias="form_type",
+        description="Type of form (ITF, NAR, DSC, DAI, DOC)",
+        serialization_alias="formType"
     )
 
-    case_id: Optional[str] = Field(
+    caseId: Optional[str] = Field(
         default=None,
-        description="Case or patient identifier (optional, may be null)"
+        alias="case_id",
+        description="Case or patient identifier",
+        serialization_alias="caseId"
     )
 
-    page_number: Optional[int] = Field(
+    pageNumber: Optional[int] = Field(
         default=None,
-        description="Page number if multi-page form"
+        alias="page_number",
+        description="Page number if multi-page form",
+        serialization_alias="pageNumber"
     )
 
-    file_size_mb: Optional[float] = Field(
+    fileSizeMb: Optional[float] = Field(
         default=None,
-        description="Size of the uploaded file in MB"
+        alias="file_size_mb",
+        description="Size of the uploaded file in MB",
+        serialization_alias="fileSizeMb"
     )
 
     # Processing metadata
-    # Make status Optional with default
     status: Optional[str] = Field(
         default=None,
-        description="Processing status (success, error, pending)"
+        description="Processing status (success, error, pending)",
+        serialization_alias="status"
     )
 
     model: Optional[str] = Field(
         default=None,
-        description="LLM model used for processing"
+        description="LLM model used for processing",
+        serialization_alias="model"
     )
 
-    agent_processed: bool = Field(
+    agentProcessed: bool = Field(
         default=False,
-        description="Whether agent-based extraction was performed"
+        alias="agent_processed",
+        description="Whether agent-based extraction was performed",
+        serialization_alias="agentProcessed"
     )
 
     # Processing times
-    processing_time_llm_seconds: Optional[float] = Field(
+    processingTimeLlmSeconds: Optional[float] = Field(
         default=None,
-        description="Time spent in LLM processing (seconds)"
+        alias="processing_time_llm_seconds",
+        description="Time spent in LLM processing (seconds)",
+        serialization_alias="processingTimeLlmSeconds"
     )
 
-    processing_time_agent_seconds: Optional[float] = Field(
+    processingTimeAgentSeconds: Optional[float] = Field(
         default=None,
-        description="Time spent in agent processing (seconds)"
+        alias="processing_time_agent_seconds",
+        description="Time spent in agent processing (seconds)",
+        serialization_alias="processingTimeAgentSeconds"
     )
 
     # Content fields
-    response_preview: Optional[str] = Field(
+    responsePreview: Optional[str] = Field(
         default=None,
-        description="Preview of extracted data (text format)"
+        alias="response_preview",
+        description="Preview of extracted data (text format)",
+        serialization_alias="responsePreview"
     )
 
-    raw_json_preview: Optional[str] = Field(
+    rawJsonPreview: Optional[str] = Field(
         default=None,
-        description="Raw JSON response from LLM"
+        alias="raw_json_preview",
+        description="Raw JSON response from LLM",
+        serialization_alias="rawJsonPreview"
     )
 
-    cleaned_json: Optional[Dict[str, Any]] = Field(
+    cleanedJson: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="Cleaned and structured JSON data"
+        alias="cleaned_json",
+        description="Cleaned and structured JSON data",
+        serialization_alias="cleanedJson"
     )
 
-    case_summary: Optional[str] = Field(
+    caseSummary: Optional[str] = Field(
         default=None,
-        description="Summary of extracted case information"
+        alias="case_summary",
+        description="Summary of extracted case information",
+        serialization_alias="caseSummary"
     )
 
     # Metrics
     metrics: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="Processing metrics from LLM/agent"
+        description="Processing metrics from LLM/agent",
+        serialization_alias="metrics"
     )
 
-    # Add validator to parse string timestamps to datetime
-    @field_validator('timestamp', mode='before')
+    # Additional optional fields
+    confidence: Optional[float] = Field(
+        default=None,
+        description="Confidence score of extraction",
+        serialization_alias="confidence"
+    )
+
+    processingId: Optional[str] = Field(
+        default=None,
+        alias="processing_id",
+        description="Processing identifier",
+        serialization_alias="processingId"
+    )
+
+    createdAt: Optional[datetime] = Field(
+        default=None,
+        alias="created_at",
+        description="Record creation timestamp",
+        serialization_alias="createdAt"
+    )
+
+    updatedAt: Optional[datetime] = Field(
+        default=None,
+        alias="updated_at",
+        description="Record update timestamp",
+        serialization_alias="updatedAt"
+    )
+
+    fileUrl: Optional[str] = Field(
+        default=None,
+        alias="file_url",
+        description="Associated file URL",
+        serialization_alias="fileUrl"
+    )
+
+    errorMessage: Optional[str] = Field(
+        default=None,
+        alias="error_message",
+        description="Error message if processing failed",
+        serialization_alias="errorMessage"
+    )
+
+    extractedData: Optional[Dict[str, Any]] = Field(
+        default=None,
+        alias="extracted_data",
+        description="Raw extracted data",
+        serialization_alias="extractedData"
+    )
+
+    # Validators
+    @field_validator('timestamp', 'createdAt', 'updatedAt', mode='before')
     @classmethod
     def parse_timestamp(cls, v):
         """Convert string timestamps to datetime objects."""
-        if v is None:
+        if v is None or v == "":
             return None
         if isinstance(v, datetime):
             return v
         if isinstance(v, str):
+            if not v or v.strip() == "":
+                return None
             try:
                 # Try ISO format with timezone (like '2026-05-25T05:46:02.671741+00:00')
                 return datetime.fromisoformat(v.replace('Z', '+00:00'))
@@ -123,51 +205,137 @@ class FormRecord(BaseModel):
                     # Try ISO format without timezone
                     return datetime.fromisoformat(v)
                 except (ValueError, AttributeError):
-                    # If parsing fails, log and return None
                     return None
         return v
 
-    # Use ConfigDict for Pydantic v2
     model_config = ConfigDict(
         populate_by_name=True,  # Allow both 'id' and aliased '_id'
         from_attributes=True,
         extra='allow',  # Allow extra fields from MongoDB documents
+        by_alias=True,  # ✅ Serialize using aliases (camelCase)
     )
 
 
 class HistoryResponse(BaseModel):
     """Response model for history API endpoint."""
-    total_count: int = Field(..., description="Total number of records")
-    page: int = Field(..., description="Current page number")
-    page_size: int = Field(..., description="Records per page")
-    total_pages: int = Field(..., description="Total number of pages")
-    records: list[FormRecord] = Field(..., description="List of form records")
+    totalCount: int = Field(
+        ...,
+        alias="total_count",
+        description="Total number of records",
+        serialization_alias="totalCount"
+    )
 
-    model_config = ConfigDict(populate_by_name=True)
+    page: int = Field(
+        ...,
+        description="Current page number",
+        serialization_alias="page"
+    )
+
+    pageSize: int = Field(
+        ...,
+        alias="page_size",
+        description="Records per page",
+        serialization_alias="pageSize"
+    )
+
+    totalPages: int = Field(
+        ...,
+        alias="total_pages",
+        description="Total number of pages",
+        serialization_alias="totalPages"
+    )
+
+    records: list[FormRecord] = Field(
+        ...,
+        description="List of form records",
+        serialization_alias="records"
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        by_alias=True,  # ✅ Serialize using aliases
+    )
 
 
 class HistoryStats(BaseModel):
     """Statistics about processing history."""
-    total_processed: int = Field(..., description="Total forms processed")
-    by_status: Dict[str, int] = Field(..., description="Count by processing status")
-    by_form_type: Dict[str, int] = Field(..., description="Count by form type")
-    success_rate: float = Field(..., description="Percentage of successful processing")
+    totalProcessed: int = Field(
+        ...,
+        alias="total_processed",
+        description="Total forms processed",
+        serialization_alias="totalProcessed"
+    )
 
-    model_config = ConfigDict(populate_by_name=True)
+    byStatus: Dict[str, int] = Field(
+        ...,
+        alias="by_status",
+        description="Count by processing status",
+        serialization_alias="byStatus"
+    )
+
+    byFormType: Dict[str, int] = Field(
+        ...,
+        alias="by_form_type",
+        description="Count by form type",
+        serialization_alias="byFormType"
+    )
+
+    successRate: float = Field(
+        ...,
+        alias="success_rate",
+        description="Percentage of successful processing",
+        serialization_alias="successRate"
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        by_alias=True,  # ✅ Serialize using aliases
+    )
 
 
 class RecordResponse(BaseModel):
     """Single record response."""
-    record: FormRecord = Field(..., description="Form record details")
-    file_url: Optional[str] = Field(None, description="Associated file URL")
+    record: FormRecord = Field(
+        ...,
+        description="Form record details",
+        serialization_alias="record"
+    )
 
-    model_config = ConfigDict(populate_by_name=True)
+    fileUrl: Optional[str] = Field(
+        None,
+        alias="file_url",
+        description="Associated file URL",
+        serialization_alias="fileUrl"
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        by_alias=True,  # ✅ Serialize using aliases
+    )
 
 
 class DeleteResponse(BaseModel):
     """Deletion confirmation response."""
-    deleted: bool = Field(..., description="Deletion success status")
-    processing_id: str = Field(..., description="Deleted processing identifier")
-    message: str = Field(..., description="Deletion details")
+    deleted: bool = Field(
+        ...,
+        description="Deletion success status",
+        serialization_alias="deleted"
+    )
 
-    model_config = ConfigDict(populate_by_name=True)
+    processingId: str = Field(
+        ...,
+        alias="processing_id",
+        description="Deleted processing identifier",
+        serialization_alias="processingId"
+    )
+
+    message: str = Field(
+        ...,
+        description="Deletion details",
+        serialization_alias="message"
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        by_alias=True,  # ✅ Serialize using aliases
+    )
