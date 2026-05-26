@@ -8,6 +8,7 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime, UTC
 from pathlib import Path
+from bson import ObjectId
 
 from config.settings import settings
 from clients.mongo_client import MongoClient
@@ -223,7 +224,6 @@ class StorageService:
                 "status": "success",
                 "created_at": now.isoformat(),
                 "updated_at": now.isoformat(),
-                # ✅ ADD MISSING FIELDS
                 "processing_time_llm_seconds": result.get("processing_time_llm_seconds"),
                 "processing_time_agent_seconds": result.get("processing_time_agent_seconds"),
                 "coverage": result.get("coverage"),
@@ -321,8 +321,6 @@ class StorageService:
         Retrieve form processing result from MongoDB with mapping.
         """
         try:
-            from bson import ObjectId
-
             # ✅ Use await with async find_one
             doc = await self.collection.find_one({"_id": ObjectId(doc_id)})
 
@@ -371,7 +369,6 @@ class StorageService:
         Delete form processing result from MongoDB.
         """
         try:
-            from bson import ObjectId
             # ✅ Use await with async delete_one
             result = await self.collection.delete_one({"_id": ObjectId(doc_id)})
 
@@ -431,104 +428,181 @@ class StorageService:
                 "successRate": (by_status.get("success", 0) / total * 100) if total > 0 else 0,
             }
         except Exception as e:
-            logger.error(f"Error fetching statistics: {e}", exc_info=True)
+            logger.error(f"❌ Error fetching statistics: {e}", exc_info=True)
             raise
 
-    async def delete_record(self, processing_id: str) -> bool:
+    async def delete_record(self, record_id: str) -> Dict[str, Any]:
         """
-        ✅ FIXED: Delete a record by processing_id.
-        Handles both ObjectId and string ID formats.
-        """
-        from bson import ObjectId
+        Delete a record with triple-lookup strategy.
 
-        logger.debug(f"🗑️  Deleting record: {processing_id}")
+        Attempts to find and delete a record using three query strategies:
+        1. Try ObjectId lookup on _id
+        2. Try string lookup on _id
+        3. Try lookup on processing_id field
+
+        Returns detailed status dict for API response.
+
+        Args:
+            record_id: The record ID (can be ObjectId string or processing_id)
+
+        Returns:
+            Dict with success status, message, and cleanup results
+        """
+        logger.info(f"🔍 DELETE REQUEST: record_id={record_id}")
+
+        record = None
+        query_used = None
 
         try:
-            # Try THREE query strategies:
-            # 1. Direct ObjectId match (if _id is stored as ObjectId)
-            # 2. String match (if _id is stored as string)
-            # 3. processing_id field match (fallback)
-
-            queries_to_try = []
-
-            # Strategy 1: Try as ObjectId
+            # ============================================================
+            # STRATEGY 1: Lookup by _id as ObjectId
+            # ============================================================
             try:
-                object_id = ObjectId(processing_id)
-                queries_to_try.append({
-                    "query": {"_id": object_id},
-                    "description": f"_id as ObjectId"
-                })
-                logger.debug(f"🔍 Will try ObjectId query: {object_id}")
+                if ObjectId.is_valid(record_id):
+                    object_id = ObjectId(record_id)
+                    record = await self.collection.find_one({"_id": object_id})
+                    if record:
+                        query_used = f"ObjectId(_id={record_id})"
+                        logger.info(f"✅ FOUND via ObjectId lookup: {query_used}")
             except Exception as e:
-                logger.debug(f"⚠️  Cannot convert to ObjectId: {e}")
+                logger.warning(f"⚠️  ObjectId lookup failed: {e}")
 
-            # Strategy 2: Try as string
-            queries_to_try.append({
-                "query": {"_id": processing_id},
-                "description": f"_id as string"
-            })
-            logger.debug(f"🔍 Will try string _id query: {processing_id}")
-
-            # Strategy 3: Try processing_id field
-            queries_to_try.append({
-                "query": {"processing_id": processing_id},
-                "description": f"processing_id field"
-            })
-            logger.debug(f"🔍 Will try processing_id field query: {processing_id}")
-
-            # Execute queries in order until one succeeds
-            record = None
-            successful_query = None
-
-            for query_strategy in queries_to_try:
-                logger.debug(f"📍 Attempting deletion using {query_strategy['description']}")
-                record = await self.db.processing_records.find_one(query_strategy["query"])
-
-                if record:
-                    successful_query = query_strategy["query"]
-                    logger.info(f"✅ Found record using {query_strategy['description']}")
-                    break
-
-            # If no record found with any strategy
+            # ============================================================
+            # STRATEGY 2: Lookup by _id as string
+            # ============================================================
             if not record:
-                logger.warning(f"⚠️  Record not found with any query strategy: {processing_id}")
-                logger.debug(f"   Tried ObjectId, string _id, and processing_id field queries")
-                return False
+                try:
+                    record = await self.collection.find_one({"_id": record_id})
+                    if record:
+                        query_used = f"string _id={record_id}"
+                        logger.info(f"✅ FOUND via string _id lookup: {query_used}")
+                except Exception as e:
+                    logger.warning(f"⚠️  String _id lookup failed: {e}")
 
-            logger.debug(f"📦 Found record to delete: {record.get('_id')}")
+            # ============================================================
+            # STRATEGY 3: Lookup by processing_id field
+            # ============================================================
+            if not record:
+                try:
+                    record = await self.collection.find_one({"processing_id": record_id})
+                    if record:
+                        query_used = f"processing_id={record_id}"
+                        logger.info(f"✅ FOUND via processing_id lookup: {query_used}")
+                except Exception as e:
+                    logger.warning(f"⚠️  processing_id lookup failed: {e}")
 
-            # Extract file references before deletion
+            # ============================================================
+            # Record not found after all strategies
+            # ============================================================
+            if not record:
+                logger.error(f"❌ Record not found with any query strategy: {record_id}")
+                return {
+                    "success": False,
+                    "message": f"Record not found: {record_id}",
+                    "record_id": record_id,
+                    "strategies_tried": [
+                        "ObjectId(_id)",
+                        "string _id",
+                        "processing_id field"
+                    ]
+                }
+
+            # ============================================================
+            # Extract IDs and metadata for deletion & cleanup
+            # ============================================================
+            actual_id = record.get("_id")
+            processing_id = record.get("processing_id", str(actual_id))
             image_filename = record.get("image_filename")
-            processing_id_from_doc = str(record.get("_id"))
+            form_type = record.get("form_type", "unknown")
 
-            # Delete from MongoDB using the successful query
-            result = await self.db.processing_records.delete_one(successful_query)
+            logger.info(f"📋 RECORD FOUND (query: {query_used})")
+            logger.info(f"   _id={actual_id}, processing_id={processing_id}, image={image_filename}")
 
-            if result.deleted_count == 0:
-                logger.warning(f"⚠️  MongoDB deletion failed after find: {processing_id}")
-                return False
-
-            logger.info(f"✅ Deleted from MongoDB: {processing_id_from_doc}")
-
-            # Clean up MinIO files (if S3 service available)
+            # ============================================================
+            # Delete from MongoDB
+            # ============================================================
             try:
-                if hasattr(self, 's3_service') and self.s3_service:
-                    # Delete image file
-                    if image_filename:
-                        await self.s3_service.delete_file(image_filename)
-                        logger.info(f"✅ Deleted S3 file: {image_filename}")
-
-                    # Delete JSON result file
-                    json_filename = f"{processing_id_from_doc}_result.json"
-                    await self.s3_service.delete_file(json_filename)
-                    logger.info(f"✅ Deleted S3 JSON: {json_filename}")
+                result = await self.collection.delete_one({"_id": actual_id})
+                if result.deleted_count == 0:
+                    logger.error(f"❌ MongoDB delete failed for _id={actual_id}")
+                    return {
+                        "success": False,
+                        "message": "Failed to delete record from database",
+                        "record_id": record_id
+                    }
+                logger.info(f"✅ MongoDB deletion successful: deleted_count={result.deleted_count}")
             except Exception as e:
-                logger.warning(f"⚠️  Failed to delete S3 files: {e}")
-                # Don't fail the entire operation if S3 cleanup fails
+                logger.error(f"❌ MongoDB deletion error: {e}")
+                return {
+                    "success": False,
+                    "message": f"Database deletion error: {str(e)}",
+                    "record_id": record_id
+                }
 
-            logger.info(f"✅ Record deletion complete: {processing_id_from_doc}")
-            return True
+            # ============================================================
+            # Cleanup MinIO/S3 assets
+            # ============================================================
+            cleanup_results = []
+
+            # Delete original image file
+            if image_filename:
+                try:
+                    await self.minio.delete_object(image_filename)
+                    logger.info(f"🗑️  Deleted MinIO object: {image_filename}")
+                    cleanup_results.append({
+                        "file": image_filename,
+                        "type": "image",
+                        "deleted": True
+                    })
+                except Exception as e:
+                    logger.warning(f"⚠️  Failed to delete MinIO object {image_filename}: {e}")
+                    cleanup_results.append({
+                        "file": image_filename,
+                        "type": "image",
+                        "deleted": False,
+                        "error": str(e)
+                    })
+
+            # Delete result JSON file
+            result_json_filename = f"{processing_id}_result.json"
+            try:
+                await self.minio.delete_object(result_json_filename)
+                logger.info(f"🗑️  Deleted MinIO object: {result_json_filename}")
+                cleanup_results.append({
+                    "file": result_json_filename,
+                    "type": "json_result",
+                    "deleted": True
+                })
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to delete MinIO object {result_json_filename}: {e}")
+                cleanup_results.append({
+                    "file": result_json_filename,
+                    "type": "json_result",
+                    "deleted": False,
+                    "error": str(e)
+                })
+
+            logger.info(f"✨ Record deletion complete: {record_id}")
+
+            # ============================================================
+            # Success response
+            # ============================================================
+            return {
+                "success": True,
+                "message": "Record and associated files deleted successfully",
+                "record_id": record_id,
+                "actual_id": str(actual_id),
+                "processing_id": processing_id,
+                "form_type": form_type,
+                "query_strategy": query_used,
+                "mongodb_deleted": True,
+                "cleanup_results": cleanup_results
+            }
 
         except Exception as e:
-            logger.error(f"❌ Failed to delete record {processing_id}: {e}", exc_info=True)
-            return False
+            logger.error(f"❌ Unexpected error during deletion: {e}", exc_info=True)
+            return {
+                "success": False,
+                "message": f"Unexpected error: {str(e)}",
+                "record_id": record_id
+            }

@@ -280,52 +280,188 @@ async def get_record(
 
 # ✅ DELETE endpoint for record deletion
 @router.delete(
-    "/{processing_id}",
+    "/{record_id}",
     response_model=DeleteResponse,
     summary="Delete a record and associated files",
-    tags=["history"]
+    tags=["history"],
+    responses={
+        200: {
+            "description": "Record deleted successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "deleted": True,
+                        "processingId": "6a1536949d9200e023e07679",
+                        "message": "Record and associated files deleted successfully (strategy: ObjectId(_id), cleaned up 2 files)"
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "Record not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "deleted": False,
+                        "processingId": "invalid_id",
+                        "message": "Record not found: invalid_id (tried: ObjectId(_id), string _id, processing_id field)"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "deleted": False,
+                        "processingId": "6a1536949d9200e023e07679",
+                        "message": "Failed to delete record: Database connection error"
+                    }
+                }
+            }
+        }
+    }
 )
 async def delete_record(
         request: Request,
-        processing_id: str = Path(..., description="Unique processing identifier or MongoDB ID"),
+        record_id: str = Path(
+            ...,
+            description="Unique record identifier (MongoDB _id or processing_id)",
+            example="6a1536949d9200e023e07679"
+        ),
 ) -> DeleteResponse:
     """
     Delete a form processing record and associated MinIO files.
 
-    Removes the MongoDB document and cleans up any associated
-    S3/MinIO objects (images, JSON results).
+    This endpoint removes:
+    - The MongoDB document
+    - Associated S3/MinIO objects (original image, result JSON)
 
-    Parameters:
-    - processing_id: Can be either the processing_id field value or the MongoDB _id
+    **Query Strategies (auto-attempted in order):**
+    1. ObjectId lookup on `_id` field
+    2. String lookup on `_id` field
+    3. Lookup on `processing_id` field
+
+    **Parameters:**
+    - `record_id`: Can be either the MongoDB `_id` (as string or ObjectId)
+                   or the `processing_id` field value
+
+    **Example requests:**
+    ```
+    DELETE /api/history/6a1536949d9200e023e07679
+    DELETE /api/history/processing_id_value
+    ```
+
+    **Response includes:**
+    - `deleted`: Boolean status of deletion
+    - `processingId`: Processing ID of deleted record
+    - `message`: Detailed message including query strategy used and cleanup summary
     """
-    logger.debug(f"🗑️  Deleting record: {processing_id}")
+    logger.info(f"🔍 DELETE REQUEST: record_id={record_id}")
+
+    # ================================================================
+    # Input validation
+    # ================================================================
+    if not record_id or not record_id.strip():
+        logger.warning("⚠️  Empty record_id provided")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="record_id cannot be empty"
+        )
 
     try:
+        # ============================================================
+        # Get storage service instance
+        # ============================================================
         storage_service = get_storage_service(request)
+        logger.debug(f"✅ StorageService initialized for deletion")
 
-        # ✅ Call delete_record which handles both _id and processing_id
-        success = await storage_service.delete_record(processing_id)
+        # ============================================================
+        # Call delete_record with triple-lookup strategy
+        # Returns detailed dict with success/failure info
+        # ============================================================
+        logger.debug(f"📋 Calling storage_service.delete_record('{record_id}')")
+        deletion_result = await storage_service.delete_record(record_id)
 
+        # ============================================================
+        # Extract result details
+        # ============================================================
+        success = deletion_result.get("success", False)
+        processing_id = deletion_result.get("processing_id", record_id)
+        query_strategy = deletion_result.get("query_strategy", "unknown")
+        cleanup_results = deletion_result.get("cleanup_results", [])
+        strategies_tried = deletion_result.get("strategies_tried", [])
+
+        # ================================================================
+        # Handle deletion failure (record not found)
+        # ================================================================
         if not success:
-            logger.warning(f"⚠️  Record not found or deletion failed: {processing_id}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Record not found: {processing_id}"
+            strategies_str = ", ".join(strategies_tried) if strategies_tried else "unknown"
+            message = f"Record not found: {record_id} (tried: {strategies_str})"
+
+            logger.warning(
+                f"⚠️  Record deletion failed: {message}"
             )
 
-        logger.info(f"✅ Record deleted successfully: {processing_id}")
+            return DeleteResponse(
+                deleted=False,
+                processing_id=processing_id,
+                message=message
+            )
+
+        # ================================================================
+        # Deletion succeeded - build success message
+        # ================================================================
+        cleanup_count = len(cleanup_results)
+        cleanup_deleted = sum(1 for c in cleanup_results if c.get("deleted"))
+
+        cleanup_summary = (
+            f"cleaned up {cleanup_deleted}/{cleanup_count} files"
+            if cleanup_count > 0
+            else "no associated files to clean up"
+        )
+
+        message = (
+            f"Record and associated files deleted successfully "
+            f"(strategy: {query_strategy}, {cleanup_summary})"
+        )
+
+        logger.info(
+            f"✅ Record deletion successful: "
+            f"processing_id={processing_id}, {cleanup_summary}"
+        )
+
+        logger.debug(f"📤 Returning success response for {processing_id}")
 
         return DeleteResponse(
             deleted=True,
-            processingId=processing_id,
-            message="Record and associated files deleted successfully"
+            processing_id=processing_id,
+            message=message
         )
 
-    except HTTPException:
-        raise
+    # ================================================================
+    # Handle HTTPException (from above)
+    # ================================================================
+    except HTTPException as http_exc:
+        logger.warning(f"⚠️  HTTPException raised: {http_exc.detail}")
+        raise http_exc
+
+    # ================================================================
+    # Handle unexpected exceptions
+    # ================================================================
     except Exception as e:
-        logger.error(f"❌ Failed to delete record {processing_id}: {e}", exc_info=True)
+        error_msg = f"Failed to delete record: {str(e)}"
+        logger.error(
+            f"❌ Unexpected error during deletion of {record_id}: {error_msg}",
+            exc_info=True
+        )
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete record: {str(e)}"
+            detail=DeleteResponse(
+                deleted=False,
+                processing_id=record_id,
+                message=error_msg
+            ).model_dump(by_alias=True)
         )
