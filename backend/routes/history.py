@@ -60,16 +60,16 @@ async def get_stats_overview(request: Request) -> HistoryStats:
         storage_service = get_storage_service(request)
         stats = await storage_service.get_statistics()
 
-        # ✅ FIXED: Build response using HistoryStats model fields
+        # ✅ FIXED: Build response using HistoryStats model fields (camelCase)
         response = HistoryStats(
-            total_processed=stats.get("total", 0),
-            by_status={
+            totalProcessed=stats.get("total", 0),
+            byStatus={
                 "success": stats.get("completed", 0),  # Map 'completed' → 'success'
                 "failed": stats.get("failed", 0),
                 "pending": stats.get("pending", 0),
             },
-            by_form_type=stats.get("by_form_type", {}),
-            success_rate=stats.get("completion_rate", 0.0),
+            byFormType=stats.get("by_form_type", {}),
+            successRate=stats.get("completion_rate", 0.0),
         )
 
         logger.debug(f"✅ Retrieved statistics: {response}")
@@ -141,7 +141,7 @@ async def get_history(
         # ✅ Log first raw record for diagnostic
         if raw_records:
             logger.info(
-                f"🔍 RAW MONGODB RECORD (first): "
+                f"🔍 RAW MAPPED RECORD (first): "
                 f"{json.dumps(raw_records[0], default=str, indent=2)}"
             )
 
@@ -171,18 +171,25 @@ async def get_history(
                 )
                 continue
 
-        # ✅ Build response with correct field names
+        # ✅ Calculate pagination
+        total = result.get("total", 0)
+        total_pages = (total + limit - 1) // limit if limit > 0 else 0
+
+        logger.debug(
+            f"Pagination: total={total}, page={page}, limit={limit}, pages={total_pages}"
+        )
+
         response = HistoryResponse(
-            total_count=result.get("total", 0),
+            totalCount=total,
             page=page,
-            page_size=limit,
-            total_pages=(result.get("total", 0) + limit - 1) // limit if limit > 0 else 0,
+            pageSize=limit,
+            totalPages=total_pages,
             records=records,
         )
 
         logger.debug(
             f"✅ Retrieved {len(records)} records successfully "
-            f"(total: {response.total_count}, pages: {response.total_pages})"
+            f"(total: {response.totalCount}, pages: {response.totalPages})"
         )
         return response
 
@@ -255,7 +262,7 @@ async def get_record(
         # ✅ Build response with fileUrl from mapped data
         response = RecordResponse(
             record=form_record,
-            file_url=mapped_record.get("fileUrl"),  # Use camelCase key
+            fileUrl=mapped_record.get("fileUrl"),  # Use camelCase key
         )
 
         logger.debug(f"✅ Retrieved record: {processing_id}")
@@ -317,7 +324,7 @@ async def delete_record(
 
         return DeleteResponse(
             deleted=True,
-            processing_id=processing_id,
+            processingId=processing_id,
             message="Record and associated files deleted successfully"
         )
 
