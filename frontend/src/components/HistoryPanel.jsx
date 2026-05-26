@@ -730,7 +730,7 @@ const HistoryPanel = () => {
                             <div className="details-raw-section">
                                 <h4>Raw Data</h4>
                                 <pre className="details-json">
-                                    {JSON.stringify(selectedRecord.rawJson, null, 2)}
+                                    {selectedRecord.rawJson}
                                 </pre>
                             </div>
                         </div>
