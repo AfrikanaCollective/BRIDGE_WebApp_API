@@ -105,7 +105,7 @@ class FormRecord(BaseModel):
         default=None,
         alias="raw_json",
         description="Raw JSON response from LLM",
-        serialization_alias="rawJsonPreview"
+        serialization_alias="rawJson"
     )
 
     cleanedJson: Optional[Dict[str, Any]] = Field(

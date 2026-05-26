@@ -534,7 +534,7 @@ const HistoryPanel = () => {
                                                                 : 'low'
                                                     }`}
                                                 >
-                                                    {(record.coverage * 1).toFixed(0)}%
+                                                    {(record.coverage * 1).toFixed(2)}%
                                                 </span>
                                             )}
                                         </div>

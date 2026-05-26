@@ -436,29 +436,63 @@ class StorageService:
 
     async def delete_record(self, processing_id: str) -> bool:
         """
-        Delete a record by processing_id.
-        Handles both direct _id match and processing_id field match.
+        ✅ FIXED: Delete a record by processing_id.
+        Handles both ObjectId and string ID formats.
         """
         from bson import ObjectId
 
         logger.debug(f"🗑️  Deleting record: {processing_id}")
 
         try:
-            # Try to match against _id first (in case processing_id is actually the MongoDB ID)
+            # Try THREE query strategies:
+            # 1. Direct ObjectId match (if _id is stored as ObjectId)
+            # 2. String match (if _id is stored as string)
+            # 3. processing_id field match (fallback)
+
+            queries_to_try = []
+
+            # Strategy 1: Try as ObjectId
             try:
                 object_id = ObjectId(processing_id)
-                query = {"_id": object_id}
-                logger.debug(f"🔍 Attempting deletion by _id: {object_id}")
-            except Exception:
-                # Fall back to processing_id field
-                query = {"processing_id": processing_id}
-                logger.debug(f"🔍 Attempting deletion by processing_id field: {processing_id}")
+                queries_to_try.append({
+                    "query": {"_id": object_id},
+                    "description": f"_id as ObjectId"
+                })
+                logger.debug(f"🔍 Will try ObjectId query: {object_id}")
+            except Exception as e:
+                logger.debug(f"⚠️  Cannot convert to ObjectId: {e}")
 
-            # Get the record first to extract file references
-            record = await self.db.processing_records.find_one(query)
+            # Strategy 2: Try as string
+            queries_to_try.append({
+                "query": {"_id": processing_id},
+                "description": f"_id as string"
+            })
+            logger.debug(f"🔍 Will try string _id query: {processing_id}")
 
+            # Strategy 3: Try processing_id field
+            queries_to_try.append({
+                "query": {"processing_id": processing_id},
+                "description": f"processing_id field"
+            })
+            logger.debug(f"🔍 Will try processing_id field query: {processing_id}")
+
+            # Execute queries in order until one succeeds
+            record = None
+            successful_query = None
+
+            for query_strategy in queries_to_try:
+                logger.debug(f"📍 Attempting deletion using {query_strategy['description']}")
+                record = await self.db.processing_records.find_one(query_strategy["query"])
+
+                if record:
+                    successful_query = query_strategy["query"]
+                    logger.info(f"✅ Found record using {query_strategy['description']}")
+                    break
+
+            # If no record found with any strategy
             if not record:
-                logger.warning(f"⚠️  Record not found for deletion: {processing_id}")
+                logger.warning(f"⚠️  Record not found with any query strategy: {processing_id}")
+                logger.debug(f"   Tried ObjectId, string _id, and processing_id field queries")
                 return False
 
             logger.debug(f"📦 Found record to delete: {record.get('_id')}")
@@ -467,11 +501,11 @@ class StorageService:
             image_filename = record.get("image_filename")
             processing_id_from_doc = str(record.get("_id"))
 
-            # Delete from MongoDB
-            result = await self.db.processing_records.delete_one(query)
+            # Delete from MongoDB using the successful query
+            result = await self.db.processing_records.delete_one(successful_query)
 
             if result.deleted_count == 0:
-                logger.warning(f"⚠️  MongoDB deletion failed: {processing_id}")
+                logger.warning(f"⚠️  MongoDB deletion failed after find: {processing_id}")
                 return False
 
             logger.info(f"✅ Deleted from MongoDB: {processing_id_from_doc}")
