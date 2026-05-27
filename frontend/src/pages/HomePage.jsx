@@ -1,5 +1,5 @@
 // frontend/src/pages/HomePage.jsx
-import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/statsSlice';
@@ -14,19 +14,24 @@ const HomePage = () => {
     const refreshIntervalRef = useRef(null);
     const fetchInProgressRef = useRef(false);
     const lastFetchTimeRef = useRef(0);
+    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
     // ==================== MEMOIZED FUNCTIONS ====================
     /**
      * Fetch stats with deduplication and cooldown
+     * ✅ 5-minute cooldown between requests
      */
     const fetchStatsWithDeduplication = useCallback(
         (force = false) => {
             const now = Date.now();
             const timeSinceLastFetch = now - lastFetchTimeRef.current;
 
-            // ✅ Prevent duplicate requests within 1 minute
-            if (timeSinceLastFetch < 120000 && !force) {
-                console.log('⏭️  Skipping stats fetch (cooldown active)');
+            // ✅ Prevent duplicate requests within 5 minutes
+            if (timeSinceLastFetch < COOLDOWN_MS && !force) {
+                const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastFetch) / 1000);
+                console.log(
+                    `⏭️  Skipping stats fetch (cooldown: ${remainingSeconds}s remaining)`
+                );
                 return;
             }
 
@@ -48,13 +53,13 @@ const HomePage = () => {
                 fetchInProgressRef.current = false;
             }
         },
-        [dispatch]
+        [dispatch, COOLDOWN_MS]
     );
 
     // ==================== EFFECTS ====================
     /**
      * Fetch stats on component mount and set up auto-refresh interval
-     * ✅ Only depends on fetchStatsWithDeduplication
+     * ✅ Initial fetch (forced) + 5-minute intervals
      */
     useEffect(() => {
         console.log('🚀 HomePage mounted, initializing stats');
@@ -66,7 +71,7 @@ const HomePage = () => {
         refreshIntervalRef.current = setInterval(() => {
             console.log('⏱️  Stats refresh interval triggered (5 minutes)');
             fetchStatsWithDeduplication();
-        }, 5 * 60 * 1000); // 5 minutes
+        }, COOLDOWN_MS);
 
         // ✅ Cleanup interval on unmount
         return () => {
@@ -76,7 +81,7 @@ const HomePage = () => {
                 console.log('🧹 Cleanup: Stats refresh interval cleared');
             }
         };
-    }, [fetchStatsWithDeduplication]);
+    }, [fetchStatsWithDeduplication, COOLDOWN_MS]);
 
     // ==================== RENDER ====================
     return (
