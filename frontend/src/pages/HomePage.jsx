@@ -2,88 +2,46 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/statsSlice';
+import {
+    fetchStats,
+    selectPrimaryStats,
+    selectStatsLoadingState,
+} from '../store/statsSlice';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
     const dispatch = useDispatch();
     const stats = useSelector(selectPrimaryStats);
     const { loading, error } = useSelector(selectStatsLoadingState);
+    const intervalRef = useRef(null);
 
-    // ==================== REFS ====================
-    const refreshIntervalRef = useRef(null);
-    const fetchInProgressRef = useRef(false);
-    const lastFetchTimeRef = useRef(0);
-    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
-
-    // ==================== MEMOIZED FUNCTIONS ====================
     /**
-     * Fetch stats with deduplication and cooldown
-     * ✅ 5-minute cooldown between requests
+     * Dispatch stats fetch
+     * Cooldown is handled by Redux thunk
      */
-    const fetchStatsWithDeduplication = useCallback(
-        (force = false) => {
-            const now = Date.now();
-            const timeSinceLastFetch = now - lastFetchTimeRef.current;
+    const triggerStatsFetch = useCallback(() => {
+        console.log('📊 HomePage: Dispatching fetchStats');
+        dispatch(fetchStats());
+    }, [dispatch]);
 
-            // ✅ Prevent duplicate requests within 5 minutes
-            if (timeSinceLastFetch < COOLDOWN_MS && !force) {
-                const remainingSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastFetch) / 1000);
-                console.log(
-                    `⏭️  Skipping stats fetch (cooldown: ${remainingSeconds}s remaining)`
-                );
-                return;
-            }
-
-            // ✅ Prevent concurrent requests
-            if (fetchInProgressRef.current) {
-                console.log('⏭️  Skipping stats fetch (request in progress)');
-                return;
-            }
-
-            try {
-                fetchInProgressRef.current = true;
-                lastFetchTimeRef.current = now;
-
-                console.log('📊 Dispatching fetchStats action');
-                dispatch(fetchStats());
-            } catch (err) {
-                console.error('❌ Error dispatching fetchStats:', err);
-            } finally {
-                fetchInProgressRef.current = false;
-            }
-        },
-        [dispatch, COOLDOWN_MS]
-    );
-
-    // ==================== EFFECTS ====================
-    /**
-     * Fetch stats on component mount and set up auto-refresh interval
-     * ✅ Initial fetch (forced) + 5-minute intervals
-     */
     useEffect(() => {
-        console.log('🚀 HomePage mounted, initializing stats');
+        console.log('🚀 HomePage mounted - fetching initial stats');
+        triggerStatsFetch();
 
-        // ✅ Initial fetch with force flag
-        fetchStatsWithDeduplication(true);
+        // Set up 5-minute interval
+        intervalRef.current = setInterval(() => {
+            console.log('⏱️  5-minute interval timer fired');
+            triggerStatsFetch();
+        }, 5 * 60 * 1000); // 5 minutes
 
-        // ✅ Set up 5-minute auto-refresh interval
-        refreshIntervalRef.current = setInterval(() => {
-            console.log('⏱️  Stats refresh interval triggered (5 minutes)');
-            fetchStatsWithDeduplication();
-        }, COOLDOWN_MS);
-
-        // ✅ Cleanup interval on unmount
         return () => {
-            if (refreshIntervalRef.current) {
-                clearInterval(refreshIntervalRef.current);
-                refreshIntervalRef.current = null;
-                console.log('🧹 Cleanup: Stats refresh interval cleared');
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                console.log('🧹 HomePage unmounted - cleared interval');
             }
         };
-    }, [fetchStatsWithDeduplication, COOLDOWN_MS]);
+    }, [triggerStatsFetch]);
 
-    // ==================== RENDER ====================
     return (
         <div className="home-page">
             {/* Hero */}
@@ -180,7 +138,7 @@ const HomePage = () => {
                     </div>
                 )}
 
-                {/* Stats Grid - Always render with reserved space */}
+                {/* Stats Grid */}
                 <div className="stats-grid">
                     <div className="stat-item">
                         <div className="stat-value">{stats?.totalForms ?? 0}</div>
@@ -188,7 +146,9 @@ const HomePage = () => {
                     </div>
                     <div className="stat-item">
                         <div className="stat-value">
-                            {stats?.successRate != null ? `${Number(stats.successRate).toFixed(1)}%` : '0%'}
+                            {stats?.successRate != null
+                                ? `${Number(stats.successRate).toFixed(1)}%`
+                                : '0%'}
                         </div>
                         <div className="stat-label">Success Rate</div>
                     </div>
