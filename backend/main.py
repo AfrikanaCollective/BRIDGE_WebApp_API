@@ -221,12 +221,17 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create FastAPI application."""
 
+    root_path = ""
+    if settings.ENVIRONMENT == "production":
+        root_path = "/dataclerk-ai"
+
     app = FastAPI(
         title=settings.API_TITLE,
         version=settings.API_VERSION,
         description="data BRIDGE LLM form Processor - Medical form processing pipeline",
         debug=settings.DEBUG,
         lifespan=lifespan,
+        root_path=root_path,
     )
 
     # ==================== SESSION MIDDLEWARE ====================

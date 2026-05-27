@@ -101,7 +101,7 @@ class Settings(BaseSettings):
     )
 
     # ==================== Environment ====================
-    ENVIRONMENT: str = Field(default="development")  # development, staging, production
+    ENVIRONMENT: str = Field(default="development")  # development, production
 
     class Config:
         """Pydantic settings configuration."""

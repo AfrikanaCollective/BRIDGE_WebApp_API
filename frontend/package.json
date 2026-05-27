@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "the data BRIDGE project - Intelligent medical document processing system",
   "private": true,
-  "homepage": "/",
+  "homepage": "/bridge-document-ai",
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
     "@picocss/pico": "^2.1.1",

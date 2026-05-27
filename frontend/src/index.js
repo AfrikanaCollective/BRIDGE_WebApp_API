@@ -15,10 +15,12 @@ import './styles/typography.css';
 import 'react-toastify/dist/ReactToastify.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+const basename = process.env.PUBLIC_URL;
+
 root.render(
     <React.StrictMode>
         <Provider store={store}>
-            <BrowserRouter>
+            <BrowserRouter basename={basename}>
                 <App />
             </BrowserRouter>
         </Provider>
