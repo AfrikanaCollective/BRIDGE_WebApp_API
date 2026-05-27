@@ -390,7 +390,7 @@ NAR_PAGE_1_SCHEMA = {
 
     "Anti D": {
         "field_name": "Anti D",
-        "type": FieldType.ENUM,
+        "type": FieldType.BOOLEAN,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.OBSERVATION,
