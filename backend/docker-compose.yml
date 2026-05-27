@@ -75,7 +75,7 @@ services:
       - bridge-api
 
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('https://bridge-backend:${API_PORT}/api/health', verify=False)"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('https://localhost:${API_PORT}/api/health', verify=False)"]
       interval: 30s
       timeout: 10s
       retries: 3
