@@ -5,34 +5,14 @@ import logging
 import time
 from datetime import datetime
 from typing import Optional
+from models.health import ServiceStatus, HealthCheckResponse
 
 from fastapi import APIRouter, Request, HTTPException, status
-from pydantic import BaseModel, Field
 
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-# ==================== RESPONSE MODELS ====================
-class ServiceStatus(BaseModel):
-    """Individual service status."""
-    status: str = Field(..., description="Service status (healthy, unhealthy)")
-    latency_ms: Optional[float] = Field(None, description="Response time in milliseconds")
-    version: Optional[str] = Field(None, description="Service version")
-    error: Optional[str] = Field(None, description="Error message if unhealthy")
-    details: Optional[dict] = Field(None, description="Additional diagnostic details")
-
-
-class HealthCheckResponse(BaseModel):
-    """Overall health check response."""
-    status: str = Field(..., description="Overall status (healthy, degraded, unhealthy)")
-    timestamp: str = Field(..., description="Check timestamp (ISO 8601)")
-    duration_ms: Optional[float] = Field(None, description="Check duration in milliseconds")
-    services: dict[str, ServiceStatus] = Field(..., description="Individual service statuses")
-    version: str = Field(..., description="API version")
-    environment: str = Field(..., description="Environment name")
 
 
 # ==================== HELPER FUNCTIONS ====================
