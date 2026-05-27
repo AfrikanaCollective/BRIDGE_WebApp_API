@@ -1,5 +1,5 @@
 // frontend/src/pages/HomePage.jsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/statsSlice';
@@ -9,28 +9,74 @@ const HomePage = () => {
     const dispatch = useDispatch();
     const stats = useSelector(selectPrimaryStats);
     const { loading, error } = useSelector(selectStatsLoadingState);
+
+    // ==================== REFS ====================
     const refreshIntervalRef = useRef(null);
+    const fetchInProgressRef = useRef(false);
+    const lastFetchTimeRef = useRef(0);
+
+    // ==================== MEMOIZED FUNCTIONS ====================
+    /**
+     * Fetch stats with deduplication and cooldown
+     */
+    const fetchStatsWithDeduplication = useCallback(
+        (force = false) => {
+            const now = Date.now();
+            const timeSinceLastFetch = now - lastFetchTimeRef.current;
+
+            // ✅ Prevent duplicate requests within 1 minute
+            if (timeSinceLastFetch < 5000 * 12 && !force) {
+                console.log('⏭️  Skipping stats fetch (cooldown active)');
+                return;
+            }
+
+            // ✅ Prevent concurrent requests
+            if (fetchInProgressRef.current) {
+                console.log('⏭️  Skipping stats fetch (request in progress)');
+                return;
+            }
+
+            try {
+                fetchInProgressRef.current = true;
+                lastFetchTimeRef.current = now;
+
+                console.log('📊 Dispatching fetchStats action');
+                dispatch(fetchStats());
+            } catch (err) {
+                console.error('❌ Error dispatching fetchStats:', err);
+            } finally {
+                fetchInProgressRef.current = false;
+            }
+        },
+        [dispatch]
+    );
 
     // ==================== EFFECTS ====================
     /**
      * Fetch stats on component mount and set up auto-refresh interval
+     * ✅ Only depends on fetchStatsWithDeduplication
      */
     useEffect(() => {
-        // Initial fetch
-        dispatch(fetchStats());
+        console.log('🚀 HomePage mounted, initializing stats');
 
-        // Set up 30-second auto-refresh
+        // ✅ Initial fetch with force flag
+        fetchStatsWithDeduplication(true);
+
+        // ✅ Set up 5-minute auto-refresh interval
         refreshIntervalRef.current = setInterval(() => {
-            dispatch(fetchStats());
-        }, 30000); // 30 seconds
+            console.log('⏱️  Stats refresh interval triggered (5 minutes)');
+            fetchStatsWithDeduplication();
+        }, 5 * 60 * 1000); // 5 minutes
 
-        // Cleanup interval on unmount
+        // ✅ Cleanup interval on unmount
         return () => {
             if (refreshIntervalRef.current) {
                 clearInterval(refreshIntervalRef.current);
+                refreshIntervalRef.current = null;
+                console.log('🧹 Cleanup: Stats refresh interval cleared');
             }
         };
-    }, [dispatch]);
+    }, [fetchStatsWithDeduplication]);
 
     // ==================== RENDER ====================
     return (
@@ -52,15 +98,16 @@ const HomePage = () => {
                         rel="noreferrer"
                     >
                         Harvard Dataverse Repo
-                    </a>.
-                    Sample forms for &quot;quick&quot; testing can be found{' '}
+                    </a>
+                    . Sample forms for &quot;quick&quot; testing can be found{' '}
                     <a
                         href="https://github.com/AfrikanaCollective/BRIDGE_LLM_extension/tree/main/tests/test_data"
                         target="_blank"
                         rel="noreferrer"
                     >
                         <b>here</b>
-                    </a>.
+                    </a>
+                    .
                 </p>
                 <div className="hero-actions">
                     <Link to="/upload" className="btn btn-outline btn-lg">
@@ -128,7 +175,7 @@ const HomePage = () => {
                     </div>
                 )}
 
-                {/* Stats Grid */}
+                {/* Stats Grid - Always render with reserved space */}
                 <div className="stats-grid">
                     <div className="stat-item">
                         <div className="stat-value">{stats?.totalForms ?? 0}</div>
