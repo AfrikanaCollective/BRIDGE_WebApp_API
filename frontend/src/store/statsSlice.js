@@ -1,6 +1,7 @@
 // frontend/src/store/slices/statsSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { createSelector } from 'reselect';
+import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
@@ -9,14 +10,10 @@ export const fetchStats = createAsyncThunk(
     'stats/fetchStats',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/stats/overview`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            return data;
+            const response = await axios.get(`${API_BASE_URL}/stats/overview`);
+            return response.data;
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(error.response?.data || 'Failed to fetch stats');
         }
     }
 );
