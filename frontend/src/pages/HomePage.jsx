@@ -1,15 +1,72 @@
 // frontend/src/pages/HomePage.jsx
-import React from 'react';
+
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/slices/statsSlice';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
-    const stats = useSelector(state => state.stats.data);
+    const dispatch = useDispatch();
+    const stats = useSelector(selectPrimaryStats);
+    const { loading, error, lastUpdated } = useSelector(selectStatsLoadingState);
+    const refreshIntervalRef = useRef(null);
 
+    // ==================== EFFECTS ====================
+    /**
+     * Fetch stats on component mount and set up auto-refresh interval
+     */
+    useEffect(() => {
+        console.log('🏠 HomePage mounted - fetching initial stats');
+
+        // Initial fetch
+        dispatch(fetchStats());
+
+        // Auto-refresh every 30 seconds
+        refreshIntervalRef.current = setInterval(() => {
+            console.log('🔄 Auto-refreshing stats (30s interval)');
+            dispatch(fetchStats());
+        }, 30000);
+
+        // Cleanup interval on unmount
+        return () => {
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+                console.log('🏠 HomePage unmounted - cleared refresh interval');
+            }
+        };
+    }, [dispatch]);
+
+    // ==================== FORMATTERS ====================
+    /**
+     * Format success rate as percentage with 1 decimal place
+     */
+    const formatSuccessRate = (rate) => {
+        if (rate == null) return '0%';
+        return `${Number(rate).toFixed(1)}%`;
+    };
+
+    /**
+     * Format processing time in seconds with 2 decimal places
+     */
+    const formatProcessingTime = (seconds) => {
+        if (seconds == null) return '0s';
+        return `${Number(seconds).toFixed(2)}s`;
+    };
+
+    /**
+     * Format last updated timestamp
+     */
+    const formatLastUpdated = (timestamp) => {
+        if (!timestamp) return 'Never';
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString();
+    };
+
+    // ==================== RENDER ====================
     return (
         <div className="home-page">
-            {/* Hero */}
+            {/* ==================== HERO SECTION ==================== */}
             <article className="hero-card">
                 <h1>
                     the data BRIDGE clinical records collation &amp; harmonisation system
@@ -26,15 +83,16 @@ const HomePage = () => {
                         rel="noreferrer"
                     >
                         Harvard Dataverse Repo
-                    </a>.
-                    Sample forms for &quot;quick&quot; testing can be found{' '}
+                    </a>
+                    . Sample forms for &quot;quick&quot; testing can be found{' '}
                     <a
                         href="https://github.com/AfrikanaCollective/BRIDGE_LLM_extension/tree/main/tests/test_data"
                         target="_blank"
                         rel="noreferrer"
                     >
                         <b>here</b>
-                    </a>.
+                    </a>
+                    .
                 </p>
                 <div className="hero-actions">
                     <Link to="/upload" className="btn btn-outline btn-lg">
@@ -48,7 +106,7 @@ const HomePage = () => {
                 </div>
             </article>
 
-            {/* Features */}
+            {/* ==================== FEATURES SECTION ==================== */}
             <div className="features-grid">
                 <article className="feature-card">
                     <i className="bi bi-file-earmark-image feature-icon" aria-hidden="true" />
@@ -76,33 +134,106 @@ const HomePage = () => {
                 </article>
             </div>
 
-            {/* Statistics */}
+            {/* ==================== STATISTICS SECTION ==================== */}
             <article className="statistics-card">
-                <div className="stats-grid">
-                    <div className="stat-item">
-                        <div className="stat-value">{stats?.totalForms ?? 0}</div>
-                        <div className="stat-label">Forms Processed</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">
-                            {stats?.successRate != null ? `${Number(stats.successRate).toFixed(1)}%` : '0%'}
-                        </div>
-                        <div className="stat-label">Success Rate</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">
-                            {stats?.avgProcessingTime != null ? `${Number(stats.avgProcessingTime).toFixed(2)}s` : '0s'}
-                        </div>
-                        <div className="stat-label">Avg. Processing Time</div>
-                    </div>
-                    <div className="stat-item">
-                        <div className="stat-value">{stats?.activeSessions ?? 0}</div>
-                        <div className="stat-label">Active Sessions</div>
+                {/* ✅ HEADER WITH REFRESH STATUS */}
+                <div className="stats-header">
+                    <h2>Platform Statistics</h2>
+                    <div className="stats-meta">
+                        {loading && (
+                            <span className="stats-status loading">
+                                <i className="bi bi-arrow-repeat" aria-hidden="true" />
+                                Updating...
+                            </span>
+                        )}
+                        {error && (
+                            <span className="stats-status error" title={String(error)}>
+                                <i className="bi bi-exclamation-circle" aria-hidden="true" />
+                                Failed to load
+                            </span>
+                        )}
+                        {!loading && !error && lastUpdated && (
+                            <span className="stats-status updated">
+                                <i className="bi bi-check-circle" aria-hidden="true" />
+                                Last updated: {formatLastUpdated(lastUpdated)}
+                            </span>
+                        )}
                     </div>
                 </div>
+
+                {/* ✅ STATS GRID */}
+                <div className={`stats-grid ${loading ? 'loading' : ''}`}>
+                    {/* Forms Processed */}
+                    <div className="stat-item">
+                        <div className="stat-value">
+                            {loading ? (
+                                <span className="skeleton skeleton-text" />
+                            ) : (
+                                stats.totalForms
+                            )}
+                        </div>
+                        <div className="stat-label">Forms Processed</div>
+                        <div className="stat-icon">
+                            <i className="bi bi-file-earmark-check" aria-hidden="true" />
+                        </div>
+                    </div>
+
+                    {/* Success Rate */}
+                    <div className="stat-item">
+                        <div className="stat-value">
+                            {loading ? (
+                                <span className="skeleton skeleton-text" />
+                            ) : (
+                                formatSuccessRate(stats.successRate)
+                            )}
+                        </div>
+                        <div className="stat-label">Success Rate</div>
+                        <div className="stat-icon success">
+                            <i className="bi bi-graph-up" aria-hidden="true" />
+                        </div>
+                    </div>
+
+                    {/* Avg. Processing Time */}
+                    <div className="stat-item">
+                        <div className="stat-value">
+                            {loading ? (
+                                <span className="skeleton skeleton-text" />
+                            ) : (
+                                formatProcessingTime(stats.avgProcessingTime)
+                            )}
+                        </div>
+                        <div className="stat-label">Avg. Processing Time</div>
+                        <div className="stat-icon">
+                            <i className="bi bi-hourglass-split" aria-hidden="true" />
+                        </div>
+                    </div>
+
+                    {/* Active Sessions */}
+                    <div className="stat-item">
+                        <div className="stat-value">
+                            {loading ? (
+                                <span className="skeleton skeleton-text" />
+                            ) : (
+                                stats.activeSessions
+                            )}
+                        </div>
+                        <div className="stat-label">Active Sessions</div>
+                        <div className="stat-icon">
+                            <i className="bi bi-people" aria-hidden="true" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* ✅ ERROR MESSAGE (if any) */}
+                {error && (
+                    <div className="stats-error-message">
+                        <i className="bi bi-exclamation-triangle" aria-hidden="true" />
+                        <span>{String(error)}</span>
+                    </div>
+                )}
             </article>
 
-            {/* CTA */}
+            {/* ==================== CTA SECTION ==================== */}
             <article className="cta-card">
                 <h2>Ready to process your forms?</h2>
                 <p>Start uploading forms now and get structured data in seconds</p>

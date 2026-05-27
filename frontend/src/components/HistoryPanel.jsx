@@ -46,7 +46,7 @@ const HistoryPanel = () => {
             setHistory({
                 total: response.data.totalCount || mappedRecords.length,
                 page: response.data.page || 1,
-                limit: response.data.limit || 20,
+                limit: response.data.pageSize || 20,
                 records: mappedRecords,
             });
         } catch (error) {

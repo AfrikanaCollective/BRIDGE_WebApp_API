@@ -262,3 +262,262 @@
         font-size: 18px;
     }
 }
+
+/* ==================== STATISTICS CARD ENHANCEMENTS ==================== */
+
+.statistics-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 40px;
+    margin: 40px 0;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
+    color: white;
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stats-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.stats-meta {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.stats-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-status.loading {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.stats-status.loading i {
+    animation: spin 1s linear infinite;
+}
+
+.stats-status.updated {
+    background: rgba(76, 175, 80, 0.3);
+    color: #c8e6c9;
+}
+
+.stats-status.error {
+    background: rgba(244, 67, 54, 0.3);
+    color: #ffcdd2;
+}
+
+/* ==================== STATS GRID LOADING ==================== */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 25px;
+    transition: opacity 0.3s ease;
+}
+
+.stats-grid.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* ==================== INDIVIDUAL STAT ITEMS ==================== */
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 25px;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-5px);
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.2;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 12px;
+}
+
+.stat-icon {
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.3s ease;
+}
+
+.stat-icon.success {
+    color: #4caf50;
+}
+
+.stat-item:hover .stat-icon {
+    transform: scale(1.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ==================== SKELETON LOADER ==================== */
+
+.skeleton {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    animation: skeleton-loading 1s linear infinite alternate;
+}
+
+.skeleton-text {
+    width: 80px;
+    height: 36px;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background: rgba(255, 255, 255, 0.15);
+    }
+    100% {
+        background: rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* ==================== ERROR MESSAGE ==================== */
+
+.stats-error-message {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 15px 20px;
+    background: rgba(244, 67, 54, 0.2);
+    border-left: 4px solid #ffcdd2;
+    border-radius: 8px;
+    color: #ffcdd2;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+}
+
+.stats-error-message i {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+    .statistics-card {
+        padding: 25px;
+    }
+
+    .stats-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stats-header h2 {
+        font-size: 22px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .statistics-card {
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .stat-item {
+        padding: 20px 15px;
+    }
+}
