@@ -89,17 +89,20 @@ def _extract_processing_times(
     """
     Extract processing times from documents.
 
+    ✅ FIXED: Extracts from TOP-LEVEL fields, not nested metadata.
+
     Args:
         documents: List of MongoDB documents
-        time_key: Metadata key to extract (e.g., 'processing_time_llm_seconds')
+        time_key: Top-level field name to extract
+                 (e.g., 'processing_time_llm_seconds')
 
     Returns:
         List of processing times in seconds
     """
     times = []
     for doc in documents:
-        metadata = doc.get("metadata", {})
-        time_value = metadata.get(time_key)
+        # ✅ FIXED: Get from top-level field
+        time_value = doc.get(time_key)
 
         if time_value is not None and time_value > 0:
             times.append(float(time_value))
@@ -292,21 +295,22 @@ async def get_stats_overview(
         }
 
         try:
-            # Fetch all documents with processing time metadata
+            # ✅ FIXED: Fetch all documents with TOP-LEVEL processing time fields
             timing_pipeline = [
                 {"$match": filters},
                 {
                     "$match": {
                         "$or": [
-                            {"metadata.processing_time_llm_seconds": {"$exists": True, "$gt": 0}},
-                            {"metadata.processing_time_agent_seconds": {"$exists": True, "$gt": 0}}
+                            {"processing_time_llm_seconds": {"$exists": True, "$gt": 0}},
+                            {"processing_time_agent_seconds": {"$exists": True, "$gt": 0}}
                         ]
                     }
                 },
                 {
                     "$project": {
-                        "metadata.processing_time_llm_seconds": 1,
-                        "metadata.processing_time_agent_seconds": 1,
+                        "_id": 1,
+                        "processing_time_llm_seconds": 1,
+                        "processing_time_agent_seconds": 1,
                         "timestamp": 1
                     }
                 }
@@ -320,7 +324,7 @@ async def get_stats_overview(
             logger.debug(f"📊 Collected {len(timing_documents)} documents with timing data")
 
             if timing_documents and len(timing_documents) > 0:
-                # Extract separate time lists
+                # ✅ FIXED: Extract from TOP-LEVEL fields (not metadata)
                 llm_times = _extract_processing_times(
                     timing_documents,
                     "processing_time_llm_seconds"
@@ -333,9 +337,9 @@ async def get_stats_overview(
                 # Calculate total times (LLM + Agent)
                 total_times = []
                 for doc in timing_documents:
-                    metadata = doc.get("metadata", {})
-                    llm_val = metadata.get("processing_time_llm_seconds", 0)
-                    agent_val = metadata.get("processing_time_agent_seconds", 0)
+                    # ✅ FIXED: Get from TOP-LEVEL fields
+                    llm_val = doc.get("processing_time_llm_seconds", 0)
+                    agent_val = doc.get("processing_time_agent_seconds", 0)
                     if llm_val > 0 and agent_val > 0:
                         total_times.append(float(llm_val + agent_val))
 
@@ -365,15 +369,22 @@ async def get_stats_overview(
             logger.error(f"❌ Error calculating processing time statistics: {e}", exc_info=True)
 
         # ==================== CALCULATE SUCCESS RATE ====================
-        completed_count = status_counts.get("completed", 0)
+        completed_count = status_counts.get("success", 0)
         success_rate = (
             round(completed_count / total_processed * 100, 2)
             if total_processed > 0
             else 0.0
         )
 
+        logger.info(
+            f"📈 Statistics Summary:\n"
+            f"   Total Processed: {total_processed}\n"
+            f"   Success Rate: {success_rate}%\n"
+            f"   Status Breakdown: {status_counts}\n"
+            f"   Form Types: {form_type_counts}"
+        )
+
         # ==================== BUILD RESPONSE ====================
-        # Use total_stats for the main processing_time_ms field for backward compatibility
         response = StatsOverviewExtended(
             period_days=days,
             date_range={
@@ -383,11 +394,6 @@ async def get_stats_overview(
             total_processed=total_processed,
             by_status=status_counts,
             by_form_type=form_type_counts,
-            processing_time_ms=ProcessingTimeStats(
-                average=round(total_stats.get("median", 0) * 1000, 2),  # Convert to ms
-                max=int(total_stats.get("p975", 0) * 1000),  # Convert to ms
-                min=int(total_stats.get("p25", 0) * 1000)  # Convert to ms
-            ),
             processing_time_breakdown=ProcessingTimeBreakdown(
                 llm_seconds=ProcessingTimeStats(
                     average=round(llm_stats.get("median", 0), 2),

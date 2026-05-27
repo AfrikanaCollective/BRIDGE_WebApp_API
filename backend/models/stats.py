@@ -53,11 +53,6 @@ class StatsOverview(BaseModel):
         description="Count by form type",
         serialization_alias="by_form_type"
     )
-    processing_time_ms: ProcessingTimeStats = Field(
-        ...,
-        description="Processing time stats",
-        serialization_alias="processing_time_ms"
-    )
     success_rate: float = Field(
         ...,
         description="Percentage of successful completions (0-100)",
