@@ -406,7 +406,7 @@ const HistoryPanel = () => {
                                                                 aria-label="Download JSON"
                                                             >
                                                                 <i
-                                                                    className="bi bi-file-earmark-json"
+                                                                    className="bi bi-file-earmark-arrow-down"
                                                                     aria-hidden="true"
                                                                 />
                                                             </button>
