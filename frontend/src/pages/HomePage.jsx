@@ -25,7 +25,7 @@ const HomePage = () => {
             const timeSinceLastFetch = now - lastFetchTimeRef.current;
 
             // ✅ Prevent duplicate requests within 1 minute
-            if (timeSinceLastFetch < 5000 * 12 && !force) {
+            if (timeSinceLastFetch < 120000 && !force) {
                 console.log('⏭️  Skipping stats fetch (cooldown active)');
                 return;
             }

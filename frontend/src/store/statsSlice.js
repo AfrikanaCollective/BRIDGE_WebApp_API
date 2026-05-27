@@ -13,7 +13,7 @@ export const fetchStats = createAsyncThunk(
             // Backend endpoint: GET /api/stats/overview
             const endpoint = `${API_BASE_URL}/stats/overview`;
             const response = await axios.get(endpoint, {
-                timeout: 5000,
+                timeout: 5000*6,
             });
 
             return response.data;
