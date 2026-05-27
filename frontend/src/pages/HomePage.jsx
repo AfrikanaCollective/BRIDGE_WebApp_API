@@ -1,12 +1,38 @@
 // frontend/src/pages/HomePage.jsx
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/statsSlice';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
-    const stats = useSelector(state => state.stats.data);
+    const dispatch = useDispatch();
+    const stats = useSelector(selectPrimaryStats);
+    const { loading, error } = useSelector(selectStatsLoadingState);
+    const refreshIntervalRef = useRef(null);
 
+    // ==================== EFFECTS ====================
+    /**
+     * Fetch stats on component mount and set up auto-refresh interval
+     */
+    useEffect(() => {
+        // Initial fetch
+        dispatch(fetchStats());
+
+        // Set up 30-second auto-refresh
+        refreshIntervalRef.current = setInterval(() => {
+            dispatch(fetchStats());
+        }, 30000); // 30 seconds
+
+        // Cleanup interval on unmount
+        return () => {
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+            }
+        };
+    }, [dispatch]);
+
+    // ==================== RENDER ====================
     return (
         <div className="home-page">
             {/* Hero */}
@@ -78,6 +104,31 @@ const HomePage = () => {
 
             {/* Statistics */}
             <article className="statistics-card">
+                {/* Loading State */}
+                {loading && (
+                    <div className="stats-loading" aria-label="Loading statistics">
+                        <div className="spinner-border spinner-border-sm" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
+                        <span>Updating statistics...</span>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i className="bi bi-exclamation-triangle" aria-hidden="true" />
+                        <span>{error}</span>
+                        <button
+                            type="button"
+                            className="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Close"
+                        />
+                    </div>
+                )}
+
+                {/* Stats Grid */}
                 <div className="stats-grid">
                     <div className="stat-item">
                         <div className="stat-value">{stats?.totalForms ?? 0}</div>
@@ -91,7 +142,9 @@ const HomePage = () => {
                     </div>
                     <div className="stat-item">
                         <div className="stat-value">
-                            {stats?.avgProcessingTime != null ? `${Number(stats.avgProcessingTime).toFixed(2)}s` : '0s'}
+                            {stats?.avgProcessingTime != null
+                                ? `${Number(stats.avgProcessingTime).toFixed(2)}s`
+                                : '0s'}
                         </div>
                         <div className="stat-label">Avg. Processing Time</div>
                     </div>
