@@ -110,6 +110,13 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
     summary="Upload and process form",
     tags=["upload"]
 )
+@router.post(
+    "/",
+    response_model=ProcessingResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Upload and process form",
+    tags=["upload"]
+)
 async def upload_file(
         file: UploadFile = File(..., description="Form image file (PNG)"),
         request: Request = None,

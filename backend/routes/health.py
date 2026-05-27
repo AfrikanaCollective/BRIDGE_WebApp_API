@@ -198,7 +198,13 @@ async def check_form_processor_health(form_processor) -> tuple[str, Optional[str
 
 # ==================== ROUTES ====================
 @router.get(
-    ["", "/"],  # Handle both cases,
+    "",
+    response_model=HealthCheckResponse,
+    summary="Health check endpoint",
+    tags=["health"]
+)
+@router.get(
+    "/",
     response_model=HealthCheckResponse,
     summary="Health check endpoint",
     tags=["health"]
