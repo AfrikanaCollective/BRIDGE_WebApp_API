@@ -122,6 +122,22 @@ NAR_PAGE_1_SCHEMA = {
         }
     },
 
+    "APGAR 1M": {
+            "field_name": "APGAR 1M",
+            "type": FieldType.INTEGER,
+            "required": True,
+            "section": SectionType.INFANT_DETAILS,
+            "clinical_category": ClinicalCategory.CRITICAL,
+            "is_clinical_concept": False,
+            "description": "APGAR score at 1 minute",
+            "validation": {"min": 0, "max": 10},
+            "risk_thresholds": {
+                "critical": 3,
+                "high": 5,
+                "moderate": 7
+            }
+        },
+
     "APGAR Score 5M": {
         "field_name": "APGAR Score 5M",
         "type": FieldType.INTEGER,
@@ -138,8 +154,35 @@ NAR_PAGE_1_SCHEMA = {
         }
     },
 
+    "APGAR 5M": {
+        "field_name": "APGAR 5M",
+        "type": FieldType.INTEGER,
+        "required": True,
+        "section": SectionType.INFANT_DETAILS,
+        "clinical_category": ClinicalCategory.CRITICAL,
+        "is_clinical_concept": False,
+        "description": "APGAR score at 5 minutes",
+        "validation": {"min": 0, "max": 10},
+        "risk_thresholds": {
+            "critical": 3,
+            "high": 5,
+            "moderate": 7
+        }
+    },
+
     "APGAR Score 10M": {
         "field_name": "APGAR Score 10M",
+        "type": FieldType.INTEGER,
+        "required": True,
+        "section": SectionType.INFANT_DETAILS,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "APGAR score at 10 minutes",
+        "validation": {"min": 0, "max": 10}
+    },
+
+    "APGAR 10M": {
+        "field_name": "APGAR 10M",
         "type": FieldType.INTEGER,
         "required": True,
         "section": SectionType.INFANT_DETAILS,
@@ -253,6 +296,17 @@ NAR_PAGE_1_SCHEMA = {
         "validation": {"min": 10, "max": 60}
     },
 
+     "Age (years)": {
+            "field_name":  "Age (years)",
+            "type": FieldType.INTEGER,
+            "required": True,
+            "section": SectionType.MOTHER_DETAILS,
+            "clinical_category": ClinicalCategory.OBSERVATION,
+            "is_clinical_concept": False,
+            "description": "Mother's age in years",
+            "validation": {"min": 10, "max": 60}
+        },
+
     "Parity": {
         "field_name": "Parity",
         "type": FieldType.STRING,
@@ -334,6 +388,17 @@ NAR_PAGE_1_SCHEMA = {
         "description": "Rhesus factor status"
     },
 
+    "Anti D": {
+        "field_name": "Anti D",
+        "type": FieldType.ENUM,
+        "required": True,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "enum_mapping": ENUM_MAPPINGS,
+        "description": "Rhesus Anti-D given"
+    },
+
     "VDRL": {
         "field_name": "VDRL",
         "type": FieldType.ENUM,
@@ -394,6 +459,18 @@ NAR_PAGE_1_SCHEMA = {
         "risk_flag": True
     },
 
+    "Prolonged 2nd Stage?": {
+        "field_name": "Prolonged 2nd Stage?",
+        "type": FieldType.BOOLEAN,
+        "required": True,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.HIGH,
+        "is_clinical_concept": False,
+        "description": "Mother had prolonged labour",
+        "enum_mapping": ENUM_MAPPINGS,
+        "risk_flag": True
+    },
+
     # ==================== C: MATERNAL HISTORY ====================
 
     "Maternal history notes": {
@@ -426,13 +503,12 @@ NAR_PAGE_1_SCHEMA = {
 
     "Temp": {
         "field_name": "Temp",
-        "type": FieldType.FLOAT,
+        "type": FieldType.STRING,
         "required": True,
         "section": SectionType.INFANT_HISTORY,
         "clinical_category": ClinicalCategory.OBSERVATION,
         "is_clinical_concept": False,
         "description": "Temperature in °C",
-        "validation": {"min": 28.0, "max": 44.0}
     },
 
     "Resp Rate": {
@@ -539,6 +615,17 @@ NAR_PAGE_1_SCHEMA = {
         "enum_mapping": ENUM_MAPPINGS,
     },
 
+  "Passed urine in the last 12 hours": {
+        "field_name":  "Passed urine in the last 12 hours",
+        "type": FieldType.BOOLEAN,
+        "required": True,
+        "section": SectionType.INFANT_HISTORY,
+        "clinical_category": ClinicalCategory.CRITICAL,
+        "is_clinical_concept": False,
+        "description": "Baby passed urine",
+        "enum_mapping": ENUM_MAPPINGS,
+    },
+
     "Difficulty feeding": {
         "field_name": "Difficulty feeding",
         "type": FieldType.BOOLEAN,
@@ -550,6 +637,18 @@ NAR_PAGE_1_SCHEMA = {
         "enum_mapping": ENUM_MAPPINGS,
         "risk_flag": True
     },
+
+    "Inability to feed": {
+            "field_name": "Inability to feed",
+            "type": FieldType.BOOLEAN,
+            "required": True,
+            "section": SectionType.INFANT_HISTORY,
+            "clinical_category": ClinicalCategory.CRITICAL,
+            "is_clinical_concept": False,
+            "description": "Baby has difficulty feeding",
+            "enum_mapping": ENUM_MAPPINGS,
+            "risk_flag": True
+        },
 
     "Convulsions / Twitching": {
         "field_name": "Convulsions / Twitching",
