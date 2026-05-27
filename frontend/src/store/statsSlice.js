@@ -10,10 +10,30 @@ export const fetchStats = createAsyncThunk(
     'stats/fetchStats',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/stats/overview`);
+            // Backend endpoint: GET /api/stats/overview
+            const endpoint = `${API_BASE_URL}/stats/overview`;
+            console.log('🔍 Fetching stats from:', endpoint);
+
+            const response = await axios.get(endpoint, {
+                timeout: 5000,
+            });
+
+            console.log('✅ Stats response received:', response.data);
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data || 'Failed to fetch stats');
+            console.error('❌ Stats fetch error:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                config: error.config?.url,
+            });
+
+            return rejectWithValue(
+                error.response?.data?.detail ||
+                error.response?.data?.message ||
+                `Failed to fetch stats: ${error.message}`
+            );
         }
     }
 );
@@ -58,13 +78,17 @@ const statsSlice = createSlice({
 
                 // Transform snake_case to camelCase
                 const backendData = action.payload;
+
+                console.log('📊 Transforming backend data:', backendData);
+
                 state.data = {
                     totalForms: backendData.total_processed ?? 0,
                     successRate: backendData.success_rate ?? 0,
-                    avgProcessingTime:
-                        backendData.processing_time_breakdown?.total_seconds?.average ?? 0,
+                    avgProcessingTime: backendData.processing_time_breakdown?.total_seconds?.average ?? 0,
                     activeSessions: backendData.active_sessions ?? 0,
                 };
+
+                console.log('✅ State updated with transformed data:', state.data);
 
                 state.lastUpdated = new Date().toISOString();
             })
@@ -72,6 +96,7 @@ const statsSlice = createSlice({
             .addCase(fetchStats.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || 'Failed to fetch statistics';
+                console.error('❌ Stats fetch rejected:', state.error);
             });
     },
 });
