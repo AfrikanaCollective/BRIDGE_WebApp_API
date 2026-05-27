@@ -1,24 +1,22 @@
 // frontend/src/store/slices/statsSlice.js
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import { createSelector } from 'reselect';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-// ==================== ASYNC THUNK ====================
+// ==================== ASYNC THUNKS ====================
 export const fetchStats = createAsyncThunk(
     'stats/fetchStats',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/stats/overview`);
-            return response.data;
+            const response = await fetch(`${API_BASE_URL}/stats/overview`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
         } catch (error) {
-            console.error('fetchStats error:', error);
-            return rejectWithValue(
-                error.response?.data?.message ||
-                error.message ||
-                'Failed to fetch statistics'
-            );
+            return rejectWithValue(error.message);
         }
     }
 );
@@ -41,37 +39,39 @@ const statsSlice = createSlice({
     name: 'stats',
     initialState,
     reducers: {
-        clearStatsError: (state) => {
-            state.error = null;
-        },
         resetStats: (state) => {
             state.data = initialState.data;
-            state.error = null;
             state.lastUpdated = null;
+        },
+        clearStatsError: (state) => {
+            state.error = null;
         },
     },
     extraReducers: (builder) => {
         builder
+            // Pending
             .addCase(fetchStats.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
+            // Fulfilled
             .addCase(fetchStats.fulfilled, (state, action) => {
                 state.loading = false;
-                const response = action.payload;
+                state.error = null;
 
-                // Extract avgProcessingTime from processing_time_breakdown.total_seconds.average
-                const avgProcessingTime =
-                    response?.processing_time_breakdown?.total_seconds?.average ?? 0;
-
+                // Transform snake_case to camelCase
+                const backendData = action.payload;
                 state.data = {
-                    totalForms: response?.total_processed ?? 0,
-                    successRate: response?.success_rate ?? 0,
-                    avgProcessingTime: avgProcessingTime,
-                    activeSessions: response?.active_sessions ?? 0,
+                    totalForms: backendData.total_processed ?? 0,
+                    successRate: backendData.success_rate ?? 0,
+                    avgProcessingTime:
+                        backendData.processing_time_breakdown?.total_seconds?.average ?? 0,
+                    activeSessions: backendData.active_sessions ?? 0,
                 };
+
                 state.lastUpdated = new Date().toISOString();
             })
+            // Rejected
             .addCase(fetchStats.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || 'Failed to fetch statistics';
@@ -79,41 +79,50 @@ const statsSlice = createSlice({
     },
 });
 
+export const { resetStats, clearStatsError } = statsSlice.actions;
+
 // ==================== SELECTORS ====================
 /**
- * Select primary statistics for display
- * @param {Object} state Redux state
- * @returns {Object} Statistics data object
+ * Base selector to get stats state
  */
-export const selectPrimaryStats = (state) => state.stats.data;
+const selectStatsState = (state) => state.stats;
 
 /**
- * Select loading and error states
- * @param {Object} state Redux state
- * @returns {Object} Loading and error flags
+ * Memoized selector for primary stats data
+ * Returns: { totalForms, successRate, avgProcessingTime, activeSessions }
  */
-export const selectStatsLoadingState = (state) => ({
-    loading: state.stats.loading,
-    error: state.stats.error,
-});
+export const selectPrimaryStats = createSelector(
+    [selectStatsState],
+    (stats) => stats.data
+);
 
 /**
- * Select last updated timestamp
- * @param {Object} state Redux state
- * @returns {string|null} ISO timestamp or null
+ * Memoized selector for loading and error state
+ * Returns: { loading, error }
  */
-export const selectStatsLastUpdated = (state) => state.stats.lastUpdated;
+export const selectStatsLoadingState = createSelector(
+    [selectStatsState],
+    (stats) => ({
+        loading: stats.loading,
+        error: stats.error,
+    })
+);
 
 /**
- * Select individual stats by key
- * @param {Object} state Redux state
- * @param {string} key Stat key (totalForms, successRate, avgProcessingTime, activeSessions)
- * @returns {number|string} Stat value
+ * Memoized selector for last updated timestamp
  */
-export const selectStatByKey = (state, key) => state.stats.data[key];
+export const selectStatsLastUpdated = createSelector(
+    [selectStatsState],
+    (stats) => stats.lastUpdated
+);
 
-// ==================== ACTIONS ====================
-export const { clearStatsError, resetStats } = statsSlice.actions;
+/**
+ * Memoized selector to get a specific stat by key
+ * Usage: selectStatByKey(state, 'totalForms')
+ */
+export const selectStatByKey = createSelector(
+    [selectStatsState, (_, key) => key],
+    (stats, key) => stats.data[key]
+);
 
-// ==================== DEFAULT EXPORT ====================
 export default statsSlice.reducer;
