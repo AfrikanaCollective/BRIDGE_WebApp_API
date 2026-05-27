@@ -232,6 +232,7 @@ def create_app() -> FastAPI:
         debug=settings.DEBUG,
         lifespan=lifespan,
         root_path=root_path,
+        redirect_slashes=False,
     )
 
     # ==================== SESSION MIDDLEWARE ====================
