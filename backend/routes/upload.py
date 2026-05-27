@@ -11,33 +11,15 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
+from models.upload import ProcessingResponse
+
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status
-from pydantic import BaseModel
 
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-# ==================== RESPONSE MODELS ====================
-class ProcessingResponse(BaseModel):
-    """Response model for file processing."""
-    processing_id: str
-    status: str
-    message: str
-    timestamp: str
-    file_name: Optional[str] = None
-    form_type: Optional[str] = None
-
-
-class ErrorResponse(BaseModel):
-    """Error response model."""
-    error: str
-    detail: str
-    timestamp: str
-
 
 # ==================== HELPER FUNCTIONS ====================
 async def validate_upload_file(file: UploadFile) -> tuple[bool, Optional[str]]:

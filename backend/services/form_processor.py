@@ -135,8 +135,7 @@ class FormProcessor:
         logger.debug(f"🔍 Extracting form type from: {file_name} (stem: {stem})")
 
         # Known form type prefixes
-        # TODO: Set it in settings
-        FORM_TYPES = ["ITF", "NAR", "DSC", "DAI", "DOC"]
+        FORM_TYPES = settings.FORM_TYPES
 
         # Try exact prefix match (e.g., "ITF_40000071_page_1")
         for form_type in FORM_TYPES:

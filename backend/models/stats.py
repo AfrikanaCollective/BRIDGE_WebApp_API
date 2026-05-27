@@ -58,6 +58,11 @@ class StatsOverview(BaseModel):
         description="Percentage of successful completions (0-100)",
         serialization_alias="success_rate"
     )
+    active_sessions: float = Field(
+        ...,
+        description="Number of active sessions",
+        serialization_alias="active_sessions"
+    )
 
     class Config:
         populate_by_name = True

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     CORS_CREDENTIALS: bool = Field(default=True)
     CORS_METHODS: List[str] = Field(default=["*"])
     CORS_HEADERS: List[str] = Field(default=["*"])
+    EXPOSE_HEADERS: List[str] = Field(default=["*"])
 
     # ==================== MongoDB ====================
     MONGODB_URL: str = Field(default="mongodb://root:password@localhost:27017")
@@ -90,6 +91,15 @@ class Settings(BaseSettings):
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
+    # ==================== Session ====================
+    SESSION_TIMEOUT_SECONDS: int = Field(default=3600) # 1 hour
+    SESSION_CLEANUP_INTERVAL_SECONDS: int = Field(default=300)  # Clean up every 5 minutes
+
+    # ==================== Form types ====================
+    FORM_TYPES: List[str] = Field(
+        default=["NAR"]
+    )
+
     # ==================== Environment ====================
     ENVIRONMENT: str = Field(default="development")  # development, staging, production
 
@@ -118,6 +128,82 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return ["http://localhost:3000", "https://bridge.kemri-wellcome.org"]
+
+    @field_validator('CORS_HEADERS', mode='before')
+    @classmethod
+    def parse_cors_headers(cls, v):
+        """Parse CORS_HEADERS from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                # Remove quotes and parse JSON
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse CORS_HEADERS JSON: {e}")
+                # Fallback: treat as single origin
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return ["*"]
+
+    @field_validator('CORS_METHODS', mode='before')
+    @classmethod
+    def parse_cors_methods(cls, v):
+        """Parse CORS_METHODS from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                # Remove quotes and parse JSON
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse CORS_METHODS JSON: {e}")
+                # Fallback: treat as single origin
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return ["GET", "POST"]
+
+    @field_validator('EXPOSE_HEADERS', mode='before')
+    @classmethod
+    def parse_expose_headers(cls, v):
+        """Parse EXPOSE_HEADERS from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                # Remove quotes and parse JSON
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse EXPOSE_HEADERS JSON: {e}")
+                # Fallback: treat as single origin
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return ["*"]
+
+    @field_validator('FORM_TYPES', mode='before')
+    @classmethod
+    def parse_form_types(cls, v):
+        """Parse FORM_TYPES from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                # Remove quotes and parse JSON
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse FORM_TYPES JSON: {e}")
+                # Fallback: treat as single origin
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return ["NAR"]
 
     def __init__(self, **data):
         """Initialize settings and log configuration."""

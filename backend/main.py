@@ -12,12 +12,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from middleware.session_middleware import SessionTrackingMiddleware
+
 from config.settings import settings
 from routes import upload, history, health, stats
 from clients.mongo_client import MongoClient
 from clients.minio_client import MinIOClient
 from services.form_processor import FormProcessor
 from services.storage_service import StorageService
+from services.session_service import SessionService
 
 
 logger = logging.getLogger(__name__)
@@ -33,11 +36,13 @@ class Services:
             minio: MinIOClient,
             storage: StorageService,
             form_processor: FormProcessor,
+            session: SessionService,
     ):
         self.mongo = mongo
         self.minio = minio
         self.storage = storage
         self.form_processor = form_processor
+        self.session = session
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,6 +55,7 @@ async def lifespan(app: FastAPI):
     minio_client: Optional[MinIOClient] = None
     storage_service: Optional[StorageService] = None
     form_processor: Optional[FormProcessor] = None
+    session_service: Optional[SessionService] = None
 
     try:
         # Log configuration (with masked secrets)
@@ -146,12 +152,28 @@ async def lifespan(app: FastAPI):
             logger.error(f"❌ Service initialization failed: {e}")
             raise
 
+        # ==================== SESSION SERVICE INITIALIZATION ====================
+        logger.info("📋 Initializing SessionService...")
+        try:
+            session_service = SessionService(
+                session_timeout_seconds=settings.SESSION_TIMEOUT_SECONDS
+            )
+            logger.info(
+                f"✅ SessionService initialized "
+                f"(timeout: {settings.SESSION_TIMEOUT_SECONDS}s)"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ SessionService initialization failed: {e}", exc_info=True)
+            raise
+
         # ✅ CHANGE 2: Create Services instance and store in app.state
         services = Services(
             mongo=mongo_client,
             minio=minio_client,
             storage=storage_service,
             form_processor=form_processor,
+            session=session_service,
         )
 
         app.state.services = services
@@ -159,6 +181,7 @@ async def lifespan(app: FastAPI):
         app.state.storage = storage_service
         app.state.mongo = mongo_client
         app.state.minio = minio_client
+        app.state.session_service = session_service
 
         # ✅ CHANGE 3: Update route injection to use app.state
         # (Routes will access services via request.app.state)
@@ -184,6 +207,11 @@ async def lifespan(app: FastAPI):
             await minio_client.close()
             logger.info("✅ MinIO connection closed")
 
+        # Clean up sessions
+        if session_service is not None:
+            expired_count = session_service.cleanup_expired_sessions()
+            logger.info(f"✅ SessionService cleaned up: {expired_count} expired sessions")
+
         logger.info("✅ All services closed gracefully")
 
     except Exception as e:
@@ -201,18 +229,22 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ==================== SESSION MIDDLEWARE ====================
+    app.add_middleware(SessionTrackingMiddleware)
+
     # ==================== CORS MIDDLEWARE ====================
     if settings.CORS_ORIGINS:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.CORS_ORIGINS,
             allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-            allow_headers=["*"],
-            expose_headers=["Content-Type", "X-Total-Count", "X-Page", "X-Page-Size"],
+            allow_methods=settings.CORS_METHODS,
+            allow_headers=settings.CORS_HEADERS,
+            expose_headers=settings.EXPOSE_HEADERS,
         )
     else:
         logger.warning("⚠️  CORS_ORIGINS is empty!")
+
 
     # ==================== ROUTES ====================
     app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
