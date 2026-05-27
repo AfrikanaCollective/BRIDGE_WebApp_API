@@ -448,7 +448,7 @@ async def get_stats_overview(
         try:
             session_service = getattr(request.app.state, 'session_service', None)
             if session_service:
-                active_sessions = session_service.get_active_users_count()
+                active_sessions = session_service.get_ip_address_stats()
                 logger.info(f"✅ Active sessions: {active_sessions}")
         except Exception as e:
             logger.warning(f"⚠️  Could not retrieve active sessions: {e}")

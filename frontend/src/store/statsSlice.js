@@ -12,13 +12,10 @@ export const fetchStats = createAsyncThunk(
         try {
             // Backend endpoint: GET /api/stats/overview
             const endpoint = `${API_BASE_URL}/stats/overview`;
-            console.log('🔍 Fetching stats from:', endpoint);
-
             const response = await axios.get(endpoint, {
                 timeout: 5000,
             });
 
-            console.log('✅ Stats response received:', response.data);
             return response.data;
         } catch (error) {
             console.error('❌ Stats fetch error:', {

@@ -84,6 +84,7 @@ class SessionService:
     - Session duration and engagement
     - User activity patterns
     - Concurrent user count
+    - Unique IP addresses
     """
 
     def __init__(self, session_timeout_seconds: int = 3600):
@@ -96,6 +97,7 @@ class SessionService:
         self.sessions: Dict[str, UserSession] = {}
         self.session_timeout_seconds = session_timeout_seconds
         self.unique_users: Set[str] = set()
+        self.unique_ip_addresses: Set[str] = set()
         logger.info(
             f"📋 Session service initialized "
             f"(timeout: {session_timeout_seconds}s)"
@@ -124,9 +126,15 @@ class SessionService:
         self.sessions[session_id] = session
         self.unique_users.add(session.user_id)
 
+        # Track unique IP addresses
+        if ip_address:
+            self.unique_ip_addresses.add(ip_address)
+
         logger.debug(
             f"✅ Session created: {session_id} | User: {session.user_id} | "
-            f"Active sessions: {len(self.sessions)} | Unique users: {len(self.unique_users)}"
+            f"IP: {ip_address} | Active sessions: {len(self.sessions)} | "
+            f"Unique users: {len(self.unique_users)} | "
+            f"Unique IPs: {len(self.unique_ip_addresses)}"
         )
 
         return session_id
@@ -193,6 +201,7 @@ class SessionService:
 
             logger.debug(
                 f"✅ Session ended: {session_id} | User: {session.user_id} | "
+                f"IP: {session.ip_address} | "
                 f"Duration: {session.get_duration_seconds():.2f}s | "
                 f"Remaining sessions: {len(self.sessions)}"
             )
@@ -228,6 +237,77 @@ class SessionService:
 
         return len(active_user_ids)
 
+    def get_active_ip_addresses_count(self) -> int:
+        """
+        Get count of unique active IP addresses.
+
+        Returns:
+            int: Number of unique IP addresses with active sessions
+        """
+        self.cleanup_expired_sessions()
+
+        # Count unique IP addresses from active sessions
+        active_ips = set()
+        for session in self.sessions.values():
+            if session.ip_address:
+                active_ips.add(session.ip_address)
+
+        return len(active_ips)
+
+    def get_unique_ip_addresses(self) -> Set[str]:
+        """
+        Get all unique IP addresses from active sessions.
+
+        Returns:
+            Set[str]: Set of unique IP addresses
+        """
+        self.cleanup_expired_sessions()
+
+        active_ips = set()
+        for session in self.sessions.values():
+            if session.ip_address:
+                active_ips.add(session.ip_address)
+
+        return active_ips
+
+    def get_ip_address_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about IP addresses in active sessions.
+
+        Returns:
+            dict: IP address statistics
+        """
+        self.cleanup_expired_sessions()
+
+        ip_sessions: Dict[str, list] = {}
+
+        for session in self.sessions.values():
+            if session.ip_address:
+                if session.ip_address not in ip_sessions:
+                    ip_sessions[session.ip_address] = []
+                ip_sessions[session.ip_address].append({
+                    "session_id": session.session_id,
+                    "user_id": session.user_id,
+                    "page_views": session.page_views,
+                    "duration_seconds": session.get_duration_seconds()
+                })
+
+        return {
+            "unique_ip_count": len(ip_sessions),
+            "ips": {
+                ip: {
+                    "sessions_count": len(sessions),
+                    "total_page_views": sum(s["page_views"] for s in sessions),
+                    "average_duration_seconds": round(
+                        sum(s["duration_seconds"] for s in sessions) / len(sessions),
+                        2
+                    ),
+                    "session_details": sessions
+                }
+                for ip, sessions in ip_sessions.items()
+            }
+        }
+
     def get_all_active_sessions(self) -> list:
         """
         Get all active sessions.
@@ -255,6 +335,7 @@ class SessionService:
                     "sessions": [],
                     "total_page_views": 0,
                     "total_actions": 0,
+                    "ip_addresses": set(),
                     "first_seen": session.created_at.isoformat(),
                     "last_activity": session.last_activity.isoformat()
                 }
@@ -262,6 +343,13 @@ class SessionService:
             users[session.user_id]["sessions"].append(session.to_dict())
             users[session.user_id]["total_page_views"] += session.page_views
             users[session.user_id]["total_actions"] += len(session.actions)
+
+            if session.ip_address:
+                users[session.user_id]["ip_addresses"].add(session.ip_address)
+
+        # Convert sets to lists for JSON serialization
+        for user_id in users:
+            users[user_id]["ip_addresses"] = list(users[user_id]["ip_addresses"])
 
         return users
 
@@ -284,9 +372,11 @@ class SessionService:
             self.end_session(session_id)
 
         if expired:
+            active_ips = self.get_active_ip_addresses_count()
             logger.info(
                 f"🧹 Cleaned up {len(expired)} expired sessions | "
-                f"Active: {len(self.sessions)} | Users: {len(self.unique_users)}"
+                f"Active: {len(self.sessions)} | Users: {len(self.unique_users)} | "
+                f"Unique IPs: {active_ips}"
             )
 
         return len(expired)
@@ -296,7 +386,7 @@ class SessionService:
         Get comprehensive session statistics.
 
         Returns:
-            dict: Stats including active users, duration, engagement
+            dict: Stats including active users, duration, engagement, and IPs
         """
         self.cleanup_expired_sessions()
 
@@ -304,19 +394,24 @@ class SessionService:
             return {
                 "active_sessions": 0,
                 "active_users": 0,
+                "unique_ip_addresses": 0,
                 "total_page_views": 0,
                 "average_session_duration_seconds": 0.0,
                 "average_page_views_per_session": 0.0,
-                "concurrent_users": 0
+                "concurrent_users": 0,
+                "timestamp": datetime.now(UTC).isoformat()
             }
 
-        # Get unique active users
+        # Get unique active users and IPs
         active_user_ids = set()
+        active_ips = set()
         total_duration = 0.0
         total_page_views = 0
 
         for session in self.sessions.values():
             active_user_ids.add(session.user_id)
+            if session.ip_address:
+                active_ips.add(session.ip_address)
             total_duration += session.get_duration_seconds()
             total_page_views += session.page_views
 
@@ -326,6 +421,7 @@ class SessionService:
         return {
             "active_sessions": len(self.sessions),
             "active_users": len(active_user_ids),
+            "unique_ip_addresses": len(active_ips),
             "concurrent_users": len(active_user_ids),
             "total_page_views": total_page_views,
             "average_session_duration_seconds": round(avg_duration, 2),
