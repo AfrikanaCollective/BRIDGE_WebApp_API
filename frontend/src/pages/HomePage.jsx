@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/slices/statsSlice';
+import { fetchStats, selectPrimaryStats, selectStatsLoadingState } from '../store/statsSlice';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
