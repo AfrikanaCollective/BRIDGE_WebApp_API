@@ -223,7 +223,7 @@ def create_app() -> FastAPI:
 
     root_path = ""
     if settings.ENVIRONMENT == "production":
-        root_path = "/dataclerk-ai"
+        root_path = settings.ROOT_PATH
 
     app = FastAPI(
         title=settings.API_TITLE,

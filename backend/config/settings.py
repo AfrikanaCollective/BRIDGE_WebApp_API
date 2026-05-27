@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(default=False)
     API_HOST: str = Field(default="0.0.0.0")
     API_PORT: int = Field(default=6443)
+    ROOT_PATH: str = Field(default="/dataclerk-ai")
 
     # ==================== SSL/TLS CONFIGURATION ====================
     USE_HTTPS: bool = Field(default=True, env="USE_HTTPS")
