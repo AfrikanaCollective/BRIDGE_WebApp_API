@@ -210,6 +210,30 @@ class Settings(BaseSettings):
         super().__init__(**data)
         self.log_configuration()
 
+    @field_validator('ALLOWED_EXTENSIONS', mode='before')
+    @classmethod
+    def parse_allowed_extensions(cls, v):
+        """Parse ALLOWED_EXTENSIONS from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                # Remove quotes and parse JSON
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse ALLOWED_EXTENSIONS JSON: {e}")
+                # Fallback: treat as single origin
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return ["png"]
+
+    def __init__(self, **data):
+        """Initialize settings and log configuration."""
+        super().__init__(**data)
+        self.log_configuration()
+
     @staticmethod
     def _mask_url(url: str, show_chars: int = 3) -> str:
         """Mask sensitive parts of connection URLs."""

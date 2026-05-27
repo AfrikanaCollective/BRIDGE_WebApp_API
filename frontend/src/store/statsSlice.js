@@ -79,16 +79,12 @@ const statsSlice = createSlice({
                 // Transform snake_case to camelCase
                 const backendData = action.payload;
 
-                console.log('📊 Transforming backend data:', backendData);
-
                 state.data = {
                     totalForms: backendData.total_processed ?? 0,
                     successRate: backendData.success_rate ?? 0,
                     avgProcessingTime: backendData.processing_time_breakdown?.total_seconds?.average ?? 0,
                     activeSessions: backendData.active_sessions ?? 0,
                 };
-
-                console.log('✅ State updated with transformed data:', state.data);
 
                 state.lastUpdated = new Date().toISOString();
             })

@@ -23,9 +23,11 @@ class SessionTrackingMiddleware(BaseHTTPMiddleware):
     COOKIE_NAME = "session_id"
     EXCLUDED_PATHS = {
         "/api/health",
-        "/docs",
+        "/api/stats/",
+        "/favicon.ico",
+        "/logo.png",
         "/openapi.json",
-        "/favicon.ico"
+        "/docs",
     }
 
     async def dispatch(self, request: Request, call_next) -> Response:
