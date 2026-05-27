@@ -502,7 +502,7 @@ async def get_stats_overview(
 
 
 @router.get(
-    "",
+    ["", "/"],  # Handle both cases,
     summary="Stats endpoint info",
     tags=["stats"],
     responses={200: {"description": "Information about stats endpoints"}}

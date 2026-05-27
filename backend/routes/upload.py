@@ -104,7 +104,7 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
 
 # ==================== ROUTES ====================
 @router.post(
-    "/",
+    ["", "/"],  # Handle both cases,
     response_model=ProcessingResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Upload and process form",

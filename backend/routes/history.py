@@ -87,7 +87,7 @@ async def get_stats_overview(request: Request) -> HistoryStats:
 
 # Base history endpoint (no path parameters)
 @router.get(
-    "/",
+    ["", "/"],  # Handle both cases,
     response_model=HistoryResponse,
     summary="Get form processing history",
     tags=["history"]
