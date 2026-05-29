@@ -21,6 +21,7 @@ from clients.minio_client import MinIOClient
 from services.form_processor import FormProcessor
 from services.storage_service import StorageService
 from services.session_service import SessionService
+from services.bulk_upload_service import BulkUploadService
 
 
 logger = logging.getLogger(__name__)
@@ -37,12 +38,14 @@ class Services:
             storage: StorageService,
             form_processor: FormProcessor,
             session: SessionService,
+            bulk_upload: BulkUploadService,
     ):
         self.mongo = mongo
         self.minio = minio
         self.storage = storage
         self.form_processor = form_processor
         self.session = session
+        self.bulk_upload = bulk_upload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,6 +59,7 @@ async def lifespan(app: FastAPI):
     storage_service: Optional[StorageService] = None
     form_processor: Optional[FormProcessor] = None
     session_service: Optional[SessionService] = None
+    bulk_upload_service: Optional[BulkUploadService] = None
 
     try:
         # Log configuration (with masked secrets)
@@ -146,6 +150,11 @@ async def lifespan(app: FastAPI):
                 mongo_client=mongo_client,
             )
 
+            bulk_upload_service = BulkUploadService(
+                form_processor=form_processor,
+                storage_service=storage_service,
+            )
+
             logger.info("✅ Services initialized successfully")
 
         except Exception as e:
@@ -174,6 +183,7 @@ async def lifespan(app: FastAPI):
             storage=storage_service,
             form_processor=form_processor,
             session=session_service,
+            bulk_upload=bulk_upload_service,
         )
 
         app.state.services = services
@@ -182,6 +192,7 @@ async def lifespan(app: FastAPI):
         app.state.mongo = mongo_client
         app.state.minio = minio_client
         app.state.session_service = session_service
+        app.state.bulk_upload = bulk_upload_service
 
         # ✅ CHANGE 3: Update route injection to use app.state
         # (Routes will access services via request.app.state)
