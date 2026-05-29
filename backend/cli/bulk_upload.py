@@ -1,6 +1,6 @@
 # backend/cli/bulk_upload.py
 """
-CLI utility for bulk uploading and processing form images.
+CLI utility for bulk uploading and processing form images via HTTP.
 
 Usage:
     python -m backend.cli.bulk_upload --directory ./bridge_images
@@ -10,33 +10,15 @@ Usage:
 """
 
 import sys
+import json
+import click
 import asyncio
 import logging
+import subprocess
 from pathlib import Path
-from typing import Optional
-from dotenv import load_dotenv
-
-import click
-
-# ✅ CRITICAL: Load environment variables BEFORE imports
-env_file = Path(__file__).parent.parent.parent / ".env"
-if env_file.exists():
-    load_dotenv(env_file)
-    print(f"✅ Loaded .env from {env_file}")
-else:
-    print(f"⚠️  No .env file found at {env_file}")
-
-# ✅ Add backend directory to path for imports
-backend_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(backend_dir))
-
-# ✅ NOW imports will work with loaded environment
+from typing import Optional, List
+from dataclasses import dataclass
 from config.settings import settings
-from clients.mongo_client import MongoClient
-from clients.minio_client import MinIOClient
-from services.storage_service import StorageService
-from services.form_processor import FormProcessor
-from services.bulk_upload_service import BulkUploadService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -44,135 +26,145 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class UploadResult:
+    """Result of a single file upload."""
+    file_path: Path
+    success: bool
+    processing_id: Optional[str] = None
+    status: Optional[str] = None
+    error: Optional[str] = None
+
+
+@dataclass
+class BulkUploadSummary:
+    """Summary of bulk upload results."""
+    total_files: int
+    successful_uploads: int
+    failed_uploads: int
+    skipped_files: int
+    total_processing_time_seconds: float
+    errors: List[str]
+
+
 class BulkUploadCLI:
-    """CLI handler for bulk upload operations."""
+    """CLI handler for bulk upload operations via HTTP."""
 
     def __init__(self):
-        """Initialize CLI with services."""
-        self.mongo_client: Optional[MongoClient] = None
-        self.minio_client: Optional[MinIOClient] = None
-        self.storage_service: Optional[StorageService] = None
-        self.form_processor: Optional[FormProcessor] = None
-        self.bulk_upload_service: Optional[BulkUploadService] = None
+        """Initialize CLI with API endpoint."""
+        self.api_url = settings.API_HOST
+        self.api_port = settings.API_PORT
+        self.results: List[UploadResult] = []
 
-    async def initialize(self) -> bool:
+    def _find_image_files(self, directory: Path, recursive: bool = False, ) -> \
+    List[Path]:
         """
-        Initialize all services.
+        Find all image files in directory.
+
+        Args:
+            directory: Directory to search
+            recursive: Whether to search subdirectories
 
         Returns:
-            True if initialization successful, False otherwise
+            List of image file paths
+        """
+        image_extensions = {
+        ext if ext.startswith(".") else f".{ext}"
+            for ext in settings.ALLOWED_EXTENSIONS
+        }
+
+        if not directory.exists():
+            raise ValueError(f"Directory not found: {directory}")
+
+        if recursive:
+            files = [f for f in directory.rglob("*") if
+                f.is_file() and f.suffix.lower() in image_extensions]
+        else:
+            files = [f for f in directory.glob("*") if
+                f.is_file() and f.suffix.lower() in image_extensions]
+
+        return sorted(files)
+
+    def _upload_file(self, file_path: Path, skip_existing: bool = False,
+            form_type: Optional[str] = None, ) -> UploadResult:
+        """
+        Upload single file via curl.
+
+        Args:
+            file_path: Path to image file
+            skip_existing: Skip if already uploaded
+            form_type: Optional form type override
+
+        Returns:
+            UploadResult with success status
         """
         try:
-            logger.info("🚀 Initializing services for bulk upload...")
+            # Build curl command
+            curl_cmd = [
+                "curl", "-X", "POST",
+                f"https://{self.api_url}:{self.api_port}/api/upload/form",
+                "-F",
+                f"file=@{file_path}", "-s", "-w", "\n%{http_code}",
+            ]
 
-            # ✅ Log configuration (debug environment)
-            logger.info(f"Environment: {settings.ENVIRONMENT}")
-            logger.info(
-                f"MongoDB URI: {settings.MONGODB_URI[:50]}..." if settings.MONGODB_URI else "Not set")
-            logger.info(f"MinIO Endpoint: {settings.MINIO_ENDPOINT}")
+            # Add optional parameters
+            if skip_existing:
+                curl_cmd.extend(["-F", "skip_existing=true"])
+            if form_type:
+                curl_cmd.extend(["-F", f"form_type={form_type}"])
 
-            # ==================== MONGODB ====================
-            logger.info("🗄️  Connecting to MongoDB...")
-            try:
-                mongo_uri = settings.get_mongodb_uri()
-                logger.info(
-                    f"   URI: {mongo_uri[:60]}..." if mongo_uri else "Using default")
-                logger.info(f"   DB: {settings.MONGODB_DB_NAME}")
-                logger.info(f"   Auth source: {settings.MONGODB_AUTH_SOURCE}")
+            logger.debug(f"Running: {' '.join(curl_cmd)}")
 
-                self.mongo_client = MongoClient(uri=mongo_uri,
-                    db_name=settings.MONGODB_DB_NAME, )
+            # Execute curl
+            result = subprocess.run(curl_cmd, capture_output=True, text=True,
+                timeout=300,  # 5 minute timeout per file
+            )
 
-                health_check = await self.mongo_client.health_check()
+            if result.returncode != 0:
+                return UploadResult(file_path=file_path, success=False,
+                    error=f"curl failed: {result.stderr}", )
 
-                if health_check["connected"]:
-                    logger.info(f"✅ MongoDB connected and authenticated")
-                    logger.info(
-                        f"   Server version: {health_check['server_info'].get('version', 'unknown')}")
-                    logger.info(f"   Database: {settings.MONGODB_DB_NAME}")
-                else:
-                    raise Exception(
-                        f"Health check failed: {health_check.get('error')}")
+            # Parse response (last line is HTTP status code)
+            lines = result.stdout.strip().split("\n")
+            if len(lines) < 2:
+                return UploadResult(file_path=file_path, success=False,
+                    error="Empty response from server", )
 
-            except Exception as e:
-                logger.error(f"❌ MongoDB initialization failed: {e}")
-                logger.error(f"   Details: {str(e)}")
-                return False
+            http_code = int(lines[-1])
+            response_body = "\n".join(lines[:-1])
 
-            # ==================== MINIO ====================
-            logger.info("🪣 Connecting to MinIO...")
-            try:
-                minio_config = settings.get_minio_config()
-                logger.info(f"   Endpoint: {minio_config['endpoint']}")
-                logger.info(f"   Bucket: {minio_config['bucket_name']}")
+            # Handle skip_existing response
+            if http_code == 409:  # Conflict - already exists
+                logger.info(f"⊘ Skipped: {file_path.name} (already uploaded)")
+                return UploadResult(file_path=file_path, success=True,
+                    # Don't count as error
+                    error="File already exists", )
 
-                self.minio_client = MinIOClient(
-                    endpoint=minio_config["endpoint"],
-                    access_key=minio_config["access_key"],
-                    secret_key=minio_config["secret_key"],
-                    bucket_name=minio_config["bucket_name"],
-                    secure=minio_config["secure"],
-                    region=minio_config["region"], )
-
-                # Test connectivity
+            # Handle success
+            if http_code == 200:
                 try:
-                    self.minio_client.client.list_buckets()
-                except Exception as e:
-                    raise Exception(f"MinIO connectivity test failed: {e}")
+                    response_json = json.loads(response_body)
+                    return UploadResult(file_path=file_path, success=True,
+                        processing_id=response_json.get("processing_id"),
+                        status=response_json.get("status", "processing"), )
+                except json.JSONDecodeError:
+                    return UploadResult(file_path=file_path, success=True,
+                        error="Could not parse response JSON", )
 
-                await self.minio_client.ensure_bucket_exists()
-                logger.info(f"✅ MinIO connected")
+            # Handle errors
+            return UploadResult(file_path=file_path, success=False,
+                error=f"HTTP {http_code}: {response_body[:200]}", )
 
-            except Exception as e:
-                logger.error(f"❌ MinIO initialization failed: {e}")
-                return False
-
-            # ==================== SERVICES ====================
-            logger.info("🔧 Initializing services...")
-            try:
-                self.storage_service = StorageService(
-                    mongo_client=self.mongo_client,
-                    minio_client=self.minio_client,
-                    db_name=settings.MONGODB_DB_NAME,
-                    collection_name=settings.MONGODB_DB_COLLECTION, )
-
-                self.form_processor = FormProcessor(
-                    storage_service=self.storage_service,
-                    mongo_client=self.mongo_client, )
-
-                self.bulk_upload_service = BulkUploadService(
-                    form_processor=self.form_processor,
-                    storage_service=self.storage_service, )
-
-                logger.info("✅ All services initialized successfully")
-
-            except Exception as e:
-                logger.error(f"❌ Service initialization failed: {e}")
-                return False
-
-            return True
-
+        except subprocess.TimeoutExpired:
+            return UploadResult(file_path=file_path, success=False,
+                error="Upload timeout (5 minutes)", )
         except Exception as e:
-            logger.error(f"❌ Initialization failed: {e}", exc_info=True)
-            return False
-
-    async def cleanup(self):
-        """Clean up resources."""
-        try:
-            if self.minio_client is not None:
-                await self.minio_client.close()
-                logger.info("✅ MinIO closed")
-
-            if self.mongo_client is not None:
-                await self.mongo_client.close()
-                logger.info("✅ MongoDB closed")
-
-        except Exception as e:
-            logger.error(f"⚠️  Cleanup error: {e}")
+            return UploadResult(file_path=file_path, success=False,
+                error=str(e), )
 
     async def process_directory(self, directory: Path, recursive: bool = False,
             skip_existing: bool = False,
-            form_type: Optional[str] = None, ) -> None:
+            form_type: Optional[str] = None, ) -> BulkUploadSummary:
         """
         Process all images in a directory.
 
@@ -181,69 +173,90 @@ class BulkUploadCLI:
             recursive: Whether to process subdirectories
             skip_existing: Whether to skip existing files
             form_type: Optional form type override
+
+        Returns:
+            BulkUploadSummary with results
         """
-        if not await self.initialize():
-            logger.error("❌ Failed to initialize services")
-            return
+        logger.info(f"📁 Processing directory: {directory}")
+        logger.info(f"   Recursive: {recursive}")
+        logger.info(f"   Skip existing: {skip_existing}")
+        if form_type:
+            logger.info(f"   Form type: {form_type}")
 
-        try:
-            logger.info(f"📁 Processing directory: {directory}")
-            logger.info(f"   Recursive: {recursive}")
-            logger.info(f"   Skip existing: {skip_existing}")
-            if form_type:
-                logger.info(f"   Form type: {form_type}")
+        # Find all image files
+        files = self._find_image_files(directory, recursive=recursive)
+        if not files:
+            logger.warning(f"⚠️  No image files found in {directory}")
+            return BulkUploadSummary(total_files=0, successful_uploads=0,
+                failed_uploads=0, skipped_files=0,
+                total_processing_time_seconds=0.0, errors=[], )
 
-            result = await self.bulk_upload_service.process_directory(
-                directory_path=directory, recursive=recursive,
-                skip_existing=skip_existing, form_type_override=form_type, )
+        logger.info(f"Found {len(files)} image files to process")
 
-            # ✅ Display results
-            self._display_summary(result)
+        # Upload each file
+        import time
+        start_time = time.time()
 
-        except Exception as e:
-            logger.error(f"❌ Processing failed: {e}", exc_info=True)
+        for idx, file_path in enumerate(files, 1):
+            logger.info(f"[{idx}/{len(files)}] Uploading: {file_path.name}")
+            result = self._upload_file(file_path=file_path,
+                skip_existing=skip_existing, form_type=form_type, )
+            self.results.append(result)
 
-        finally:
-            await self.cleanup()
+            if result.success:
+                if result.error and "already exists" in result.error:
+                    pass  # Already logged as skipped
+                else:
+                    logger.info(f"   ✅ Success (ID: {result.processing_id})")
+            else:
+                logger.error(f"   ❌ Failed: {result.error}")
+
+        elapsed = time.time() - start_time
+
+        # Calculate summary
+        successful = sum(1 for r in self.results if r.success and not r.error)
+        failed = sum(1 for r in self.results if not r.success)
+        skipped = sum(
+            1 for r in self.results if r.error and "already exists" in r.error)
+
+        summary = BulkUploadSummary(total_files=len(files),
+            successful_uploads=successful, failed_uploads=failed,
+            skipped_files=skipped, total_processing_time_seconds=elapsed,
+            errors=[r.error for r in self.results if
+                    r.error and "already exists" not in r.error], )
+
+        self._display_summary(summary)
+        return summary
 
     async def process_single_file(self, file_path: Path,
-            form_type: Optional[str] = None, ) -> None:
+            form_type: Optional[str] = None, ) -> UploadResult:
         """
         Process a single image file.
 
         Args:
             file_path: File path
             form_type: Optional form type override
+
+        Returns:
+            UploadResult
         """
-        if not await self.initialize():
-            logger.error("❌ Failed to initialize services")
-            return
+        logger.info(f"📄 Processing file: {file_path}")
+        if form_type:
+            logger.info(f"   Form type: {form_type}")
 
-        try:
-            logger.info(f"📄 Processing file: {file_path}")
-            if form_type:
-                logger.info(f"   Form type: {form_type}")
+        result = self._upload_file(file_path=file_path, form_type=form_type, )
 
-            result = await self.bulk_upload_service.process_single_file(
-                file_path=file_path, form_type_override=form_type, )
+        if result.success:
+            logger.info(f"✅ File processed successfully")
+            logger.info(f"   Processing ID: {result.processing_id}")
+            logger.info(f"   Status: {result.status}")
+        else:
+            logger.error(f"❌ File processing failed: {result.error}")
 
-            # ✅ Display result
-            if result.success:
-                logger.info(f"✅ File processed successfully")
-                logger.info(f"   Processing ID: {result.processing_id}")
-                logger.info(f"   Form type: {result.form_type}")
-                logger.info(f"   Status: {result.status}")
-            else:
-                logger.error(f"❌ File processing failed: {result.error}")
-
-        except Exception as e:
-            logger.error(f"❌ Processing failed: {e}", exc_info=True)
-
-        finally:
-            await self.cleanup()
+        return result
 
     @staticmethod
-    def _display_summary(summary) -> None:
+    def _display_summary(summary: BulkUploadSummary) -> None:
         """
         Display bulk upload summary.
 
@@ -281,13 +294,18 @@ class BulkUploadCLI:
 @click.option("--recursive", is_flag=True,
     help="Process subdirectories recursively", default=False, )
 @click.option("--skip-existing", is_flag=True,
-    help="Skip files that already exist in MongoDB", default=False, )
+    help="Skip files that already exist", default=False, )
 @click.option("--form-type", type=str,
     help="Override form type detection (ITF, NAR, etc.)", default=None, )
-def bulk_upload(directory: Optional[str], file: Optional[str], recursive: bool,
-        skip_existing: bool, form_type: Optional[str], ) -> None:
+def bulk_upload(
+        directory: Optional[str],
+        file: Optional[str],
+        recursive: bool,
+        skip_existing: bool,
+        form_type: Optional[str],
+) -> None:
     """
-    Bulk upload and process form images.
+    Bulk upload and process form images via HTTP API.
 
     Examples:
         # Process entire directory recursively
@@ -298,6 +316,9 @@ def bulk_upload(directory: Optional[str], file: Optional[str], recursive: bool,
 
         # Process directory, skip existing files
         python -m backend.cli.bulk_upload --directory ./bridge_images --skip-existing
+
+        # Process with custom API endpoint
+        python -m backend.cli.bulk_upload --directory ./bridge_images
     """
 
     # Validate arguments
