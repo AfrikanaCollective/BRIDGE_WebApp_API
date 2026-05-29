@@ -236,18 +236,78 @@ class StorageService:
             if metadata:
                 doc.update(metadata)
 
-            # ✅ Use await with async insert_one
-            insert_result = await self.collection.insert_one(doc)
-            inserted_id = insert_result.inserted_id
+            # ============================================================
+            # UPSERT LOGIC: Check if record with filename already exists
+            # ============================================================
+            existing_record = await self.collection.find_one(
+                {"image_filename": image_filename}
+            )
 
-            # ✅ SET processing_id if not already set
-            if "processing_id" not in doc:
-                await self.collection.update_one(
-                    {"_id": inserted_id},
-                    {"$set": {"processing_id": str(inserted_id)}}
+            if existing_record:
+                # ============================================================
+                # UPDATE EXISTING RECORD
+                # ============================================================
+                existing_id = existing_record.get("_id")
+
+                # Preserve created_at from original record
+                doc["created_at"] = existing_record.get("created_at", now.isoformat())
+
+                # Preserve processing_id if it exists
+                processing_id = existing_record.get("processing_id")
+                if processing_id:
+                    doc["processing_id"] = processing_id
+
+                logger.info(
+                    f"🔄 UPDATING existing record for filename: {image_filename} "
+                    f"(id={existing_id})"
                 )
 
-            logger.info(f"✅ Saved to MongoDB: {inserted_id}")
+                try:
+                    update_result = await self.collection.update_one(
+                        {"_id": existing_id},
+                        {"$set": doc}
+                    )
+
+                    if update_result.modified_count > 0:
+                        logger.info(
+                            f"✅ Updated MongoDB record: {existing_id} "
+                            f"(matched={update_result.matched_count}, "
+                            f"modified={update_result.modified_count})"
+                        )
+                    else:
+                        logger.warning(
+                            f"⚠️  Record matched but not modified: {existing_id}"
+                        )
+
+                    inserted_id = existing_id
+
+                except Exception as e:
+                    logger.error(f"❌ Error updating record: {e}", exc_info=True)
+                    return None
+
+            else:
+                # ============================================================
+                # CREATE NEW RECORD
+                # ============================================================
+                logger.info(
+                    f"✨ CREATING new record for filename: {image_filename}"
+                )
+
+                try:
+                    insert_result = await self.collection.insert_one(doc)
+                    inserted_id = insert_result.inserted_id
+
+                    logger.info(f"✅ Inserted new MongoDB record: {inserted_id}")
+
+                    # ✅ SET processing_id to match _id
+                    await self.collection.update_one(
+                        {"_id": inserted_id},
+                        {"$set": {"processing_id": str(inserted_id)}}
+                    )
+
+                except Exception as e:
+                    logger.error(f"❌ Error inserting record: {e}", exc_info=True)
+                    return None
 
             # Save full result as JSON to MinIO
             stem = Path(image_filename).stem
