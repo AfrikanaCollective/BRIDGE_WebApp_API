@@ -1,6 +1,6 @@
 # backend/cli/bulk_upload.py
 """
-CLI utility for bulk uploading and processing form images via HTTP.
+CLI utility for bulk uploading and processing form images via HTTPS.
 
 Usage:
     python -m backend.cli.bulk_upload --directory ./bridge_images
