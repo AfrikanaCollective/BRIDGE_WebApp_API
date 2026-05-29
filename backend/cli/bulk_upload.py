@@ -14,14 +14,23 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
 
 import click
 
-# ✅ CRITICAL: Add backend directory to path for imports
+# ✅ CRITICAL: Load environment variables BEFORE imports
+env_file = Path(__file__).parent.parent.parent / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+    print(f"✅ Loaded .env from {env_file}")
+else:
+    print(f"⚠️  No .env file found at {env_file}")
+
+# ✅ Add backend directory to path for imports
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
-# ✅ NOW imports will work
+# ✅ NOW imports will work with loaded environment
 from config.settings import settings
 from clients.mongo_client import MongoClient
 from clients.minio_client import MinIOClient
@@ -29,12 +38,9 @@ from services.storage_service import StorageService
 from services.form_processor import FormProcessor
 from services.bulk_upload_service import BulkUploadService
 
-
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -59,37 +65,54 @@ class BulkUploadCLI:
         try:
             logger.info("🚀 Initializing services for bulk upload...")
 
+            # ✅ Log configuration (debug environment)
+            logger.info(f"Environment: {settings.ENVIRONMENT}")
+            logger.info(
+                f"MongoDB URI: {settings.MONGODB_URI[:50]}..." if settings.MONGODB_URI else "Not set")
+            logger.info(f"MinIO Endpoint: {settings.MINIO_ENDPOINT}")
+
             # ==================== MONGODB ====================
             logger.info("🗄️  Connecting to MongoDB...")
             try:
                 mongo_uri = settings.get_mongodb_uri()
-                self.mongo_client = MongoClient(
-                    uri=mongo_uri,
-                    db_name=settings.MONGODB_DB_NAME,
-                )
+                logger.info(
+                    f"   URI: {mongo_uri[:60]}..." if mongo_uri else "Using default")
+                logger.info(f"   DB: {settings.MONGODB_DB_NAME}")
+                logger.info(f"   Auth source: {settings.MONGODB_AUTH_SOURCE}")
+
+                self.mongo_client = MongoClient(uri=mongo_uri,
+                    db_name=settings.MONGODB_DB_NAME, )
 
                 health_check = await self.mongo_client.health_check()
-                if not health_check["connected"]:
-                    raise Exception(f"Health check failed: {health_check.get('error')}")
 
-                logger.info(f"✅ MongoDB connected: {settings.MONGODB_DB_NAME}")
+                if health_check["connected"]:
+                    logger.info(f"✅ MongoDB connected and authenticated")
+                    logger.info(
+                        f"   Server version: {health_check['server_info'].get('version', 'unknown')}")
+                    logger.info(f"   Database: {settings.MONGODB_DB_NAME}")
+                else:
+                    raise Exception(
+                        f"Health check failed: {health_check.get('error')}")
 
             except Exception as e:
                 logger.error(f"❌ MongoDB initialization failed: {e}")
+                logger.error(f"   Details: {str(e)}")
                 return False
 
             # ==================== MINIO ====================
             logger.info("🪣 Connecting to MinIO...")
             try:
                 minio_config = settings.get_minio_config()
+                logger.info(f"   Endpoint: {minio_config['endpoint']}")
+                logger.info(f"   Bucket: {minio_config['bucket_name']}")
+
                 self.minio_client = MinIOClient(
                     endpoint=minio_config["endpoint"],
                     access_key=minio_config["access_key"],
                     secret_key=minio_config["secret_key"],
                     bucket_name=minio_config["bucket_name"],
                     secure=minio_config["secure"],
-                    region=minio_config["region"],
-                )
+                    region=minio_config["region"], )
 
                 # Test connectivity
                 try:
@@ -98,7 +121,7 @@ class BulkUploadCLI:
                     raise Exception(f"MinIO connectivity test failed: {e}")
 
                 await self.minio_client.ensure_bucket_exists()
-                logger.info(f"✅ MinIO connected: {minio_config['bucket_name']}")
+                logger.info(f"✅ MinIO connected")
 
             except Exception as e:
                 logger.error(f"❌ MinIO initialization failed: {e}")
@@ -111,20 +134,17 @@ class BulkUploadCLI:
                     mongo_client=self.mongo_client,
                     minio_client=self.minio_client,
                     db_name=settings.MONGODB_DB_NAME,
-                    collection_name=settings.MONGODB_DB_COLLECTION,
-                )
+                    collection_name=settings.MONGODB_DB_COLLECTION, )
 
                 self.form_processor = FormProcessor(
                     storage_service=self.storage_service,
-                    mongo_client=self.mongo_client,
-                )
+                    mongo_client=self.mongo_client, )
 
                 self.bulk_upload_service = BulkUploadService(
                     form_processor=self.form_processor,
-                    storage_service=self.storage_service,
-                )
+                    storage_service=self.storage_service, )
 
-                logger.info("✅ All services initialized")
+                logger.info("✅ All services initialized successfully")
 
             except Exception as e:
                 logger.error(f"❌ Service initialization failed: {e}")
@@ -150,13 +170,9 @@ class BulkUploadCLI:
         except Exception as e:
             logger.error(f"⚠️  Cleanup error: {e}")
 
-    async def process_directory(
-        self,
-        directory: Path,
-        recursive: bool = False,
-        skip_existing: bool = False,
-        form_type: Optional[str] = None,
-    ) -> None:
+    async def process_directory(self, directory: Path, recursive: bool = False,
+            skip_existing: bool = False,
+            form_type: Optional[str] = None, ) -> None:
         """
         Process all images in a directory.
 
@@ -178,11 +194,8 @@ class BulkUploadCLI:
                 logger.info(f"   Form type: {form_type}")
 
             result = await self.bulk_upload_service.process_directory(
-                directory_path=directory,
-                recursive=recursive,
-                skip_existing=skip_existing,
-                form_type_override=form_type,
-            )
+                directory_path=directory, recursive=recursive,
+                skip_existing=skip_existing, form_type_override=form_type, )
 
             # ✅ Display results
             self._display_summary(result)
@@ -193,11 +206,8 @@ class BulkUploadCLI:
         finally:
             await self.cleanup()
 
-    async def process_single_file(
-        self,
-        file_path: Path,
-        form_type: Optional[str] = None,
-    ) -> None:
+    async def process_single_file(self, file_path: Path,
+            form_type: Optional[str] = None, ) -> None:
         """
         Process a single image file.
 
@@ -215,9 +225,7 @@ class BulkUploadCLI:
                 logger.info(f"   Form type: {form_type}")
 
             result = await self.bulk_upload_service.process_single_file(
-                file_path=file_path,
-                form_type_override=form_type,
-            )
+                file_path=file_path, form_type_override=form_type, )
 
             # ✅ Display result
             if result.success:
@@ -249,7 +257,8 @@ class BulkUploadCLI:
         logger.info(f"Successful uploads: {summary.successful_uploads}")
         logger.info(f"Failed uploads: {summary.failed_uploads}")
         logger.info(f"Skipped files: {summary.skipped_files}")
-        logger.info(f"Total processing time: {summary.total_processing_time_seconds:.2f}s")
+        logger.info(
+            f"Total processing time: {summary.total_processing_time_seconds:.2f}s")
 
         if summary.failed_uploads > 0:
             logger.warning("⚠️  Failed files:")
@@ -263,43 +272,20 @@ class BulkUploadCLI:
 
 
 @click.command()
-@click.option(
-    "--directory",
+@click.option("--directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Directory containing images to process",
-    default=None,
-)
-@click.option(
-    "--file",
+    help="Directory containing images to process", default=None, )
+@click.option("--file",
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
-    help="Single file to process",
-    default=None,
-)
-@click.option(
-    "--recursive",
-    is_flag=True,
-    help="Process subdirectories recursively",
-    default=False,
-)
-@click.option(
-    "--skip-existing",
-    is_flag=True,
-    help="Skip files that already exist in MongoDB",
-    default=False,
-)
-@click.option(
-    "--form-type",
-    type=str,
-    help="Override form type detection (ITF, NAR, etc.)",
-    default=None,
-)
-def bulk_upload(
-    directory: Optional[str],
-    file: Optional[str],
-    recursive: bool,
-    skip_existing: bool,
-    form_type: Optional[str],
-) -> None:
+    help="Single file to process", default=None, )
+@click.option("--recursive", is_flag=True,
+    help="Process subdirectories recursively", default=False, )
+@click.option("--skip-existing", is_flag=True,
+    help="Skip files that already exist in MongoDB", default=False, )
+@click.option("--form-type", type=str,
+    help="Override form type detection (ITF, NAR, etc.)", default=None, )
+def bulk_upload(directory: Optional[str], file: Optional[str], recursive: bool,
+        skip_existing: bool, form_type: Optional[str], ) -> None:
     """
     Bulk upload and process form images.
 
@@ -328,22 +314,13 @@ def bulk_upload(
     try:
         if file:
             # Process single file
-            asyncio.run(
-                cli.process_single_file(
-                    file_path=Path(file),
-                    form_type=form_type,
-                )
-            )
+            asyncio.run(cli.process_single_file(file_path=Path(file),
+                form_type=form_type, ))
         else:
             # Process directory
-            asyncio.run(
-                cli.process_directory(
-                    directory=Path(directory),
-                    recursive=recursive,
-                    skip_existing=skip_existing,
-                    form_type=form_type,
-                )
-            )
+            asyncio.run(cli.process_directory(directory=Path(directory),
+                recursive=recursive, skip_existing=skip_existing,
+                form_type=form_type, ))
 
     except KeyboardInterrupt:
         logger.warning("\n⚠️  Process interrupted by user")
