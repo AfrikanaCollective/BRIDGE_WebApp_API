@@ -50,10 +50,9 @@ class BulkUploadSummary:
 class BulkUploadCLI:
     """CLI handler for bulk upload operations via HTTP."""
 
-    def __init__(self):
+    def __init__(self, api_url):
         """Initialize CLI with API endpoint."""
-        self.api_url = settings.API_HOST
-        self.api_port = settings.API_PORT
+        self.api_url = api_url
         self.results: List[UploadResult] = []
 
     def _find_image_files(self, directory: Path, recursive: bool = False, ) -> \
@@ -102,7 +101,7 @@ class BulkUploadCLI:
             # Build curl command
             curl_cmd = [
                 "curl", "-X", "POST",
-                f"https://{self.api_url}:{self.api_port}/api/upload/form",
+                f"https://{self.api_url}/api/upload",
                 "-F",
                 f"file=@{file_path}", "-s", "-w", "\n%{http_code}",
             ]
@@ -116,7 +115,8 @@ class BulkUploadCLI:
             logger.debug(f"Running: {' '.join(curl_cmd)}")
 
             # Execute curl
-            result = subprocess.run(curl_cmd, capture_output=True, text=True,
+            result = subprocess.run(
+                curl_cmd, capture_output=True, text=True,
                 timeout=300,  # 5 minute timeout per file
             )
 
@@ -297,12 +297,16 @@ class BulkUploadCLI:
     help="Skip files that already exist", default=False, )
 @click.option("--form-type", type=str,
     help="Override form type detection (ITF, NAR, etc.)", default=None, )
+@click.option("--api-url", type=str,
+    help="URL to upload the form to", default="bridge.kemri-wellcome.org:6443",
+)
 def bulk_upload(
         directory: Optional[str],
         file: Optional[str],
         recursive: bool,
         skip_existing: bool,
         form_type: Optional[str],
+        api_url: Optional[str],
 ) -> None:
     """
     Bulk upload and process form images via HTTP API.
@@ -330,7 +334,7 @@ def bulk_upload(
         click.echo("❌ Error: Cannot provide both --directory and --file")
         sys.exit(1)
 
-    cli = BulkUploadCLI()
+    cli = BulkUploadCLI(api_url=api_url)
 
     try:
         if file:
