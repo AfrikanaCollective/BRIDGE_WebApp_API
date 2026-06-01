@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from models.upload import ProcessingResponse
 
-from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status, Form
 
 from config.settings import settings
 
@@ -101,6 +101,46 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
             detail=f"Failed to save uploaded file: {str(e)}"
         )
 
+async def file_exists_in_storage(
+        storage_service,
+        filename: str,
+) -> tuple[bool, Optional[dict]]:
+    """
+    Check if file already exists in MongoDB and MinIO.
+
+    Args:
+        storage_service: Storage service instance
+        filename: Image filename
+
+    Returns:
+        Tuple of (exists, document) where document is the existing record if found
+    """
+    try:
+        # Check MongoDB for existing record by filename
+        existing_doc = await storage_service.get_by_image_filename(filename)
+
+        if existing_doc:
+            logger.info(
+                f"⚠️  File already exists in database: {filename} "
+                f"(processing_id: {existing_doc.get('processing_id')})"
+            )
+            return True, existing_doc
+
+        # Also check MinIO to ensure consistency
+        minio_exists = await storage_service.file_exists_in_minio(filename)
+        if minio_exists:
+            logger.warning(
+                f"⚠️  File exists in MinIO but not in MongoDB: {filename}"
+            )
+            return True, None
+
+        return False, None
+
+    except Exception as e:
+        logger.error(f"❌ Error checking file existence: {e}")
+        # Don't fail the request, let processing continue
+        return False, None
+
 
 # ==================== ROUTES ====================
 @router.post(
@@ -120,6 +160,8 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
 async def upload_file(
         file: UploadFile = File(..., description="Form image file (PNG)"),
         request: Request = None,
+        skip_existing: Optional[bool] = Form(False, description="Skip if file already exists"),
+        form_type: Optional[str] = Form(None, description="Override form type detection"),
 ) -> ProcessingResponse:
     """
     Upload a medical form image for processing.
@@ -130,6 +172,8 @@ async def upload_file(
     **Request:**
     - Content-Type: multipart/form-data
     - Field: file (required, PNG image)
+    - Field: skip_existing (optional, default: false)
+    - Field: form_type (optional, auto-detected from filename)
 
     **Response:**
     - processing_id: Unique identifier for tracking processing
@@ -138,6 +182,7 @@ async def upload_file(
 
     **Errors:**
     - 400: Invalid file (size, type, format)
+    - 409: File already exists (when skip_existing=true)
     - 503: Service unavailable (processor/storage)
     - 500: Processing error
 
@@ -145,6 +190,17 @@ async def upload_file(
     ```bash
     curl -X POST http://localhost:6000/api/upload \\
       -F "file=@form.png"
+
+    # Skip if file already exists
+    curl -X POST http://localhost:6000/api/upload \\
+      -F "file=@form.png" \\
+      -F "skip_existing=true"
+
+    # Override form type
+    curl -X POST http://localhost:6000/api/upload \\
+      -F "file=@form.png" \\
+      -F "form_type=NAR"
+
     ```
     """
 
@@ -170,6 +226,19 @@ async def upload_file(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=error_msg
             )
+
+        # ==================== CHECK IF FILE ALREADY EXISTS ====================
+        file_exists, existing_doc = await file_exists_in_storage(
+            storage_service, file.filename
+        )
+
+        if file_exists:
+            if skip_existing:
+                logger.info(f"⊘ Skipping existing file: {file.filename}")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"File '{file.filename}' already exists. Skipped as requested."
+                )
 
         # ==================== SAVE TO TEMP ====================
         temp_dir = Path(settings.UPLOAD_TEMP_DIR)

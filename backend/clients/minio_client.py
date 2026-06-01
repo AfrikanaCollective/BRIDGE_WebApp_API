@@ -122,6 +122,33 @@ class MinIOClient:
             logger.error(f"❌ Upload failed: {e}")
             return False
 
+    async def file_exists(self, object_name: str,
+            bucket_name: Optional[str] = None, ) -> bool:
+        """
+        Check if file exists in MinIO.
+
+        Args:
+            object_name: S3 object name (key)
+            bucket_name: Bucket name (default: self.bucket_name)
+
+        Returns:
+            bool: True if file exists
+        """
+        bucket = bucket_name or self.bucket_name
+
+        try:
+            self.client.stat_object(bucket, object_name)
+            logger.debug(f"✅ File exists in S3: s3://{bucket}/{object_name}")
+            return True
+        except S3Error as e:
+            if e.code == "NoSuchKey":
+                logger.debug(
+                    f"❌ File not found in S3: s3://{bucket}/{object_name}")
+                return False
+            else:
+                logger.error(f"❌ Error checking file existence: {e}")
+                return False
+
     async def upload_bytes(
         self,
         data: bytes,

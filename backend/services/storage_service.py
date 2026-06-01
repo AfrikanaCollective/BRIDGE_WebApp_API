@@ -196,6 +196,46 @@ class StorageService:
             logger.error(f"❌ Failed to fetch record {processing_id}: {e}", exc_info=True)
             raise
 
+    async def get_by_image_filename(self, image_filename: str) -> Optional[
+        dict]:
+        """
+        Get document by image_filename.
+
+        Args:
+            image_filename: The image filename
+
+        Returns:
+            Document dict or None
+        """
+        try:
+            doc = await self.collection.find_one(
+                {"image_filename": image_filename}
+            )
+            return self.record_to_dict(doc) if doc else None
+        except Exception as e:
+            logger.error(f"Error fetching by image_filename: {e}")
+            return None
+
+    async def file_exists_in_minio(self, filename: str) -> bool:
+        """
+        Check if file exists in MinIO.
+
+        Args:
+            filename: The image filename
+
+        Returns:
+            True if file exists in MinIO
+        """
+        try:
+            logger.debug(f"🔍 Checking MinIO for: {filename}")
+            exists = self.minio.file_exists(filename, self.minio.bucket_name)
+            if exists:
+                logger.debug(f"✅ File exists in MinIO: {filename}")
+            return exists
+        except Exception as e:
+            logger.error(f"❌ Error checking MinIO: {e}")
+            return False
+
     async def save_form_processing_result(
             self,
             result: Dict[str, Any],
