@@ -341,7 +341,7 @@ class BulkUploadCLI:
 @click.option("--form-type", type=str,
     help="Override form type detection (ITF, NAR, etc.)", default=None, )
 @click.option("--api-url", type=str,
-    help="URL to upload the form to", default="bridge.kemri-wellcome.org:6443",
+    help="URL to upload the form to", default="bridge.kemri-wellcome.org/dataclerk-ai/",
 )
 def bulk_upload(
         directory: Optional[str],
