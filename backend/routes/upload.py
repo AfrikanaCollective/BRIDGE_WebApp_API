@@ -115,7 +115,7 @@ async def file_exists_in_storage(
         s3_key: S3 object name (key)
 
     Returns:
-        Tuple of (exists, document) where document is the existing record if found
+        Tuple of (mongo_exists, minio_exists, document) where document is the existing record if found
     """
 
     mongo_exists, minio_exists, mongo_doc = False, False, None
@@ -136,7 +136,7 @@ async def file_exists_in_storage(
         minio_exists = await storage_service.file_exists_in_minio(s3_key)
         if minio_exists:
             logger.warning(
-                f"⚠️  File exists in MinIO: {s3_key}"
+                f"⚠️  File exists in MinIO: {s3_key}, minio_exists: {minio_exists}"
             )
 
         return mongo_exists, minio_exists, mongo_doc
@@ -144,7 +144,7 @@ async def file_exists_in_storage(
     except Exception as e:
         logger.error(f"❌ Error checking file existence: {e}")
         # Don't fail the request, let processing continue
-        return False, None
+        return False, False, None
 
 
 # ==================== ROUTES ====================
