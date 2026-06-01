@@ -211,6 +211,8 @@ class StorageService:
             now = datetime.now(UTC)
 
             # Build document for MongoDB (snake_case)
+            coverage = result.get("coverage", 0.0)
+            status = "failed" if coverage == 0.0 else "success"
             doc = {
                 "timestamp": now.isoformat(),
                 "image_filename": image_filename,
@@ -221,12 +223,12 @@ class StorageService:
                 "model": result.get("model", "unknown"),
                 "agent_processed": result.get("agent_processed", False),
                 "metrics": result.get("metrics", {}),
-                "status": "success",
+                "status": status,
                 "created_at": now.isoformat(),
                 "updated_at": now.isoformat(),
                 "processing_time_llm_seconds": result.get("processing_time_llm_seconds"),
                 "processing_time_agent_seconds": result.get("processing_time_agent_seconds"),
-                "coverage": result.get("coverage"),
+                "coverage": coverage,
                 "completeness": result.get("completeness"),
                 "error_message": None,
                 "extracted_data": result.get("extracted_data"),

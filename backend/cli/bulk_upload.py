@@ -18,7 +18,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional, List
 from dataclasses import dataclass
-from config.settings import settings
+
+ALLOWED_EXTENSIONS: List[str] = ["png"]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -69,7 +70,7 @@ class BulkUploadCLI:
         """
         image_extensions = {
         ext if ext.startswith(".") else f".{ext}"
-            for ext in settings.ALLOWED_EXTENSIONS
+            for ext in ALLOWED_EXTENSIONS
         }
 
         if not directory.exists():
@@ -339,13 +340,22 @@ def bulk_upload(
     try:
         if file:
             # Process single file
-            asyncio.run(cli.process_single_file(file_path=Path(file),
-                form_type=form_type, ))
+            asyncio.run(
+                cli.process_single_file(
+                    file_path=Path(file),
+                    form_type=form_type,
+                )
+            )
         else:
             # Process directory
-            asyncio.run(cli.process_directory(directory=Path(directory),
-                recursive=recursive, skip_existing=skip_existing,
-                form_type=form_type, ))
+            asyncio.run(
+                cli.process_directory(
+                    directory=Path(directory),
+                    recursive=recursive,
+                    skip_existing=skip_existing,
+                    form_type=form_type,
+                )
+            )
 
     except KeyboardInterrupt:
         logger.warning("\n⚠️  Process interrupted by user")
