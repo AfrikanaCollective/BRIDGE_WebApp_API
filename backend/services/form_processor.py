@@ -554,7 +554,7 @@ class FormProcessor:
         self,
         image_path: Path,
         prompt: str,
-        timeout: int = 300,
+        timeout: int = 600,
     ) -> Dict[str, Any]:
         """
         Call Qwen API with image and prompt.
