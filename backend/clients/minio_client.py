@@ -138,11 +138,11 @@ class MinIOClient:
 
         try:
             self.client.stat_object(bucket, object_name)
-            logger.debug(f"✅ File exists in S3: s3://{bucket}/{object_name}")
+            logger.info(f"✅ File exists in S3: s3://{bucket}/{object_name}")
             return True
         except S3Error as e:
             if e.code == "NoSuchKey":
-                logger.debug(
+                logger.info(
                     f"❌ File not found in S3: s3://{bucket}/{object_name}")
                 return False
             else:
