@@ -126,11 +126,19 @@ async def file_exists_in_storage(
 
 
         if mongo_doc:
-            logger.info(
-                f"⚠️  File exists in MongoDB database: {filename} "
-                f"(processing_id: {mongo_doc.get('processing_id')})"
-            )
-            mongo_exists = True
+            processing_id = mongo_doc.get('processing_id')
+            if processing_id:
+                logger.info(
+                    f"⚠️  File exists in MongoDB database: {filename} "
+                    f"(processing_id: {mongo_doc.get('processing_id')})"
+                )
+                mongo_exists = True
+            else:
+                logger.warning(
+                    f"⚠️  Document found but MISSING processing_id: {filename} "
+                    f"(mongo_id: {mongo_doc.get('_id')}). Treating as non-existent.")
+                mongo_exists = False
+                mongo_doc = None
 
         # Also check MinIO to ensure consistency
         minio_exists = storage_service.file_exists_in_minio(s3_key)
