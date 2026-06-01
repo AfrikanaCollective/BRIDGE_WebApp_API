@@ -227,10 +227,10 @@ class StorageService:
             True if file exists in MinIO
         """
         try:
-            logger.debug(f"🔍 Checking MinIO for: {filename}")
+            logger.info(f"🔍 Checking MinIO for: {filename} in bucket {self.minio.bucket_name}")
             exists = self.minio.file_exists(filename, self.minio.bucket_name)
             if exists:
-                logger.debug(f"✅ File exists in MinIO: {filename}")
+                logger.info(f"✅ File exists in MinIO: {filename}")
             return exists
         except Exception as e:
             logger.error(f"❌ Error checking MinIO: {e}")
