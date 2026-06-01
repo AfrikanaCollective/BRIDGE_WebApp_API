@@ -126,16 +126,16 @@ async def file_exists_in_storage(
 
 
         if mongo_doc:
-            processing_id = mongo_doc.get('processing_id')
+            processing_id = mongo_doc.get("processingId")
             if processing_id:
                 logger.info(
                     f"⚠️  File exists in MongoDB database: {filename} "
-                    f"(processing_id: {mongo_doc.get('processing_id')})"
+                    f"(processing_id: {mongo_doc.get('processingId')})"
                 )
                 mongo_exists = True
             else:
                 logger.warning(
-                    f"⚠️  Document found but MISSING processing_id: {filename} "
+                    f"⚠️  Document found but MISSING processingId: {filename} "
                     f"(mongo_id: {mongo_doc.get('_id')}). Treating as non-existent.")
                 mongo_exists = False
                 mongo_doc = None
@@ -254,9 +254,9 @@ async def upload_file(
             if skip_existing:
                 logger.info(f"⊘ Skipping existing file: {file.filename}")
                 return ProcessingResponse(
-                    processing_id=mongo_doc.get("processing_id"),
+                    processing_id=mongo_doc.get("processingId"),
                     status=mongo_doc.get("status", "completed"),
-                    message=f"File already processed using processing_id: {mongo_doc.get('processing_id')}. ",
+                    message=f"File already processed using processing_id: {mongo_doc.get('processingId')}. ",
                     timestamp=datetime.now(UTC).isoformat(),
                     file_name=file.filename,
                     form_type=mongo_doc.get("form_type", "UNKNOWN"),
