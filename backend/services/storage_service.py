@@ -217,7 +217,7 @@ class StorageService:
             logger.error(f"Error fetching by image_filename: {e}")
             return None
 
-    async def file_exists_in_minio(self, s3_key: str) -> bool:
+    def file_exists_in_minio(self, s3_key: str) -> bool:
         """
         Check if file exists in MinIO.
 

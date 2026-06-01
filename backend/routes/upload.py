@@ -133,7 +133,7 @@ async def file_exists_in_storage(
             mongo_exists = True
 
         # Also check MinIO to ensure consistency
-        minio_exists = await storage_service.file_exists_in_minio(s3_key)
+        minio_exists = storage_service.file_exists_in_minio(s3_key)
         if minio_exists:
             logger.warning(
                 f"⚠️  File exists in MinIO: {s3_key}, minio_exists: {minio_exists}"

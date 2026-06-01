@@ -122,7 +122,7 @@ class MinIOClient:
             logger.error(f"❌ Upload failed: {e}")
             return False
 
-    async def file_exists(self, object_name: str,
+    def file_exists(self, object_name: str,
             bucket_name: Optional[str] = None, ) -> bool:
         """
         Check if file exists in MinIO.
