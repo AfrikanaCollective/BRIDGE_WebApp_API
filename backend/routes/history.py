@@ -101,7 +101,7 @@ async def get_stats_overview(request: Request) -> HistoryStats:
 async def get_history(
         request: Request,
         page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-        limit: int = Query(20, ge=1, le=100, description="Records per page"),
+        limit: int = Query(100, ge=1, le=500, description="Records per page"),
         form_type: Optional[str] = Query(None, description="Filter by form type (ITF, NAR)"),
         status_filter: Optional[str] = Query(None, description="Filter by status (pending, success, failed)"),
 ) -> HistoryResponse:

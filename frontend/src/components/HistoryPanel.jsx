@@ -21,6 +21,7 @@ const HistoryPanel = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [totalRecords, setTotalRecords] = useState(10);
     const [statusFilter, setStatusFilter] = useState('all');
     const [sortField, setSortField] = useState('timestamp');
     const [sortOrder, setSortOrder] = useState('desc');
@@ -42,6 +43,8 @@ const HistoryPanel = () => {
                 cleanedJson: rec.cleanedJson || rec.cleaned_json,
                 rawJson: rec.rawJson || rec.raw_json,
             }));
+
+            setTotalRecords(response.data.totalCount)
 
             setHistory({
                 total: response.data.totalCount || mappedRecords.length,
