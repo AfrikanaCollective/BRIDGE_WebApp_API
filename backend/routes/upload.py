@@ -104,6 +104,7 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
 async def file_exists_in_storage(
         storage_service,
         filename: str,
+        s3_key: str,
 ) -> tuple[bool, Optional[dict]]:
     """
     Check if file already exists in MongoDB and MinIO.
@@ -111,30 +112,34 @@ async def file_exists_in_storage(
     Args:
         storage_service: Storage service instance
         filename: Image filename
+        s3_key: S3 object name (key)
 
     Returns:
         Tuple of (exists, document) where document is the existing record if found
     """
+
+    mongo_exists, minio_exists, mongo_doc = False, False, None
+
     try:
         # Check MongoDB for existing record by filename
-        existing_doc = await storage_service.get_by_image_filename(filename)
+        mongo_doc = await storage_service.get_by_image_filename(filename)
 
-        if existing_doc:
+
+        if mongo_doc:
             logger.info(
                 f"⚠️  File already exists in database: {filename} "
-                f"(processing_id: {existing_doc.get('processing_id')})"
+                f"(processing_id: {mongo_doc.get('processing_id')})"
             )
-            return True, existing_doc
+            mongo_exists = True
 
         # Also check MinIO to ensure consistency
-        minio_exists = await storage_service.file_exists_in_minio(filename)
+        minio_exists = await storage_service.file_exists_in_minio(s3_key)
         if minio_exists:
             logger.warning(
-                f"⚠️  File exists in MinIO but not in MongoDB: {filename}"
+                f"⚠️  File exists in MinIO but not in MongoDB: {s3_key}"
             )
-            return True, None
 
-        return False, None
+        return mongo_exists, minio_exists, mongo_doc
 
     except Exception as e:
         logger.error(f"❌ Error checking file existence: {e}")
@@ -228,22 +233,29 @@ async def upload_file(
             )
 
         # ==================== CHECK IF FILE ALREADY EXISTS ====================
-        file_exists, existing_doc = await file_exists_in_storage(
-            storage_service, file.filename
+
+        file_type = form_processor.extract_form_type_from_filename(
+            file.filename)
+        s3_key = f"form-documents/{file_type.lower()}/{file.filename}"
+
+        mongo_exists, minio_exists, mongo_doc = await file_exists_in_storage(
+            storage_service, file.filename, s3_key
         )
 
-        if file_exists:
+        if mongo_exists and minio_exists:
             if skip_existing:
                 logger.info(f"⊘ Skipping existing file: {file.filename}")
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=f"File '{file.filename}' already exists. Skipped as requested."
+                return ProcessingResponse(
+                    processing_id=mongo_doc.get("processing_id"),
+                    status=mongo_doc.get("status", "completed"),
+                    message=f"File already processed using processing_id: {mongo_doc.get('processing_id')}. ",
+                    timestamp=datetime.now(UTC).isoformat(),
+                    file_name=file.filename,
+                    form_type=mongo_doc.get("form_type", "UNKNOWN"),
                 )
-
         # ==================== SAVE TO TEMP ====================
         temp_dir = Path(settings.UPLOAD_TEMP_DIR)
         temp_path = await save_upload_to_temp(file, temp_dir)
-        file_type = form_processor.extract_form_type_from_filename(file.filename)
 
         # ==================== PROCESS FORM ====================
         logger.info(f"🔄 Processing form: {file.filename}")
