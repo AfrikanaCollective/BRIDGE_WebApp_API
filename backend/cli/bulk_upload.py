@@ -85,8 +85,10 @@ class BulkUploadCLI:
 
         return sorted(files)
 
-    def _upload_file(self, file_path: Path, skip_existing: bool = False,
-            form_type: Optional[str] = None, ) -> UploadResult:
+    def _upload_file(self,
+                     file_path: Path,
+                     skip_existing: bool = False,
+                     form_type: Optional[str] = None, ) -> UploadResult:
         """
         Upload single file via curl.
 
@@ -117,19 +119,27 @@ class BulkUploadCLI:
 
             # Execute curl
             result = subprocess.run(
-                curl_cmd, capture_output=True, text=True,
+                curl_cmd,
+                capture_output=True,
+                text=True,
                 timeout=300,  # 5 minute timeout per file
             )
 
             if result.returncode != 0:
-                return UploadResult(file_path=file_path, success=False,
-                    error=f"curl failed: {result.stderr}", )
+                return UploadResult(
+                    file_path=file_path,
+                    success=False,
+                    error=f"curl failed: {result.stderr}",
+                )
 
             # Parse response (last line is HTTP status code)
             lines = result.stdout.strip().split("\n")
             if len(lines) < 2:
-                return UploadResult(file_path=file_path, success=False,
-                    error="Empty response from server", )
+                return UploadResult(
+                    file_path=file_path,
+                    success=False,
+                    error="Empty response from server",
+                )
 
             http_code = int(lines[-1])
             response_body = "\n".join(lines[:-1])
@@ -137,33 +147,54 @@ class BulkUploadCLI:
             # Handle skip_existing response
             if http_code == 409:  # Conflict - already exists
                 logger.info(f"⊘ Skipped: {file_path.name} (already uploaded)")
-                return UploadResult(file_path=file_path, success=True,
+                return UploadResult(
+                    file_path=file_path,
+                    success=True,
                     # Don't count as error
-                    error="File already exists", )
+                    error="File already exists",
+                )
 
             # Handle success
-            if http_code == 200:
+            if http_code in (200, 202):
                 try:
                     response_json = json.loads(response_body)
-                    return UploadResult(file_path=file_path, success=True,
+                    return UploadResult(
+                        file_path=file_path,
+                        success=True,
                         processing_id=response_json.get("processing_id"),
-                        status=response_json.get("status", "processing"), )
+                        status=response_json.get("status", "processing"),
+                    )
                 except json.JSONDecodeError:
-                    return UploadResult(file_path=file_path, success=True,
-                        error="Could not parse response JSON", )
+                    return UploadResult(
+                        file_path=file_path,
+                        success=True,
+                        error="Could not parse response JSON",
+                    )
 
             # Handle errors
-            return UploadResult(file_path=file_path, success=False,
-                error=f"HTTP {http_code}: {response_body[:200]}", )
+            return UploadResult(
+                file_path=file_path,
+                success=False,
+                error=f"HTTP {http_code}: {response_body[:200]}",
+            )
 
         except subprocess.TimeoutExpired:
-            return UploadResult(file_path=file_path, success=False,
-                error="Upload timeout (5 minutes)", )
+            return UploadResult(
+                file_path=file_path,
+                success=False,
+                error="Upload timeout (5 minutes)",
+            )
         except Exception as e:
-            return UploadResult(file_path=file_path, success=False,
-                error=str(e), )
+            return UploadResult(
+                file_path=file_path,
+                success=False,
+                error=str(e),
+            )
 
-    async def process_directory(self, directory: Path, recursive: bool = False,
+    async def process_directory(
+            self,
+            directory: Path,
+            recursive: bool = False,
             skip_existing: bool = False,
             form_type: Optional[str] = None, ) -> BulkUploadSummary:
         """
@@ -188,9 +219,14 @@ class BulkUploadCLI:
         files = self._find_image_files(directory, recursive=recursive)
         if not files:
             logger.warning(f"⚠️  No image files found in {directory}")
-            return BulkUploadSummary(total_files=0, successful_uploads=0,
-                failed_uploads=0, skipped_files=0,
-                total_processing_time_seconds=0.0, errors=[], )
+            return BulkUploadSummary(
+                total_files=0,
+                successful_uploads=0,
+                failed_uploads=0,
+                skipped_files=0,
+                total_processing_time_seconds=0.0,
+                errors=[],
+            )
 
         logger.info(f"Found {len(files)} image files to process")
 
@@ -200,8 +236,11 @@ class BulkUploadCLI:
 
         for idx, file_path in enumerate(files, 1):
             logger.info(f"[{idx}/{len(files)}] Uploading: {file_path.name}")
-            result = self._upload_file(file_path=file_path,
-                skip_existing=skip_existing, form_type=form_type, )
+            result = self._upload_file(
+                file_path=file_path,
+                skip_existing=skip_existing,
+                form_type=form_type,
+            )
             self.results.append(result)
 
             if result.success:
@@ -220,9 +259,12 @@ class BulkUploadCLI:
         skipped = sum(
             1 for r in self.results if r.error and "already exists" in r.error)
 
-        summary = BulkUploadSummary(total_files=len(files),
-            successful_uploads=successful, failed_uploads=failed,
-            skipped_files=skipped, total_processing_time_seconds=elapsed,
+        summary = BulkUploadSummary(
+            total_files=len(files),
+            successful_uploads=successful,
+            failed_uploads=failed,
+            skipped_files=skipped,
+            total_processing_time_seconds=elapsed,
             errors=[r.error for r in self.results if
                     r.error and "already exists" not in r.error], )
 
