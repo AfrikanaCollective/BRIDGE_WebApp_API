@@ -54,6 +54,9 @@ class ITFAgent:
 
             logger.info(f"✅ Extracted {len(form_data)} fields from form")
 
+            # Step 0: Flatten json file
+            form_data = self._flatten_nested_json(form_data)
+
             # Step 1: Normalize field names using schema
             normalized_data = self._normalize_field_names(form_data)
             logger.info(f"✅ Normalized field names (only schema-defined fields kept)")
@@ -192,6 +195,82 @@ class ITFAgent:
         # Last resort: manual key-value extraction
         logger.warning(f"⚠️  JSON parsing failed, attempting manual extraction")
         return self._extract_kvpairs_from_malformed_json(json_str)
+
+    def _flatten_nested_json(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Flatten nested JSON structure if it contains the keys:
+        "A: Mother's details", "B: Labour and Birth", "C: Infant Details"
+
+        Merges nested dictionaries into a single flat dictionary while preserving
+        top-level fields that are not part of these sections.
+
+        Args:
+            data: Input JSON dictionary with possible nested sections
+
+        Returns:
+            Flattened dictionary with all key-value pairs at the top level
+        """
+        # Define the section keys to look for
+        section_keys = {
+            "A: Mother's details",
+            "B: Labour and Birth",
+            "C: Infant Details"
+        }
+
+        # Check if the data contains any of these section keys
+        data_keys = set(data.keys())
+        has_section_keys = bool(section_keys & data_keys)
+
+        if not has_section_keys:
+            logger.debug(
+                "⏭️  JSON is already flat or uses different structure. Returning as-is.")
+            return data
+
+        # Check how many section keys are present
+        found_sections = section_keys & data_keys
+        logger.info(
+            f"✅ Found {len(found_sections)} nested sections: {found_sections}")
+
+        # Initialize flattened dictionary with top-level fields (non-section keys)
+        flattened = {}
+
+        for key, value in data.items():
+            if key not in section_keys:
+                flattened[key] = value
+                logger.debug(f"✅ Preserved top-level field: {key} = {value}")
+
+        # Merge fields from nested sections
+        for section_key in section_keys:
+            if section_key not in data:
+                logger.debug(f"⏭️  Section '{section_key}' not found in data")
+                continue
+
+            section_data = data[section_key]
+
+            # Validate that section data is a dictionary
+            if not isinstance(section_data, dict):
+                logger.warning(
+                    f"⚠️  Section '{section_key}' is not a dictionary. Skipping.")
+                continue
+
+            logger.info(
+                f"📂 Processing section '{section_key}' with {len(section_data)} fields")
+
+            # Merge section data into flattened dictionary
+            for key, value in section_data.items():
+                if key in flattened:
+                    logger.warning(f"⚠️  Duplicate key '{key}' found. "
+                                   f"Overwriting previous value with value from '{section_key}': {value}")
+                flattened[key] = value
+                logger.debug(f"✅ Flattened: {section_key} → {key} = {value}")
+
+        logger.info(f"✅ Successfully flattened JSON: "
+                    f"{len(found_sections)} sections + "
+                    f"{len(data) - len(found_sections)} top-level fields → "
+                    f"{len(flattened)} total fields")
+
+        return flattened
+
 
     def _extract_kvpairs_from_malformed_json(self, json_str: str) -> Optional[Dict[str, Any]]:
         """Extract key-value pairs from heavily malformed JSON using regex."""
