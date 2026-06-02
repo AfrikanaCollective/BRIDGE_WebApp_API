@@ -49,8 +49,11 @@ class ITFAgent:
                 logger.warning(f"⚠️  Could not extract JSON from markdown, trying plain text parsing")
                 form_data = self._parse_text_form_data(content)
 
+            if "response" in form_data:
+                form_data = form_data["response"]
+                form_data = self._extract_json_from_markdown(form_data)
 
-            print(f"\n\n\n form_data {type(form_data)}: \n{form_data}\n\n\n")
+                print("\n Had response!!\n")
 
             if not form_data:
                 return self._error_result(file_path, "Could not extract form data from file")
@@ -59,6 +62,8 @@ class ITFAgent:
 
             # Step 0: Flatten json file
             form_data = self._flatten_nested_json(form_data)
+
+            print(f"\n\n\n form_data {type(form_data)}: \n{form_data}\n\n\n")
 
             # Step 1: Normalize field names using schema
             normalized_data = self._normalize_field_names(form_data)

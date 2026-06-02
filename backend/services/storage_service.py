@@ -211,7 +211,6 @@ class StorageService:
             doc = await self.collection.find_one(
                 {"image_filename": image_filename}
             )
-            logger.info(f"Mongo DB record: {doc}")
             return self.record_to_dict(doc) if doc else None
         except Exception as e:
             logger.error(f"Error fetching by image_filename: {e}")
