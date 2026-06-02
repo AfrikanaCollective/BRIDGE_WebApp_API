@@ -49,6 +49,9 @@ class ITFAgent:
                 logger.warning(f"⚠️  Could not extract JSON from markdown, trying plain text parsing")
                 form_data = self._parse_text_form_data(content)
 
+
+            print(f"\n\n\n form_data: \n{form_data}\n\n\n")
+
             if not form_data:
                 return self._error_result(file_path, "Could not extract form data from file")
 
