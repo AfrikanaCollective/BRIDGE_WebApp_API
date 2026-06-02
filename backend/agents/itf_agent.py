@@ -196,81 +196,93 @@ class ITFAgent:
         logger.warning(f"⚠️  JSON parsing failed, attempting manual extraction")
         return self._extract_kvpairs_from_malformed_json(json_str)
 
+
     def _flatten_nested_json(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Flatten nested JSON structure if it contains the keys:
-        "A: Mother's details", "B: Labour and Birth", "C: Infant Details"
+        Recursively flatten nested JSON structure until only leaf key:value pairs remain.
 
-        Merges nested dictionaries into a single flat dictionary while preserving
-        top-level fields that are not part of these sections.
+        Handles multiple flattening scenarios:
+        1. Top-level sections like "A: Mother's details", "B: Labour and Birth", "C: Infant Details"
+        2. Arbitrary nested dictionaries at any level (e.g., 'Labour', 'Delivery', 'Preventive care given')
+        3. Mixed structures with both top-level fields and nested dictionaries
+
+        All nested dictionaries are recursively flattened into a single flat dictionary.
 
         Args:
-            data: Input JSON dictionary with possible nested sections
+            data: Input JSON dictionary with possible nested sections and sub-sections
 
         Returns:
-            Flattened dictionary with all key-value pairs at the top level
+            Completely flattened dictionary with only leaf key:value pairs at the top level
         """
-        # Define the section keys to look for
+
+        def _recursive_flatten(obj: Any, parent_path: str = "") -> Dict[
+            str, Any]:
+            """
+            Recursively flatten an object, handling dictionaries and leaf values.
+
+            Args:
+                obj: The object to flatten (dict, list, or scalar value)
+                parent_path: The path to the current object (for logging)
+
+            Returns:
+                Flattened dictionary with leaf key:value pairs
+            """
+            result = {}
+
+            if not isinstance(obj, dict):
+                logger.warning(
+                    f"⚠️  Expected dict at '{parent_path}', got {type(obj).__name__}. "
+                    f"Skipping this branch.")
+                return result
+
+            for key, value in obj.items():
+                current_path = f"{parent_path}.{key}" if parent_path else key
+
+                # If value is a dictionary, recursively flatten it
+                if isinstance(value, dict):
+                    logger.debug(
+                        f"📂 Recursing into nested dict: '{current_path}' "
+                        f"with {len(value)} fields")
+                    nested_flattened = _recursive_flatten(value, current_path)
+                    result.update(nested_flattened)
+                else:
+                    # Leaf value - add to result
+                    result[key] = value
+                    logger.debug(f"✅ Extracted leaf: {key} = {value}")
+
+            return result
+
+        # Define the section keys to look for (optional optimization)
         section_keys = {
-            "A: Mother's details",
-            "B: Labour and Birth",
+            "A: Mother's details", "A:Mother's details",
+            "B: Labour and Birth", 'B:Labour and Birth',
             "C: Infant Details"
         }
 
-        # Check if the data contains any of these section keys
+        # Check if the data contains any section keys or other nested dicts
         data_keys = set(data.keys())
         has_section_keys = bool(section_keys & data_keys)
 
-        if not has_section_keys:
+        # Check if any top-level values are dictionaries (indicates nesting)
+        has_nested_dicts = any(
+            isinstance(value, dict) for value in data.values())
+
+        if not has_nested_dicts:
             logger.debug(
-                "⏭️  JSON is already flat or uses different structure. Returning as-is.")
+                "⏭️  JSON is already completely flat. Returning as-is.")
             return data
 
-        # Check how many section keys are present
-        found_sections = section_keys & data_keys
-        logger.info(
-            f"✅ Found {len(found_sections)} nested sections: {found_sections}")
+        logger.info(f"✅ Found nested structure. "
+                    f"Section keys: {len(has_section_keys)}, "
+                    f"Nested dicts: {sum(1 for v in data.values() if isinstance(v, dict))}")
 
-        # Initialize flattened dictionary with top-level fields (non-section keys)
-        flattened = {}
+        # Recursively flatten all nested structures
+        flattened = _recursive_flatten(data)
 
-        for key, value in data.items():
-            if key not in section_keys:
-                flattened[key] = value
-                logger.debug(f"✅ Preserved top-level field: {key} = {value}")
-
-        # Merge fields from nested sections
-        for section_key in section_keys:
-            if section_key not in data:
-                logger.debug(f"⏭️  Section '{section_key}' not found in data")
-                continue
-
-            section_data = data[section_key]
-
-            # Validate that section data is a dictionary
-            if not isinstance(section_data, dict):
-                logger.warning(
-                    f"⚠️  Section '{section_key}' is not a dictionary. Skipping.")
-                continue
-
-            logger.info(
-                f"📂 Processing section '{section_key}' with {len(section_data)} fields")
-
-            # Merge section data into flattened dictionary
-            for key, value in section_data.items():
-                if key in flattened:
-                    logger.warning(f"⚠️  Duplicate key '{key}' found. "
-                                   f"Overwriting previous value with value from '{section_key}': {value}")
-                flattened[key] = value
-                logger.debug(f"✅ Flattened: {section_key} → {key} = {value}")
-
-        logger.info(f"✅ Successfully flattened JSON: "
-                    f"{len(found_sections)} sections + "
-                    f"{len(data) - len(found_sections)} top-level fields → "
-                    f"{len(flattened)} total fields")
+        logger.info(f"✅ Successfully flattened JSON recursively: "
+                    f"{len(data)} top-level keys → {len(flattened)} leaf fields")
 
         return flattened
-
 
     def _extract_kvpairs_from_malformed_json(self, json_str: str) -> Optional[Dict[str, Any]]:
         """Extract key-value pairs from heavily malformed JSON using regex."""
