@@ -50,8 +50,13 @@ class ITFAgent:
                 if "response" in form_data:
                     logger.info(f"\n\n⚠️ response form data (Before) {type(form_data)}:\n {form_data}\n")
                     content_data = form_data["response"]
-                    json_data = self._extract_json_from_markdown(content_data)
-                    form_data = json_data
+                    logger.info(f"\n\n⚠️ content data (Before) {type(content_data)}:\n {content_data}\n")
+
+                    if isinstance(content_data, str):
+                        json_data = self._extract_json_from_markdown(content_data)
+                        form_data = json_data
+
+
                     logger.info(f"\n\n⚠️ response form data (After) {type(form_data)}:\n {form_data}\n")
 
             if not form_data:
