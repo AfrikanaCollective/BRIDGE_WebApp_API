@@ -166,18 +166,11 @@ def scale_image(image_source, max_width=800):
         max_width: Maximum width in pixels (default: 800)
 
     Returns:
-        BytesIO object with scaled image
-
-    Example:
-        # From file path
-        output = scale_image("/tmp/form.png")
-
-        # From BytesIO stream
-        output = scale_image(BytesIO(file_bytes))
+        Path object pointing to scaled image file
     """
     img = Image.open(image_source)
 
-    # Get original DPI (default to 72 if not found)
+    # Get original DPI (default to 150 if not found)
     original_dpi = img.info.get('dpi', (150, 150))
 
     # Calculate new height maintaining aspect ratio
@@ -187,17 +180,20 @@ def scale_image(image_source, max_width=800):
     # Resize
     img_resized = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
 
-    # Save to bytes with DPI preserved
-    output = BytesIO()
-    img_resized.save(output, format='PNG', dpi=original_dpi)
-    output.seek(0)
+    # Save to temp file with DPI preserved
+    temp_dir = Path(settings.UPLOAD_TEMP_DIR)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = temp_dir / f"scaled_{uuid4()}.png"
+    img_resized.save(str(output_path), format='PNG', dpi=original_dpi)
 
     logger.info(
         f"🖼️  Image scaled: {img.width}x{img.height} → {max_width}x{new_height} "
-        f"(DPI: {original_dpi})"
+        f"(DPI: {original_dpi}) → {output_path}"
     )
 
-    return output
+    return output_path
+
 
 # ==================== ROUTES ====================
 @router.post(
