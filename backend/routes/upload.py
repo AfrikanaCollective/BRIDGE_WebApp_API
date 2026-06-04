@@ -184,6 +184,8 @@ def scale_image(image_source, max_width=800):
     temp_dir = Path(settings.UPLOAD_TEMP_DIR)
     temp_dir.mkdir(parents=True, exist_ok=True)
 
+    logger.info(f"\nPath {image_source}, type {type(image_source)}\n\n\n")
+
     output_path = temp_dir / f"scaled_{uuid4()}.png"
     img_resized.save(str(output_path), format='PNG', dpi=original_dpi)
 
