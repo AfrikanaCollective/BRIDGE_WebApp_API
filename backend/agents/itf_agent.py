@@ -53,6 +53,7 @@ class ITFAgent:
                     logger.info(f"\n\n⚠️ content data (Before) {type(content_data)}:\n {content_data}\n")
 
                     if isinstance(content_data, str):
+                        content_data = content_data.replace("\n", "")
                         json_data = self._extract_json_from_markdown(content_data)
                         form_data = json_data
 

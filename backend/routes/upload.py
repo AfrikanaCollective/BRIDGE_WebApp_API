@@ -6,10 +6,12 @@ Handles file uploads, validation, and processing pipeline.
 """
 
 import logging
-from datetime import datetime, UTC
+from PIL import Image
+from uuid import uuid4
+from io import BytesIO
 from pathlib import Path
 from typing import Optional
-from uuid import uuid4
+from datetime import datetime, UTC
 
 from models.upload import ProcessingResponse
 
@@ -155,6 +157,48 @@ async def file_exists_in_storage(
         return False, False, None
 
 
+def scale_image(image_source, max_width=800):
+    """
+    Scale image to max width while maintaining aspect ratio and DPI.
+
+    Args:
+        image_source: File path (str/Path) or file stream (BytesIO)
+        max_width: Maximum width in pixels (default: 800)
+
+    Returns:
+        BytesIO object with scaled image
+
+    Example:
+        # From file path
+        output = scale_image("/tmp/form.png")
+
+        # From BytesIO stream
+        output = scale_image(BytesIO(file_bytes))
+    """
+    img = Image.open(image_source)
+
+    # Get original DPI (default to 72 if not found)
+    original_dpi = img.info.get('dpi', (150, 150))
+
+    # Calculate new height maintaining aspect ratio
+    aspect_ratio = img.height / img.width
+    new_height = int(max_width * aspect_ratio)
+
+    # Resize
+    img_resized = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+    # Save to bytes with DPI preserved
+    output = BytesIO()
+    img_resized.save(output, format='PNG', dpi=original_dpi)
+    output.seek(0)
+
+    logger.info(
+        f"🖼️  Image scaled: {img.width}x{img.height} → {max_width}x{new_height} "
+        f"(DPI: {original_dpi})"
+    )
+
+    return output
+
 # ==================== ROUTES ====================
 @router.post(
     "",
@@ -265,11 +309,16 @@ async def upload_file(
         temp_dir = Path(settings.UPLOAD_TEMP_DIR)
         temp_path = await save_upload_to_temp(file, temp_dir)
 
+        # ==================== RESIZE IMAGE ====================
+        # Now resize the file from temp location
+        scaled_image_path = scale_image(str(temp_path), max_width=800)
+        logger.info(f"🖼️  Image resized and saved to: {scaled_image_path}")
+
         # ==================== PROCESS FORM ====================
         logger.info(f"🔄 Processing form: {file.filename}")
         try:
             processing_result = await form_processor.process(
-                image_path=str(temp_path),  # ✅ Correct parameter name
+                image_path=str(scaled_image_path),  # ✅ Correct parameter name
                 form_type=file_type,  # ✅ default is ITF
                 # page_number=None,  # ✅ Optional: auto-detect from filename
                 # case_id=None,  # ✅ Optional
@@ -304,6 +353,9 @@ async def upload_file(
                 if temp_path.exists():
                     temp_path.unlink()
                     logger.info(f"🗑️  Cleaned up temp file: {temp_path}")
+                if scaled_image_path.exists():
+                    scaled_image_path.unlink()
+                    logger.info(f"🗑️  Cleaned up scaled file: {scaled_image_path}")
             except Exception as cleanup_error:
                 logger.warning(f"⚠️  Cleanup failed: {cleanup_error}")
 
