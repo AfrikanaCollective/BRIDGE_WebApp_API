@@ -274,6 +274,7 @@ class ITFAgent:
         # Check if the data contains any section keys or other nested dicts
         data_keys = set(data.keys())
         has_section_keys = bool(section_keys & data_keys)
+        prod_section_keys = section_keys | data_keys
 
         # Check if any top-level values are dictionaries (indicates nesting)
         has_nested_dicts = any(
@@ -285,7 +286,7 @@ class ITFAgent:
             return data
 
         logger.info(f"✅ Found nested structure. "
-                    f"Section keys: {len(has_section_keys)}, "
+                    f"Section keys: {len(prod_section_keys)}, "
                     f"Nested dicts: {sum(1 for v in data.values() if isinstance(v, dict))}")
 
         # Recursively flatten all nested structures
