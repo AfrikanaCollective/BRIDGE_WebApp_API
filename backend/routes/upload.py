@@ -461,9 +461,11 @@ async def upload_file(
         for idx, png_file in enumerate(png_files):
 
             png_path = Path(png_file)
+            png_filename = png_path.name  # ✅ Get filename from Path object
 
             # ==================== CHECK IF FILE ALREADY EXISTS ====================
-            s3_key = f"form-documents/{file_type.lower()}/{png_path.filename}"
+            s3_key = f"form-documents/{file_type.lower()}/{png_filename}"
+            logger.info(f"S3 file name: {s3_key}\n")
 
             mongo_exists, minio_exists, mongo_doc = await file_exists_in_storage(
                 storage_service, file.filename, s3_key
@@ -471,7 +473,7 @@ async def upload_file(
 
             if mongo_exists and minio_exists:
                 if skip_existing:
-                    logger.info(f"⊘ Skipping existing file: {png_path.filename}")
+                    logger.info(f"⊘ Skipping existing file: {png_filename}")
                     return ProcessingResponse(
                         processing_id=mongo_doc.get("processingId"),
                         status=mongo_doc.get("status", "completed"),
