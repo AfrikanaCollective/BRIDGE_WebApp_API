@@ -352,10 +352,8 @@ async def upload_file(
             )
 
         # ==================== DETERMINE FILE TYPE & PROCESS ====================
-        file_extension = file.filename.suffix.lower()
-        logger.info(f"🔄 File extension: {file_extension}")
-
-        if file_extension == ".pdf":
+        file_extension = Path(file.filename).suffix.lower().lstrip('.')       
+        if file_extension == "pdf":
             files_to_process = []
             # ==================== CONVERT PDF TO PNG ====================
             logger.info(f"🔄 Converting PDF to PNG: {file.filename}")
