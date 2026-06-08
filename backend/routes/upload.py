@@ -213,13 +213,22 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     try:
+        # ==================== HANDLE DIFFERENT INPUT TYPES ====================
+        if isinstance(pdf_source, (str, Path)):
+            # File path provided
+            pdf_path = Path(pdf_source)
+            if not pdf_path.exists():
+                raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+            pdf = pdfium.PdfDocument(str(pdf_path))
+            pdf_name = pdf_path.name
+        else:
+            # UploadFile object provided
+            # Read the uploaded file into memory
+            pdf_content = await pdf_source.read()
+            pdf = pdfium.PdfDocument(pdf_content)
+            pdf_name = pdf_source.filename
 
-        pdf_path = Path(pdf_source)
-
-        pdf = pdfium.PdfDocument(pdf_path)
-        pdf_name = pdf_path.filename
         file_root = pdf_name.replace(".pdf", "")
-
         n_pages = len(pdf)  # get the number of pages in the document
 
         page_indices = [i for i in range(n_pages)]  # all pages
@@ -352,7 +361,7 @@ async def upload_file(
             )
 
         # ==================== DETERMINE FILE TYPE & PROCESS ====================
-        file_extension = Path(file.filename).suffix.lower().lstrip('.')       
+        file_extension = Path(file.filename).suffix.lower().lstrip('.')
         if file_extension == "pdf":
             files_to_process = []
             # ==================== CONVERT PDF TO PNG ====================
