@@ -232,24 +232,33 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
         n_pages = len(pdf)  # get the number of pages in the document
 
         page_indices = [i for i in range(n_pages)]  # all pages
-        renderer = pdf.render(
-            pdfium.PdfBitmap.to_pil,
-            page_indices=page_indices,
-            scale=300 / 72  # 300 dpi
-        )
-
         converted_files = []
 
-        for i, pdf_page in zip(page_indices, renderer):
-            output_file = temp_dir + "/" + f"{file_root}_page_{i + 1}.png"
+        # Calculate scale factor for 300 DPI (300/72 ≈ 4.17x)
+        dpi_scale = 300 / 72
 
-            # Save at full DPI first
-            pdf_page.save(output_file, dpi=(300, 300))
+        for page_num in page_indices:
+            output_file = temp_dir / f"{file_root}_page_{page_num + 1}.png"
+            page = pdf[page_num] # Select the page object (PdfPage)
 
+            width = page.get_width()
+            height = page.get_height()
+
+            # Render page at 300 DPI
+            bitmap = pdfium.PdfBitmap.create(
+                int(width * dpi_scale),
+                int(height * dpi_scale),
+                pdfium.FPDF_ARGB,
+                None
+            )
+
+            page.render(bitmap, matrix=pdfium.PdfMatrix().scale(dpi_scale, dpi_scale))
+
+            pil_image = bitmap.to_pil() # Convert to PIL Image
+            pil_image.save(str(output_file), dpi=(300, 300))
             converted_files.append(str(output_file))
-
             logger.info(
-                f"📄 PDF page converted: {file_root} (page {i + 1}) "
+                f"📄 PDF page converted: {file_root} (page {page_num + 1}) "
                 f"→ {output_file}"
             )
 
