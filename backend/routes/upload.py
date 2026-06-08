@@ -451,12 +451,17 @@ async def upload_file(
             png_files = await convert_jpg_to_png(file)
         elif file_extension == "png":
             png_files = await save_upload_to_temp(file, temp_dir)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file format: {file_extension}"
+            )
 
         logger.info(f"🔄 Files to process: {png_files}")
 
-        # ==================== Get file type ====================
-        file_type = form_processor.extract_form_type_from_filename(
-            file.filename)
+        # ==================== GET FILE TYPE ====================
+        file_type = form_processor.extract_form_type_from_filename(file.filename)
+        logger.info(f"📋 Extracted form type: {file_type}")
 
         # ==================== PROCESS EACH PNG FILE ====================
         processing_ids = []
@@ -466,54 +471,56 @@ async def upload_file(
         first_existing_id = None
 
         for idx, png_file in enumerate(png_files):
-
             png_path = Path(png_file)
-            png_filename = png_path.name  # ✅ Get filename from Path object
+            png_filename = png_path.name
+            scaled_image_path = None
 
-            # ==================== CHECK IF FILE ALREADY EXISTS ====================
-            s3_key = f"form-documents/{file_type.lower()}/{png_filename}"
-            logger.info(f"S3 file name: {s3_key}\n")
-
-            mongo_exists, minio_exists, mongo_doc = await file_exists_in_storage(
-                storage_service, file.filename, s3_key
-            )
-
-            if mongo_exists and minio_exists:
-                if skip_existing:
-                    logger.info(f"⊘ Skipping existing file: {png_filename}")
-                    existing_id = mongo_doc.get("processingId")
-                    processing_ids.append(existing_id)
-
-                    # Store first page details for response
-                    if primary_processing_id is None:
-                        primary_processing_id = existing_id
-                        primary_form_type = mongo_doc.get("form_type", file_type)
-                        first_existing_id = existing_id
-
-                    continue  # Skip to next file
-                else:
-                    # File exists but skip_existing is False, so overwrite
-                    logger.info(f"⚠️  File exists but overwriting: {png_filename}")
-
-            # ==================== RESIZE IMAGE ====================
-            # Now resize the file from temp location
-            scaled_image_path = scale_image(str(png_path), max_width=800)
-            logger.info(f"🖼️  Image resized and saved to: {scaled_image_path}")
-
-            # ==================== PROCESS FORM ====================
-            logger.info(f"🔄 Processing form: {file.filename}")
             try:
+                logger.info(f"📄 Processing file {idx + 1}/{len(png_files)}: {png_filename}")
+
+                # ==================== CHECK IF FILE ALREADY EXISTS ====================
+                s3_key = f"form-documents/{file_type.lower()}/{png_filename}"
+                logger.info(f"S3 file key: {s3_key}")
+
+                mongo_exists, minio_exists, mongo_doc = await file_exists_in_storage(
+                    storage_service, png_filename, s3_key
+                )
+
+                if mongo_exists and minio_exists:
+                    if skip_existing:
+                        logger.info(f"⊘ Skipping existing file: {png_filename}")
+                        existing_id = mongo_doc.get("processingId")
+                        processing_ids.append(existing_id)
+
+                        # Store first page details for response
+                        if primary_processing_id is None:
+                            primary_processing_id = existing_id
+                            primary_form_type = mongo_doc.get("form_type", file_type)
+                            first_existing_id = existing_id
+
+                        continue  # Skip to next file
+                    else:
+                        # File exists but skip_existing is False, so overwrite
+                        logger.info(f"⚠️  File exists but overwriting: {png_filename}")
+
+                # ==================== RESIZE IMAGE ====================
+                scaled_image_path = scale_image(str(png_path), max_width=800)
+                logger.info(f"🖼️  Image resized and saved to: {scaled_image_path}")
+
+                # ==================== PROCESS FORM ====================
+                logger.info(f"🔄 Processing form: {png_filename}")
+
                 processing_result = await form_processor.process(
-                    image_path=str(scaled_image_path),  # ✅ Correct parameter name
-                    form_type=file_type,  # ✅ default is ITF
-                    # page_number=None,  # ✅ Optional: auto-detect from filename
+                    image_path=str(scaled_image_path),
+                    form_type=file_type,
+                    # page_number=idx + 1,  # ✅ Optional: page number for multi-page docs
                     # case_id=None,  # ✅ Optional
-                    save_to_storage=True,  # ✅ Save to MongoDB/MinIO
-                    process_with_agent=True,  # ✅ Use form agent
+                    save_to_storage=True,
+                    process_with_agent=True,
                 )
 
                 processing_id = processing_result.get("mongo_id") or str(uuid4())
-                form_type_result = processing_result.get("form_type", "UNKNOWN")
+                form_type_result = processing_result.get("form_type", file_type)
                 status_msg = processing_result.get("status", "processing")
 
                 processing_ids.append(processing_id)
@@ -529,16 +536,45 @@ async def upload_file(
                     f"page {idx + 1}/{len(png_files)})"
                 )
 
-                # Cleanup temp file on error
+                # ==================== CLEANUP SCALED IMAGE ====================
                 try:
-                    if png_path.exists():
-                        png_path.unlink()
-                        logger.info(f"🗑️  Cleaned up temp file: {png_path}")
-                    if scaled_image_path.exists():
-                        scaled_image_path.unlink()
+                    if scaled_image_path and Path(scaled_image_path).exists():
+                        Path(scaled_image_path).unlink()
                         logger.info(f"🗑️  Cleaned up scaled file: {scaled_image_path}")
                 except Exception as cleanup_error:
-                    logger.warning(f"⚠️  Cleanup failed: {cleanup_error}")
+                    logger.warning(f"⚠️  Failed to cleanup scaled file: {cleanup_error}")
+
+            except Exception as e:
+                logger.error(
+                    f"❌ Processing failed for file {idx + 1}/{len(png_files)}: {e}",
+                    exc_info=True
+                )
+                processing_errors.append({
+                    "file": png_filename,
+                    "page": idx + 1,
+                    "error": str(e)
+                })
+
+                # Cleanup on error
+                try:
+                    if scaled_image_path and Path(scaled_image_path).exists():
+                        Path(scaled_image_path).unlink()
+                        logger.info(f"🗑️  Cleaned up scaled file after error: {scaled_image_path}")
+                except Exception as cleanup_error:
+                    logger.warning(f"⚠️  Failed to cleanup: {cleanup_error}")
+
+                continue  # Continue processing remaining pages
+
+        # ==================== FINAL CLEANUP ====================
+        # Delete all converted PNG files
+        for png_file in png_files:
+            try:
+                png_path = Path(png_file)
+                if png_path.exists():
+                    png_path.unlink()
+                    logger.info(f"🗑️  Cleaned up PNG file: {png_file}")
+            except Exception as cleanup_error:
+                logger.warning(f"⚠️  Failed to cleanup PNG file: {cleanup_error}")
 
         # ==================== VALIDATE PROCESSING RESULTS ====================
         if not processing_ids:
@@ -578,6 +614,10 @@ async def upload_file(
             timestamp=datetime.now(UTC).isoformat(),
             file_name=file.filename,
             form_type=primary_form_type,
+            page_count=len(processing_ids),
+            total_pages=len(png_files),
+            processing_ids=processing_ids,
+            errors=processing_errors if processing_errors else None,
         )
 
     except HTTPException:
@@ -589,6 +629,7 @@ async def upload_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Upload processing failed: {str(e)}"
         )
+
 
 
 @router.get(

@@ -11,6 +11,10 @@ class ProcessingResponse(BaseModel):
     timestamp: str
     file_name: Optional[str] = None
     form_type: Optional[str] = None
+    page_count: Optional[int] = None
+    total_pages: Optional[int] = None
+    processing_ids: Optional[str] = None
+    errors: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):
