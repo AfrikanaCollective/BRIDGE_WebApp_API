@@ -241,6 +241,7 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
             output_file = temp_dir / f"{file_root}_page_{page_num + 1}.png"
             page = pdf[page_num] # Select the page object (PdfPage)
 
+            '''
             width = page.get_width()
             height = page.get_height()
 
@@ -253,8 +254,15 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
             )
 
             page.render(bitmap, matrix=pdfium.PdfMatrix().scale(dpi_scale, dpi_scale))
-
+            
             pil_image = bitmap.to_pil() # Convert to PIL Image
+            '''
+            # Render directly to PIL Image at specified DPI
+            pil_image = page.render(
+                scale=dpi_scale,
+                rotation=0
+            ).to_pil()
+
             pil_image.save(str(output_file), dpi=(300, 300))
             converted_files.append(str(output_file))
             logger.info(
