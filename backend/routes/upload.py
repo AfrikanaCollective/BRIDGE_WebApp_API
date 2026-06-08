@@ -7,6 +7,7 @@ Handles file uploads, validation, and processing pipeline.
 
 import logging
 from PIL import Image
+from io import BytesIO
 from uuid import uuid4
 from pathlib import Path
 import pypdfium2 as pdfium
@@ -94,7 +95,7 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
         await file.seek(0)
 
         logger.info(f"📁 File saved to temp: {temp_path}")
-        return temp_path
+        return [str(temp_path)]
 
     except Exception as e:
         logger.error(f"❌ Failed to save upload: {e}")
@@ -275,6 +276,84 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
             detail=f"Failed to convert PDF: {str(e)}"
         )
 
+async def convert_jpg_to_png(jpg_source) -> list[str]:
+    """
+    Convert JPG/JPEG images to PNG format at 300 DPI.
+    Saves converted PNGs to UPLOAD_TEMP_DIR for processing.
+
+    Args:
+        jpg_source: File path (str/Path) or file stream (UploadFile)
+
+    Returns:
+        List of Path strings pointing to converted PNG files
+
+    Raises:
+        HTTPException: If JPG processing fails
+    """
+
+    temp_dir = Path(settings.UPLOAD_TEMP_DIR)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # ==================== HANDLE DIFFERENT INPUT TYPES ====================
+        if isinstance(jpg_source, (str, Path)):
+            # File path provided
+            jpg_path = Path(jpg_source)
+            if not jpg_path.exists():
+                raise FileNotFoundError(f"JPG file not found: {jpg_path}")
+            pil_image = Image.open(jpg_path)
+            jpg_name = jpg_path.name
+        else:
+            # UploadFile object provided
+            # Read the uploaded file into memory
+            jpg_content = await jpg_source.read()
+            pil_image = Image.open(BytesIO(jpg_content))
+            jpg_name = jpg_source.filename
+
+        # Convert RGBA/other formats to RGB if necessary (PNG requires RGB for JPG conversion)
+        if pil_image.mode in ("RGBA", "LA", "P"):
+            # Create white background for transparency
+            background = Image.new("RGB", pil_image.size, (255, 255, 255))
+            background.paste(pil_image, mask=pil_image.split()[-1] if pil_image.mode == "RGBA" else None)
+            pil_image = background
+        elif pil_image.mode != "RGB":
+            pil_image = pil_image.convert("RGB")
+
+        file_root = jpg_name.rsplit(".", 1)[0]  # Remove extension
+        output_file = temp_dir / f"{file_root}.png"
+
+        # Save as PNG at 300 DPI
+        pil_image.save(str(output_file), dpi=(300, 300))
+        converted_files = [str(output_file)]
+
+        logger.info(
+            f"🖼️  JPG converted: {jpg_name} → {output_file} "
+            f"({pil_image.width}x{pil_image.height}px @ 300 DPI)"
+        )
+
+        return converted_files
+
+    except ImportError:
+        logger.error("❌ PIL/Pillow module not installed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Image processing library not available"
+        )
+
+    except FileNotFoundError as e:
+        logger.error(f"❌ JPG file not found: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"File not found: {str(e)}"
+        )
+
+    except Exception as e:
+        logger.error(f"❌ JPG conversion failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to convert JPG: {str(e)}"
+        )
+
 
 # ==================== ROUTES ====================
 @router.post(
@@ -340,6 +419,9 @@ async def upload_file(
 
     logger.info(f"📤 Upload request: {file.filename}")
 
+    # ==================== SAVE TO TEMP ====================
+    temp_dir = Path(settings.UPLOAD_TEMP_DIR)
+
     try:
         # ✅ CHANGE 1: Access FormProcessor from app.state
         form_processor = request.app.state.form_processor
@@ -364,92 +446,95 @@ async def upload_file(
         # ==================== DETERMINE FILE TYPE & PROCESS ====================
         file_extension = Path(file.filename).suffix.lower().lstrip('.')
         if file_extension == "pdf":
-            files_to_process = []
-            # ==================== CONVERT PDF TO PNG ====================
-            logger.info(f"🔄 Converting PDF to PNG: {file.filename}")
             png_files = await convert_pdf_to_png(file)
-            logger.info(f"🔄 Files to process: {png_files}")
+        elif file_extension in ["jpg", "jpeg"]:
+            png_files = await convert_jpg_to_png(file)
+        elif file_extension == "png":
+            png_files = await save_upload_to_temp(file, temp_dir)
 
-        # ==================== CHECK IF FILE ALREADY EXISTS ====================
+        logger.info(f"🔄 Files to process: {png_files}")
 
+        # ==================== Get file type ====================
         file_type = form_processor.extract_form_type_from_filename(
             file.filename)
-        s3_key = f"form-documents/{file_type.lower()}/{file.filename}"
 
-        mongo_exists, minio_exists, mongo_doc = await file_exists_in_storage(
-            storage_service, file.filename, s3_key
-        )
+        for idx, png_file in enumerate(png_files):
 
-        if mongo_exists and minio_exists:
-            if skip_existing:
-                logger.info(f"⊘ Skipping existing file: {file.filename}")
+            png_path = Path(png_file)
+
+            # ==================== CHECK IF FILE ALREADY EXISTS ====================
+            s3_key = f"form-documents/{file_type.lower()}/{png_path.filename}"
+
+            mongo_exists, minio_exists, mongo_doc = await file_exists_in_storage(
+                storage_service, file.filename, s3_key
+            )
+
+            if mongo_exists and minio_exists:
+                if skip_existing:
+                    logger.info(f"⊘ Skipping existing file: {png_path.filename}")
+                    return ProcessingResponse(
+                        processing_id=mongo_doc.get("processingId"),
+                        status=mongo_doc.get("status", "completed"),
+                        message=f"File already processed using processing_id: {mongo_doc.get('processingId')}. ",
+                        timestamp=datetime.now(UTC).isoformat(),
+                        file_name=file.filename,
+                        form_type=mongo_doc.get("form_type", "UNKNOWN"),
+                    )
+
+            # ==================== RESIZE IMAGE ====================
+            # Now resize the file from temp location
+            scaled_image_path = scale_image(str(png_path), max_width=800)
+            logger.info(f"🖼️  Image resized and saved to: {scaled_image_path}")
+
+            # ==================== PROCESS FORM ====================
+            logger.info(f"🔄 Processing form: {file.filename}")
+            try:
+                processing_result = await form_processor.process(
+                    image_path=str(scaled_image_path),  # ✅ Correct parameter name
+                    form_type=file_type,  # ✅ default is ITF
+                    # page_number=None,  # ✅ Optional: auto-detect from filename
+                    # case_id=None,  # ✅ Optional
+                    save_to_storage=True,  # ✅ Save to MongoDB/MinIO
+                    process_with_agent=True,  # ✅ Use form agent
+                )
+
+                processing_id = processing_result.get("mongo_id") or str(uuid4())
+                form_type = processing_result.get("form_type", "UNKNOWN")
+                status_msg = processing_result.get("status", "processing")
+
+                logger.info(
+                    f"✅ Processing started: {processing_id} "
+                    f"(form_type={form_type}, status={status_msg})"
+                )
+
                 return ProcessingResponse(
-                    processing_id=mongo_doc.get("processingId"),
-                    status=mongo_doc.get("status", "completed"),
-                    message=f"File already processed using processing_id: {mongo_doc.get('processingId')}. ",
+                    processing_id=processing_id,
+                    status=status_msg,
+                    message=f"Form processing initiated. "
+                            f"Track progress using processing_id: {processing_id}",
                     timestamp=datetime.now(UTC).isoformat(),
                     file_name=file.filename,
-                    form_type=mongo_doc.get("form_type", "UNKNOWN"),
+                    form_type=form_type,
                 )
-        # ==================== SAVE TO TEMP ====================
-        temp_dir = Path(settings.UPLOAD_TEMP_DIR)
-        temp_path = await save_upload_to_temp(file, temp_dir)
 
-        # ==================== RESIZE IMAGE ====================
-        # Now resize the file from temp location
-        scaled_image_path = scale_image(str(temp_path), max_width=800)
-        logger.info(f"🖼️  Image resized and saved to: {scaled_image_path}")
+            except Exception as e:
+                logger.error(f"❌ Processing failed: {e}", exc_info=True)
 
-        # ==================== PROCESS FORM ====================
-        logger.info(f"🔄 Processing form: {file.filename}")
-        try:
-            processing_result = await form_processor.process(
-                image_path=str(scaled_image_path),  # ✅ Correct parameter name
-                form_type=file_type,  # ✅ default is ITF
-                # page_number=None,  # ✅ Optional: auto-detect from filename
-                # case_id=None,  # ✅ Optional
-                save_to_storage=True,  # ✅ Save to MongoDB/MinIO
-                process_with_agent=True,  # ✅ Use form agent
-            )
-
-            processing_id = processing_result.get("mongo_id") or str(uuid4())
-            form_type = processing_result.get("form_type", "UNKNOWN")
-            status_msg = processing_result.get("status", "processing")
-
-            logger.info(
-                f"✅ Processing started: {processing_id} "
-                f"(form_type={form_type}, status={status_msg})"
-            )
-
-            return ProcessingResponse(
-                processing_id=processing_id,
-                status=status_msg,
-                message=f"Form processing initiated. "
-                        f"Track progress using processing_id: {processing_id}",
-                timestamp=datetime.now(UTC).isoformat(),
-                file_name=file.filename,
-                form_type=form_type,
-            )
-
-        except Exception as e:
-            logger.error(f"❌ Processing failed: {e}", exc_info=True)
-
-            # Cleanup temp file on error
-            try:
-                if temp_path.exists():
-                    temp_path.unlink()
-                    logger.info(f"🗑️  Cleaned up temp file: {temp_path}")
-                if scaled_image_path.exists():
-                    scaled_image_path.unlink()
-                    logger.info(f"🗑️  Cleaned up scaled file: {scaled_image_path}")
-            except Exception as cleanup_error:
-                logger.warning(f"⚠️  Cleanup failed: {cleanup_error}")
+                # Cleanup temp file on error
+                try:
+                    if png_path.exists():
+                        png_path.unlink()
+                        logger.info(f"🗑️  Cleaned up temp file: {png_path}")
+                    if scaled_image_path.exists():
+                        scaled_image_path.unlink()
+                        logger.info(f"🗑️  Cleaned up scaled file: {scaled_image_path}")
+                except Exception as cleanup_error:
+                    logger.warning(f"⚠️  Cleanup failed: {cleanup_error}")
 
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Form processing failed: {str(e)}"
             )
-
     except HTTPException:
         raise
 
