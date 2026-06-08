@@ -8,8 +8,8 @@ Handles file uploads, validation, and processing pipeline.
 import logging
 from PIL import Image
 from uuid import uuid4
-from io import BytesIO
 from pathlib import Path
+import pypdfium2 as pdfium
 from typing import Optional
 from datetime import datetime, UTC
 
@@ -194,6 +194,77 @@ def scale_image(image_source, max_width=800):
 
     return output_path
 
+async def convert_pdf_to_png(pdf_source) -> list[str]:
+    """
+    Convert PDF pages to PNG images with max width constraint.
+    Saves converted PNGs to UPLOAD_TEMP_DIR for processing.
+
+    Args:
+        pdf_source: File path (str/Path) or file stream (BytesIO)
+
+    Returns:
+        List of Path strings pointing to converted PNG files
+
+    Raises:
+        HTTPException: If PDF processing fails
+    """
+
+    temp_dir = Path(settings.UPLOAD_TEMP_DIR)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+
+        pdf_path = Path(pdf_source)
+
+        pdf = pdfium.PdfDocument(pdf_path)
+        pdf_name = pdf_path.filename
+        file_root = pdf_name.replace(".pdf", "")
+
+        n_pages = len(pdf)  # get the number of pages in the document
+
+        page_indices = [i for i in range(n_pages)]  # all pages
+        renderer = pdf.render(
+            pdfium.PdfBitmap.to_pil,
+            page_indices=page_indices,
+            scale=300 / 72  # 300 dpi
+        )
+
+        converted_files = []
+
+        for i, pdf_page in zip(page_indices, renderer):
+            output_file = temp_dir + "/" + f"{file_root}_page_{i + 1}.png"
+
+            # Save at full DPI first
+            pdf_page.save(output_file, dpi=(300, 300))
+
+            converted_files.append(str(output_file))
+
+            logger.info(
+                f"📄 PDF page converted: {file_root} (page {i + 1}) "
+                f"→ {output_file}"
+            )
+
+        logger.info(
+            f"✅ PDF conversion complete: {pdf_name} "
+            f"({n_pages} pages) → {temp_dir}"
+        )
+
+        return converted_files
+
+    except ImportError:
+        logger.error("❌ pdfium module not installed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="PDF processing library not available"
+        )
+
+    except Exception as e:
+        logger.error(f"❌ PDF conversion failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to convert PDF: {str(e)}"
+        )
+
 
 # ==================== ROUTES ====================
 @router.post(
@@ -279,6 +350,17 @@ async def upload_file(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=error_msg
             )
+
+        # ==================== DETERMINE FILE TYPE & PROCESS ====================
+        file_extension = file.filename.suffix.lower()
+        logger.info(f"🔄 File extension: {file_extension}")
+
+        if file_extension == ".pdf":
+            files_to_process = []
+            # ==================== CONVERT PDF TO PNG ====================
+            logger.info(f"🔄 Converting PDF to PNG: {file.filename}")
+            png_files = await convert_pdf_to_png(file)
+            logger.info(f"🔄 Files to process: {png_files}")
 
         # ==================== CHECK IF FILE ALREADY EXISTS ====================
 
