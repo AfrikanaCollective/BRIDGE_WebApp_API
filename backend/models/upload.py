@@ -1,7 +1,7 @@
 # backend/models/upload.py
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 class ProcessingResponse(BaseModel):
     """Response model for file processing."""
@@ -13,8 +13,8 @@ class ProcessingResponse(BaseModel):
     form_type: Optional[str] = None
     page_count: Optional[int] = None
     total_pages: Optional[int] = None
-    processing_ids: Optional[str] = None
-    errors: Optional[str] = None
+    processing_ids: Optional[List[str]] = None
+    errors: Optional[List[dict]] = None
 
 
 class ErrorResponse(BaseModel):
