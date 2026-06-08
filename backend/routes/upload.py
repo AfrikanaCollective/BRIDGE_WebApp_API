@@ -423,7 +423,7 @@ async def upload_file(
     temp_dir = Path(settings.UPLOAD_TEMP_DIR)
 
     try:
-        # ✅ CHANGE 1: Access FormProcessor from app.state
+        # Access FormProcessor from app.state
         form_processor = request.app.state.form_processor
         storage_service = request.app.state.storage
 
@@ -458,6 +458,13 @@ async def upload_file(
         file_type = form_processor.extract_form_type_from_filename(
             file.filename)
 
+        # ==================== PROCESS EACH PNG FILE ====================
+        processing_ids = []
+        processing_errors = []
+        primary_processing_id = None
+        primary_form_type = None
+        first_existing_id = None
+
         for idx, png_file in enumerate(png_files):
 
             png_path = Path(png_file)
@@ -474,14 +481,19 @@ async def upload_file(
             if mongo_exists and minio_exists:
                 if skip_existing:
                     logger.info(f"⊘ Skipping existing file: {png_filename}")
-                    return ProcessingResponse(
-                        processing_id=mongo_doc.get("processingId"),
-                        status=mongo_doc.get("status", "completed"),
-                        message=f"File already processed using processing_id: {mongo_doc.get('processingId')}. ",
-                        timestamp=datetime.now(UTC).isoformat(),
-                        file_name=file.filename,
-                        form_type=mongo_doc.get("form_type", "UNKNOWN"),
-                    )
+                    existing_id = mongo_doc.get("processingId")
+                    processing_ids.append(existing_id)
+
+                    # Store first page details for response
+                    if primary_processing_id is None:
+                        primary_processing_id = existing_id
+                        primary_form_type = mongo_doc.get("form_type", file_type)
+                        first_existing_id = existing_id
+
+                    continue  # Skip to next file
+                else:
+                    # File exists but skip_existing is False, so overwrite
+                    logger.info(f"⚠️  File exists but overwriting: {png_filename}")
 
             # ==================== RESIZE IMAGE ====================
             # Now resize the file from temp location
@@ -501,26 +513,21 @@ async def upload_file(
                 )
 
                 processing_id = processing_result.get("mongo_id") or str(uuid4())
-                form_type = processing_result.get("form_type", "UNKNOWN")
+                form_type_result = processing_result.get("form_type", "UNKNOWN")
                 status_msg = processing_result.get("status", "processing")
+
+                processing_ids.append(processing_id)
+
+                # Store first page details for response
+                if primary_processing_id is None:
+                    primary_processing_id = processing_id
+                    primary_form_type = form_type_result
 
                 logger.info(
                     f"✅ Processing started: {processing_id} "
-                    f"(form_type={form_type}, status={status_msg})"
+                    f"(form_type={form_type_result}, status={status_msg}, "
+                    f"page {idx + 1}/{len(png_files)})"
                 )
-
-                return ProcessingResponse(
-                    processing_id=processing_id,
-                    status=status_msg,
-                    message=f"Form processing initiated. "
-                            f"Track progress using processing_id: {processing_id}",
-                    timestamp=datetime.now(UTC).isoformat(),
-                    file_name=file.filename,
-                    form_type=form_type,
-                )
-
-            except Exception as e:
-                logger.error(f"❌ Processing failed: {e}", exc_info=True)
 
                 # Cleanup temp file on error
                 try:
@@ -533,10 +540,46 @@ async def upload_file(
                 except Exception as cleanup_error:
                     logger.warning(f"⚠️  Cleanup failed: {cleanup_error}")
 
+        # ==================== VALIDATE PROCESSING RESULTS ====================
+        if not processing_ids:
+            error_details = (
+                "\n".join([f"  - {e['file']} (page {e['page']}): {e['error']}"
+                           for e in processing_errors])
+                if processing_errors else "Unknown error"
+            )
+            logger.error(f"❌ All processing attempts failed:\n{error_details}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Form processing failed: {str(e)}"
+                detail=f"Form processing failed for all pages. Details: {error_details}"
             )
+
+        # ==================== BUILD RESPONSE MESSAGE ====================
+        if first_existing_id:
+            response_message = (
+                f"All {len(processing_ids)} pages already processed. "
+                f"Primary processing_id: {primary_processing_id}"
+            )
+        else:
+            response_message = (
+                f"Form processing initiated for {len(processing_ids)}/{len(png_files)} pages. "
+                f"Track progress using primary processing_id: {primary_processing_id}"
+            )
+
+        if processing_errors:
+            response_message += f"\n⚠️  {len(processing_errors)} page(s) failed: " \
+                                f"{', '.join([e['file'] for e in processing_errors])}"
+            logger.warning(f"⚠️  Processing completed with errors: {processing_errors}")
+
+        # ==================== RETURN RESPONSE ====================
+        return ProcessingResponse(
+            processing_id=primary_processing_id,
+            status="processing" if not first_existing_id else "completed",
+            message=response_message,
+            timestamp=datetime.now(UTC).isoformat(),
+            file_name=file.filename,
+            form_type=primary_form_type,
+        )
+
     except HTTPException:
         raise
 
