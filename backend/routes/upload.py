@@ -15,6 +15,8 @@ from typing import Optional
 from datetime import datetime, UTC
 
 from models.upload import ProcessingResponse
+from config.preprocessing_profiles import get_profile
+from services.preprocessing import AdaptivePreprocessor
 
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status, Form
 
@@ -462,6 +464,12 @@ async def upload_file(
         # ==================== GET FILE TYPE ====================
         file_type = form_processor.extract_form_type_from_filename(file.filename)
         logger.info(f"📋 Extracted form type: {file_type}")
+
+        # ==================== GET PRE-PROCESSOR ====================
+        profile = get_profile(file_type) # Get preprocessing profile
+        preprocessor = AdaptivePreprocessor(profile=profile)
+
+        logger.info(f"Using preprocessing profile for: {file_type or 'ITF (default)'}")
 
         # ==================== PROCESS EACH PNG FILE ====================
         processing_ids = []

@@ -1,6 +1,6 @@
 # backend/models/upload.py
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 
 class ProcessingResponse(BaseModel):
@@ -15,6 +15,11 @@ class ProcessingResponse(BaseModel):
     total_pages: Optional[int] = None
     processing_ids: Optional[List[str]] = None
     errors: Optional[List[dict]] = None
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        by_alias=True,  # ✅ Serialize using aliases
+    )
 
 
 class ErrorResponse(BaseModel):
