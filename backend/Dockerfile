@@ -14,14 +14,24 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     python3-dev \
     libyaml-dev \
-    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# Install OpenCV dependencies (headless)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    libgomp1 \
     libopenblas0 \
     liblapack3 \
+    libgomp1 \
+    libblas3 \
+    libjpeg-turbo8 \
+    libpng16-16 \
+    libtiff6 \
+    libwebp7 \
+    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
