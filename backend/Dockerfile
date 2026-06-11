@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 
-# Install OpenCV dependencies (headless)
+# Install OpenCV dependencies ( Ubuntu 22.04 compatible headless)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -27,10 +27,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     liblapack3 \
     libgomp1 \
     libblas3 \
-    libjpeg-turbo8 \
-    libpng16-16 \
+    # Image codecs (Ubuntu 22.04 versions) \
+    libjpeg62-turbo \
+    libpng16-16t64 \
     libtiff6 \
     libwebp7 \
+    # Additional \
     zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
