@@ -2,7 +2,6 @@
 """
 Upload route handler for form processing.
 Handles file uploads, validation, and processing pipeline.
-
 """
 
 import time
@@ -16,7 +15,7 @@ from typing import Optional
 from datetime import datetime, UTC
 
 from models.upload import ProcessingResponse
-from config.preprocessing_profiles import get_profile
+from config.preprocessing_profiles import get_profile, PreprocessingProfile
 from services.preprocessing import AdaptivePreprocessor
 
 from fastapi import APIRouter, UploadFile, File, Request, HTTPException, status, Form
@@ -27,7 +26,42 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 # ==================== HELPER FUNCTIONS ====================
+
+def _dict_to_profile(profile_dict: dict, name: str = "DEFAULT") -> PreprocessingProfile:
+    """
+    Convert dictionary profile to PreprocessingProfile dataclass.
+
+    Provides sensible defaults for missing extended attributes.
+
+    Args:
+        profile_dict: Dictionary with profile settings
+        name: Profile name
+
+    Returns:
+        PreprocessingProfile instance
+    """
+    return PreprocessingProfile(
+        name=name,
+        max_pixels=profile_dict.get("max_pixels", 1_800_000),
+        min_dpi=profile_dict.get("min_dpi", 150),
+        target_dpi=profile_dict.get("target_dpi", 240),
+        denoise=profile_dict.get("denoise", True),
+        enhance_contrast=profile_dict.get("enhance_contrast", True),
+        clahe_clip_limit=profile_dict.get("clahe_clip_limit", 1.8),
+        target_min_pixels=profile_dict.get("target_min_pixels", 600_000),
+        target_max_pixels=profile_dict.get("target_max_pixels", 1_200_000),
+        denoise_h=profile_dict.get("denoise_h", 6),
+        denoise_template_window=profile_dict.get("denoise_template_window", 7),
+        denoise_search_window=profile_dict.get("denoise_search_window", 21),
+        clahe_tile_grid_size=profile_dict.get("clahe_tile_grid_size", (8, 8)),
+        brightness_percentile_lower=profile_dict.get("brightness_percentile_lower", 2),
+        brightness_percentile_upper=profile_dict.get("brightness_percentile_upper", 98),
+        jpeg_denoise_reduction=profile_dict.get("jpeg_denoise_reduction", 0.7),
+    )
+
+
 async def validate_upload_file(file: UploadFile) -> tuple[bool, Optional[str]]:
     """
     Validate uploaded file.
@@ -107,6 +141,7 @@ async def save_upload_to_temp(file: UploadFile, temp_dir: Path) -> Path:
             detail=f"Failed to save uploaded file: {str(e)}"
         )
 
+
 async def file_exists_in_storage(
         storage_service,
         filename: str,
@@ -129,7 +164,6 @@ async def file_exists_in_storage(
     try:
         # Check MongoDB for existing record by filename
         mongo_doc = await storage_service.get_by_image_filename(filename)
-
 
         if mongo_doc:
             processing_id = mongo_doc.get("processingId")
@@ -159,6 +193,7 @@ async def file_exists_in_storage(
         logger.error(f"❌ Error checking file existence: {e}")
         # Don't fail the request, let processing continue
         return False, False, None
+
 
 async def convert_pdf_to_png(pdf_source) -> list[str]:
     """
@@ -205,7 +240,7 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
 
         for page_num in page_indices:
             output_file = temp_dir / f"{file_root}_page_{page_num + 1}.png"
-            page = pdf[page_num] # Select the page object (PdfPage)
+            page = pdf[page_num]  # Select the page object (PdfPage)
 
             # Render directly to PIL Image at specified DPI
             pil_image = page.render(
@@ -240,6 +275,7 @@ async def convert_pdf_to_png(pdf_source) -> list[str]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to convert PDF: {str(e)}"
         )
+
 
 async def convert_jpg_to_png(jpg_source) -> list[str]:
     """
@@ -429,10 +465,11 @@ async def upload_file(
         logger.info(f"📋 Extracted form type: {file_type}")
 
         # ==================== GET PRE-PROCESSOR ====================
-        profile = get_profile("HANDWRITTEN") # Get preprocessing profile
+        logger.info("Loading preprocessing profile: HANDWRITTEN")
+        profile_dict = get_profile("HANDWRITTEN")  # Get preprocessing profile dict
+        profile = _dict_to_profile(profile_dict, name="HANDWRITTEN")  # Convert to dataclass
         preprocessor = AdaptivePreprocessor(profile=profile)
-
-        logger.info(f"Using preprocessing profile for: {file_type or 'ITF (default)'}")
+        logger.info(f"✅ Preprocessor initialized for form type: {file_type or 'ITF (default)'}")
 
         # ==================== PROCESS EACH PNG FILE ====================
         processing_ids = []
@@ -477,13 +514,20 @@ async def upload_file(
                 # ==================== PREPROCESS & RESIZE (UNIFIED) ====================
                 t_preprocess_start = time.time()
 
-                processed_file_path = preprocessor.preprocess(
-                    image=str(png_path),
-                    current_dpi=300,
-                    resize_to_width=800,
-                    save_to_temp=True,
-                    original_filename=png_filename  # ← Maintains original filename
-                )
+                try:
+                    processed_file_path = preprocessor.preprocess(
+                        image=str(png_path),
+                        current_dpi=300,
+                        resize_to_width=800,
+                        save_to_temp=True,
+                        original_filename=png_filename  # ← Maintains original filename
+                    )
+                except Exception as preprocess_error:
+                    logger.error(
+                        f"❌ Preprocessing failed for {png_filename}: {preprocess_error}",
+                        exc_info=True
+                    )
+                    raise
 
                 preprocess_time = time.time() - t_preprocess_start
 
@@ -616,7 +660,6 @@ async def upload_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Upload processing failed: {str(e)}"
         )
-
 
 
 @router.get(
