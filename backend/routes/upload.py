@@ -5,6 +5,7 @@ Handles file uploads, validation, and processing pipeline.
 
 """
 
+import time
 import logging
 from PIL import Image
 from io import BytesIO
@@ -158,44 +159,6 @@ async def file_exists_in_storage(
         logger.error(f"❌ Error checking file existence: {e}")
         # Don't fail the request, let processing continue
         return False, False, None
-
-
-def scale_image(image_source, max_width=800):
-    """
-    Scale image to max width while maintaining aspect ratio and DPI.
-
-    Args:
-        image_source: File path (str/Path) or file stream (BytesIO)
-        max_width: Maximum width in pixels (default: 800)
-
-    Returns:
-        Path object pointing to scaled image file
-    """
-    img = Image.open(image_source)
-
-    # Get original DPI (default to 150 if not found)
-    original_dpi = img.info.get('dpi', (150, 150))
-
-    # Calculate new height maintaining aspect ratio
-    aspect_ratio = img.height / img.width
-    new_height = int(max_width * aspect_ratio)
-
-    # Resize
-    img_resized = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-
-    # Save to temp file with DPI preserved
-    temp_dir = Path(settings.UPLOAD_TEMP_DIR)
-    temp_dir.mkdir(parents=True, exist_ok=True)
-
-    output_path = Path(image_source)
-    img_resized.save(str(output_path), format='PNG', dpi=original_dpi)
-
-    logger.info(
-        f"🖼️  Image scaled: {img.width}x{img.height} → {max_width}x{new_height} "
-        f"(DPI: {original_dpi}) → {output_path}"
-    )
-
-    return output_path
 
 async def convert_pdf_to_png(pdf_source) -> list[str]:
     """
@@ -466,7 +429,7 @@ async def upload_file(
         logger.info(f"📋 Extracted form type: {file_type}")
 
         # ==================== GET PRE-PROCESSOR ====================
-        profile = get_profile(file_type) # Get preprocessing profile
+        profile = get_profile("HANDWRITTEN") # Get preprocessing profile
         preprocessor = AdaptivePreprocessor(profile=profile)
 
         logger.info(f"Using preprocessing profile for: {file_type or 'ITF (default)'}")
@@ -511,15 +474,31 @@ async def upload_file(
                         # File exists but skip_existing is False, so overwrite
                         logger.info(f"⚠️  File exists but overwriting: {png_filename}")
 
-                # ==================== RESIZE IMAGE ====================
-                scaled_image_path = scale_image(str(png_path), max_width=800)
-                logger.info(f"🖼️  Image resized and saved to: {scaled_image_path}")
+                # ==================== PREPROCESS & RESIZE (UNIFIED) ====================
+                t_preprocess_start = time.time()
+
+                processed_file_path = preprocessor.preprocess(
+                    image=str(png_path),
+                    current_dpi=300,
+                    resize_to_width=800,
+                    save_to_temp=True,
+                    original_filename=png_filename  # ← Maintains original filename
+                )
+
+                preprocess_time = time.time() - t_preprocess_start
+
+                processed_image = Image.open(processed_file_path)
+                logger.info(
+                    f"🎨 Page {idx + 1} preprocessed & resized: {processed_image.size} "
+                    f"({processed_image.size[0] * processed_image.size[1]:,} pixels) "
+                    f"in {preprocess_time:.3f}s → {processed_file_path}"
+                )
 
                 # ==================== PROCESS FORM ====================
                 logger.info(f"🔄 Processing form: {png_filename}")
 
                 processing_result = await form_processor.process(
-                    image_path=str(scaled_image_path),
+                    image_path=str(processed_file_path),
                     form_type=file_type,
                     # page_number=idx + 1,  # ✅ Optional: page number for multi-page docs
                     # case_id=None,  # ✅ Optional

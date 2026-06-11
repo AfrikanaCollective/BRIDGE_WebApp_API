@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional, List
 from dataclasses import dataclass
 
-ALLOWED_EXTENSIONS: List[str] = ["png"]
+ALLOWED_EXTENSIONS: List[str] = ["png", "pdf", "jpg", "jpeg"]
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
