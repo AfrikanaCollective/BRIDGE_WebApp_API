@@ -12,6 +12,7 @@ Usage:
 import sys
 import json
 import click
+import random
 import asyncio
 import logging
 import subprocess
@@ -56,17 +57,32 @@ class BulkUploadCLI:
         self.api_url = api_url
         self.results: List[UploadResult] = []
 
-    def _find_image_files(self, directory: Path, recursive: bool = False, ) -> \
-    List[Path]:
+
+    def _find_image_files(
+            self,
+            directory: Path,
+            recursive: bool = False,
+            file_type: Optional[str] = None,
+            shuffle: bool = False,
+    ) -> List[Path]:
         """
         Find all image files in directory.
 
         Args:
             directory: Directory to search
             recursive: Whether to search subdirectories
+            file_type: Optional file type filter (e.g., 'ITF', 'NAR', 'DSC').
+                       If provided, only files with this substring in name followed
+                       by an underscore (i.e. "ITF_") with the optional underscore
+                       before (i.e. "_ITF_") are returned.
+                       Matches patterns: "ITF_", "_ITF_".
+            shuffle: Whether to return shuffled list (only applies when file_type
+                     is specified). Default: False (returns sorted list)
 
         Returns:
-            List of image file paths
+            List of image file paths, shuffled if file_type is provided and
+            shuffle=True, otherwise sorted
+
         """
         image_extensions = {
         ext if ext.startswith(".") else f".{ext}"
@@ -76,14 +92,42 @@ class BulkUploadCLI:
         if not directory.exists():
             raise ValueError(f"Directory not found: {directory}")
 
-        if recursive:
-            files = [f for f in directory.rglob("*") if
-                f.is_file() and f.suffix.lower() in image_extensions]
-        else:
-            files = [f for f in directory.glob("*") if
-                f.is_file() and f.suffix.lower() in image_extensions]
+        # ==================== HELPER: CHECK FILE TYPE IN NAME ====================
+        def matches_file_type(filename: str, file_type: str) -> bool:
+            """
+            Check if filename contains file_type with pattern:
+            - "ITF_" (file_type followed by underscore)
+            - "_ITF_" (underscore, file_type, underscore)
+            """
+            file_type_upper = file_type.upper()
+            return (
+                    f"{file_type_upper}_" in filename.upper() or
+                    f"_{file_type_upper}_" in filename.upper()
+            )
 
-        return sorted(files)
+        # ==================== FILTER BY FILE TYPE IF PROVIDED ====================
+        if file_type is not None:
+            if recursive:
+                files = [
+                    f for f in directory.rglob("*")
+                    if (f.is_file() and
+                        f.suffix.lower() in image_extensions and
+                        matches_file_type(f.name, file_type))
+                ]
+            else:
+                files = [
+                    f for f in directory.glob("*")
+                    if (f.is_file() and
+                        f.suffix.lower() in image_extensions and
+                        matches_file_type(f.name, file_type))
+                ]
+
+        # Return shuffled or sorted
+        if shuffle:
+            random.shuffle(files)
+            return files
+        else:
+            return sorted(files)
 
     def _upload_file(self,
                      file_path: Path,
@@ -212,11 +256,15 @@ class BulkUploadCLI:
         logger.info(f"📁 Processing directory: {directory}")
         logger.info(f"   Recursive: {recursive}")
         logger.info(f"   Skip existing: {skip_existing}")
-        if form_type:
-            logger.info(f"   Form type: {form_type}")
 
         # Find all image files
-        files = self._find_image_files(directory, recursive=recursive)
+        if form_type:
+            logger.info(f"   Form type: {form_type}")
+            files = self._find_image_files(directory, recursive=recursive, file_type=form_type, shuffle=True)
+        else:
+            files = self._find_image_files(directory, recursive=recursive)
+
+
         if not files:
             logger.warning(f"⚠️  No image files found in {directory}")
             return BulkUploadSummary(
