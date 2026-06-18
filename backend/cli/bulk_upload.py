@@ -179,6 +179,7 @@ class BulkUploadCLI:
             # Parse response (last line is HTTP status code)
             lines = result.stdout.strip().split("\n")
             if len(lines) < 2:
+                logger.info(f"⊘Empty response : {lines}\n\n")
                 return UploadResult(
                     file_path=file_path,
                     success=False,
@@ -407,7 +408,7 @@ def bulk_upload(
         python -m backend.cli.bulk_upload --directory ./bridge_images --recursive
 
         # Process single file with form type override
-        python -m backend.cli.bulk_upload --file ./bridge_images/form_001.png --form-type ITF
+        python -m backend.cli.bulk_upload --file ./bridge_images/form_001.png --form-type NAR
 
         # Process directory, skip existing files
         python -m backend.cli.bulk_upload --directory ./bridge_images --skip-existing
