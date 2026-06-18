@@ -75,6 +75,21 @@ class NARAgent:
 
             logger.info(f"✅ Extracted {len(form_data)} fields from form")
 
+            # Step 0: Flatten nested json file
+            logger.info(f"STEP 3.5: Flattening nested JSON...")
+            form_data = self._flatten_nested_json(form_data)
+            logger.info(f"✅ Flattened JSON structure")
+
+            # Step 0.1: Fix prefixed keys (rare case <5%)
+            logger.info(f"STEP 3.6: Fixing prefixed keys...")
+            form_data = self._fix_prefixed_keys(form_data)
+            logger.info(f"✅ Fixed prefixed keys")
+
+            # Step 0.2: Collapse option keys (Y/N, Pos/Neg, etc.)
+            logger.info(f"STEP 3.75: Collapsing option keys...")
+            form_data = self._collapse_option_keys(form_data)
+            logger.info(f"✅ Collapsed option keys")
+
             # Step 1: Normalize field names using schema
             logger.info(f"STEP 4: Normalizing field names...")
             normalized_data = self._normalize_field_names(form_data)
@@ -222,6 +237,246 @@ class NARAgent:
         logger.warning(f"⚠️  JSON parsing failed, attempting manual extraction")
         return self._extract_kvpairs_from_malformed_json(json_str)
 
+    def _flatten_nested_json(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Recursively flatten nested JSON structure until only leaf key:value pairs remain.
+
+        Handles multiple flattening scenarios:
+        1. Top-level sections like "A: Mother's details", "B: Labour and Birth", "C: Infant Details"
+        2. Arbitrary nested dictionaries at any level (e.g., 'Labour', 'Delivery', 'Preventive care given')
+        3. Mixed structures with both top-level fields and nested dictionaries
+
+        All nested dictionaries are recursively flattened into a single flat dictionary.
+
+        Args:
+            data: Input JSON dictionary with possible nested sections and sub-sections
+
+        Returns:
+            Completely flattened dictionary with only leaf key:value pairs at the top level
+        """
+
+        def _recursive_flatten(obj: Any, parent_path: str = "") -> Dict[str, Any]:
+            """
+            Recursively flatten an object, handling dictionaries and leaf values.
+
+            Args:
+                obj: The object to flatten (dict, list, or scalar value)
+                parent_path: The path to the current object (for logging)
+
+            Returns:
+                Flattened dictionary with leaf key:value pairs
+            """
+            result = {}
+
+            if not isinstance(obj, dict):
+                logger.warning(
+                    f"⚠️  Expected dict at '{parent_path}', got {type(obj).__name__}. "
+                    f"Skipping this branch.")
+                return result
+
+            for key, value in obj.items():
+                current_path = f"{parent_path}.{key}" if parent_path else key
+
+                # If value is a dictionary, recursively flatten it
+                if isinstance(value, dict):
+                    logger.debug(
+                        f"📂 Recursing into nested dict: '{current_path}' "
+                        f"with {len(value)} fields")
+                    nested_flattened = _recursive_flatten(value, current_path)
+                    result.update(nested_flattened)
+                else:
+                    # Leaf value - add to result
+                    result[key] = value
+                    logger.debug(f"✅ Extracted leaf: {key} = {value}")
+
+            return result
+
+        # Check if any top-level values are dictionaries (indicates nesting)
+        has_nested_dicts = any(
+            isinstance(value, dict) for value in data.values())
+
+        if not has_nested_dicts:
+            logger.debug(
+                "⏭️  JSON is already completely flat. Returning as-is.")
+            return data
+
+        logger.info(f"✅ Found nested structure. "
+                    f"Nested dicts: {sum(1 for v in data.values() if isinstance(v, dict))}")
+
+        # Recursively flatten all nested structures
+        flattened = _recursive_flatten(data)
+
+        logger.info(f"✅ Successfully flattened JSON recursively: "
+                    f"{len(data)} top-level keys → {len(flattened)} leaf fields")
+
+        return flattened
+
+    def _fix_prefixed_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Fix keys that have prefixes (e.g., F1_, F2_, G_, H_, I_, J_, K_) with underscores.
+
+        This pattern occurs in <5% of NAR JSON outputs where:
+        1. Keys have section prefixes like F1_, F2_, G_, H_, I_, J_, K_
+        2. Spaces in original field names are replaced with underscores
+
+        Transformation:
+        - Remove the section prefix (F1_, F2_, etc.)
+        - Replace underscores with spaces to restore original field names
+
+        Example:
+            Input:  "F1_Capillary_refill_(Sternal)": "2 seconds"
+            Output: "Capillary refill (Sternal)": "2 seconds"
+
+            Input:  "J_Vit_K_&_TEO": "Y"
+            Output: "Vit K & TEO": "Y"
+
+        Args:
+            data: Flattened dictionary with potential prefixed keys
+
+        Returns:
+            Dictionary with fixed keys (prefixes removed, underscores converted to spaces)
+        """
+
+        # Pattern to identify keys with section prefixes
+        # Matches: F1_, F2_, G_, H_, I_, J_, K_, etc. at the start
+        section_prefix_pattern = r'^[A-Z]\d*_'
+
+        fixed = {}
+        keys_fixed = 0
+
+        for key, value in data.items():
+            # Check if key matches the prefix pattern
+            if re.match(section_prefix_pattern, key):
+                # Remove the prefix (everything up to and including the first underscore)
+                fixed_key = re.sub(section_prefix_pattern, '', key)
+
+                # Replace underscores with spaces
+                fixed_key = fixed_key.replace('_', ' ')
+
+                fixed[fixed_key] = value
+                keys_fixed += 1
+
+                logger.debug(f"✅ Fixed prefixed key: '{key}' → '{fixed_key}'")
+            else:
+                # Keep key as-is if it doesn't have a prefix
+                fixed[key] = value
+
+        if keys_fixed > 0:
+            logger.info(f"✅ Fixed {keys_fixed} prefixed keys "
+                        f"(removed section prefixes and converted underscores to spaces)")
+        else:
+            logger.debug("⏭️  No prefixed keys found - keys are already clean")
+
+        return fixed
+
+
+
+    def _collapse_option_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Collapse repeated keys with Y/N/Pos/Neg/Unkn suffixes into single keys.
+
+        Handles patterns like:
+        - "Fever Y": "N/A", "Fever N": "N" → "Fever": "N"
+        - "Blood group A": "A", "Blood group B": "N/A" → "Blood group": "A"
+        - "PMTCT status Pos": "N/A", "PMTCT status Neg": "Neg" → "PMTCT status": "Neg"
+
+        Priority order for non-N/A values:
+        1. Keep any non-N/A value
+        2. If multiple non-N/A values exist, prefer Y/True over N/False
+        3. Keep the first non-N/A value found
+
+        Args:
+            data: Flattened dictionary with potential option suffixes
+
+        Returns:
+            Dictionary with collapsed keys
+        """
+        # Define option suffixes to look for
+        option_suffixes = [
+            ' Y', ' N',  # Yes/No
+            ' Pos', ' Neg', ' Unkn',  # Positive/Negative/Unknown
+            ' A', ' B', ' AB', ' O',  # Blood groups
+            ' Post', ' Neg', ' Unkn',  # Rhesus groups (handled separately)
+            ' Emergency', ' Elective',  # CS type
+            ' <18', ' >=18h', ' Unkn',  # ROM (rupture of membranes)
+            ' Home/roadside', ' Other facility',  # Birth location
+            ' SVD', ' CS', ' Breech', ' Forceps', ' Vacuum',  # Delivery method
+        ]
+
+        # Track which keys have been processed to avoid duplicates
+        processed_base_keys = set()
+        collapsed = {}
+
+        # First pass: identify groups of related keys
+        key_groups = {}  # Maps base_key to list of (full_key, value) pairs
+
+        for full_key, value in data.items():
+            base_key = full_key
+            found_suffix = False
+
+            # Check if this key ends with any known option suffix
+            for suffix in option_suffixes:
+                if full_key.endswith(suffix):
+                    base_key = full_key[:-len(suffix)].strip()
+                    found_suffix = True
+                    break
+
+            if found_suffix:
+                if base_key not in key_groups:
+                    key_groups[base_key] = []
+                key_groups[base_key].append((full_key, value))
+            else:
+                # Not an option key, keep as-is
+                if base_key not in processed_base_keys:
+                    collapsed[full_key] = value
+
+        # Second pass: collapse option groups
+        for base_key, option_pairs in key_groups.items():
+            # Find the best value from the options
+            best_value = None
+            best_key = None
+            prefer_yes = False  # Track if we found a "Y" suffix
+
+            for full_key, value in option_pairs:
+                val_str = str(value).strip()
+
+                # Skip N/A and empty values
+                if val_str.upper() in ['N/A', 'NA', '']:
+                    continue
+
+                # If we haven't found a non-N/A value yet, use this one
+                if best_value is None:
+                    best_value = value
+                    best_key = full_key
+                    # Check if this ends with Y (preference for Yes)
+                    if full_key.endswith(' Y'):
+                        prefer_yes = True
+                else:
+                    # If this is better (Y over N), prefer it
+                    if full_key.endswith(' Y') and not prefer_yes:
+                        best_value = value
+                        best_key = full_key
+                        prefer_yes = True
+                    # If both are non-N/A and neither is Y, keep the first one
+
+            # Add collapsed key if we found a valid value
+            if best_value is not None:
+                collapsed[base_key] = best_value
+
+                # Log the collapse
+                suffix_info = ', '.join([fk.replace(base_key, '').strip() for fk, _ in option_pairs])
+                logger.debug(
+                    f"✅ Collapsed '{base_key}' options [{suffix_info}] → '{base_key}': {best_value}")
+            else:
+                # All values were N/A, skip this group entirely
+                logger.debug(
+                    f"⏭️  Skipped '{base_key}' - all option values are N/A")
+
+        logger.info(f"✅ Collapsed option keys: {len(data)} keys → {len(collapsed)} keys "
+                    f"(collapsed {len(key_groups)} groups)")
+
+        return collapsed
+
     def _extract_kvpairs_from_malformed_json(self, json_str: str) -> Optional[Dict[str, Any]]:
         """Extract key-value pairs from heavily malformed JSON using regex."""
         try:
@@ -335,7 +590,7 @@ class NARAgent:
                 val_str = str(value).strip()
 
                 # Skip empty or placeholder values
-                if val_str in ['', 'N/A', 'n/a', 'NA', 'na']:
+                if val_str in ['', 'N/A', 'n/a', 'NA', 'na', 'unknown', 'unkn', 'Unknown', 'UNKNOWN']:
                     logger.debug(f"⏭️  Skipping N/A value: {raw_key} = {val_str}")
                     continue
 
