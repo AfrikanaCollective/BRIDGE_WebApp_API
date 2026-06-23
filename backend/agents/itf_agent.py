@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
+from config import settings
 from agents.itf_tools import ITFTools
 from agents.config import get_form_schema, ClinicalCategory, FieldType
 
@@ -68,6 +69,11 @@ class ITFAgent:
 
             # Step 0: Flatten json file
             form_data = self._flatten_nested_json(form_data)
+
+            # Step 0.5: Extract numeric values from fields with text suffixes
+            logger.info(f"STEP 0.5: Extracting numeric values from suffix fields...")
+            form_data = self._extract_numeric_values(form_data)
+            logger.info(f"✅ Extracted numeric values from suffix fields")
 
             # Step 1: Normalize field names using schema
             normalized_data = self._normalize_field_names(form_data)
@@ -369,6 +375,138 @@ class ITFAgent:
             logger.warning(f"⚠️  No key:value pairs found in text format")
 
         return form_data
+
+    def _extract_numeric_values(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract numeric values from fields with text suffixes.
+
+        Some variables come with unit suffixes (e.g., "Pulse Rate": "120 bpm")
+        but are defined in schema as numeric/integer types.
+
+        This step extracts only the numeric part for fields with INTEGER or FLOAT types
+        in the schema, or fields listed in settings.NUMERIC_SUFFIX_EXTRACTION_FIELDS.
+
+        Placeholder values defined in settings.PLACEHOLDER_VALUES are preserved as-is.
+
+        Examples:
+            "120 bpm" -> "120"
+            "5.8 °C" -> "5.8"
+            "2 seconds" -> "2"
+            "N/A" -> "N/A" (preserved)
+            "Unknown" -> "Unknown" (preserved)
+            "Normal" -> "Normal" (non-numeric, unchanged)
+
+        Args:
+            data: Flattened dictionary with raw extracted values
+
+        Returns:
+            Dictionary with numeric values extracted for specified fields
+        """
+
+        schema_fields = self._get_all_schema_fields()
+
+        # Get placeholder values from settings
+        placeholder_values = set(settings.PLACEHOLDER_VALUES)
+
+        # Build set of fields that should have numeric extraction
+        # Include: 1) Schema fields with INTEGER or FLOAT type
+        #          2) Fields listed in settings.NUMERIC_SUFFIX_EXTRACTION_FIELDS
+        extraction_fields_set = set()
+
+        # Add all schema fields with numeric types
+        for schema_key, field_def in schema_fields.items():
+            if isinstance(field_def, dict):
+                field_type = field_def.get('type')
+                if field_type in [FieldType.INTEGER, FieldType.FLOAT]:
+                    # Normalize field key for comparison
+                    normalized_key = (
+                        schema_key.lower()
+                        .replace(' ', '_')
+                        .replace('(', '')
+                        .replace(')', '')
+                        .replace('.', '')
+                        .replace(',', '')
+                        .replace('?', '')
+                    )
+                    extraction_fields_set.add(normalized_key)
+                    logger.debug(f"✅ Added numeric field from schema: {schema_key} ({field_type})")
+
+        # Add fields from settings configuration
+        for field_name in settings.NUMERIC_SUFFIX_EXTRACTION_FIELDS:
+            normalized_field = (
+                field_name.lower()
+                .replace(' ', '_')
+                .replace('(', '')
+                .replace(')', '')
+                .replace('.', '')
+                .replace(',', '')
+                .replace('?', '')
+            )
+            extraction_fields_set.add(normalized_field)
+            logger.debug(f"✅ Added field from settings: {field_name}")
+
+        if not extraction_fields_set:
+            logger.debug("⏭️  No numeric extraction fields configured")
+            return data
+
+        logger.info(f"🔢 Numeric suffix extraction configured for {len(extraction_fields_set)} fields")
+
+        extracted = {}
+        fields_processed = 0
+        fields_skipped = 0
+
+        for key, value in data.items():
+            # Normalize key for comparison
+            key_normalized = (
+                key.lower()
+                .replace(' ', '_')
+                .replace('(', '')
+                .replace(')', '')
+                .replace('.', '')
+                .replace(',', '')
+                .replace('?', '')
+            )
+
+            # Check if this field should have numeric extraction
+            if key_normalized in extraction_fields_set:
+                val_str = str(value).strip()
+
+                # Check if value is a placeholder - if so, preserve it
+                if val_str in placeholder_values:
+                    extracted[key] = value
+                    logger.debug(f"⏭️  Preserving placeholder value: {key} = '{val_str}'")
+                    fields_skipped += 1
+                    continue
+
+                # Try to extract numeric value (integer or float)
+                # Pattern: optional +/-, one or more digits, optional decimal point and more digits
+                numeric_match = re.search(r'^([-+]?\d*\.?\d+)', val_str)
+
+                if numeric_match:
+                    numeric_value = numeric_match.group(1)
+                    extracted[key] = numeric_value
+                    fields_processed += 1
+
+                    # Log the extraction
+                    if numeric_value != val_str:
+                        logger.debug(f"✅ Extracted numeric: '{key}' = '{val_str}' → '{numeric_value}'")
+                    else:
+                        logger.debug(f"⏭️  Already numeric: '{key}' = '{val_str}'")
+                else:
+                    # No numeric value found, keep original
+                    extracted[key] = value
+                    logger.debug(f"⚠️  No numeric value found: '{key}' = '{val_str}'")
+            else:
+                # Field not in extraction list, keep as-is
+                extracted[key] = value
+
+        if fields_processed > 0:
+            logger.info(f"✅ Extracted numeric values from {fields_processed} fields "
+                        f"({fields_skipped} skipped as placeholder values)")
+        else:
+            logger.debug("⏭️  No numeric suffix extraction applied")
+
+        return extracted
 
     def _get_all_schema_fields(self) -> Dict[str, Dict[str, Any]]:
         """Get all fields from ITF schema."""

@@ -101,6 +101,43 @@ class Settings(BaseSettings):
         default=["NAR"]
     )
 
+   # ==================== Key numeric types ====================
+    NUMERIC_SUFFIX_EXTRACTION_FIELDS: List[str] = Field(
+        default=[
+            "Age (in years)",
+            "Gravida",
+            "Gestation (in weeks)",
+            "ANC no. of visits",
+            "If YES, number",
+            "No of doses",
+            "Resuscitation duration (min)",
+            "Pulse Rate",
+            "Temp",
+            "Resp Rate",
+            "APGAR Score 1M",
+            "APGAR Score 5M",
+            "APGAR Score 10M",
+            "Birth Weight (grams)",
+            "Weight now (grams)"
+        ]
+    )
+
+    PLACEHOLDER_VALUES: List[str] = Field(
+        default=[
+            '',
+            'N/A',
+            'n/a',
+            'NA',
+            'na',
+            'null',
+            'Null',
+            'NULL',
+            '-',
+            '--',
+            '---'
+        ]
+    )
+
     # ==================== Environment ====================
     ENVIRONMENT: str = Field(default="development")  # development, production
 
@@ -206,10 +243,69 @@ class Settings(BaseSettings):
             return v
         return ["NAR"]
 
-    def __init__(self, **data):
-        """Initialize settings and log configuration."""
-        super().__init__(**data)
-        self.log_configuration()
+    @field_validator('NUMERIC_SUFFIX_EXTRACTION_FIELDS', mode='before')
+    @classmethod
+    def parse_numeric_suffix_fields(cls, v):
+        """Parse NUMERIC_SUFFIX_EXTRACTION_FIELDS from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse NUMERIC_SUFFIX_EXTRACTION_FIELDS JSON: {e}")
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return [
+            "Heart Rate",
+            "Respiratory Rate",
+            "Temperature",
+            "Blood Pressure",
+            "Blood Glucose",
+            "RBS",
+            "Bilirubin",
+            "Total serum bilirubin",
+            "Hemoglobin",
+            "Hematocrit",
+            "Weight",
+            "Length",
+            "Head Circumference",
+            "Chest Circumference",
+            "Capillary refill",
+            "Oxygen Saturation",
+            "SpO2"
+        ]
+
+    @field_validator('PLACEHOLDER_VALUES', mode='before')
+    @classmethod
+    def parse_placeholder_vals(cls, v):
+        """Parse PLACEHOLDER_VALUES from JSON string or list"""
+        if isinstance(v, str):
+            try:
+                v = v.strip().strip("'\"")
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️  Failed to parse PLACEHOLDER_VALUES JSON: {e}")
+                return [v]
+        elif isinstance(v, list):
+            return v
+        return [
+            '',
+            'N/A',
+            'n/a',
+            'NA',
+            'na',
+            'null',
+            'Null',
+            'NULL',
+            '-',
+            '--',
+            '---'
+        ]
 
     @field_validator('ALLOWED_EXTENSIONS', mode='before')
     @classmethod
