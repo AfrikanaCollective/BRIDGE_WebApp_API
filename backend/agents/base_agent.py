@@ -210,7 +210,7 @@ class BaseAgent(ABC):
                     "total_risk_flags": len(
                         self._flatten_risk_flags(risk_flags)
                     ),
-                    "schema_fields": len(self._get_all_schema_fields()),
+                    "schema_fields": len(self._get_canonical_schema_fields()),
                 },
             }
 
@@ -363,18 +363,41 @@ class BaseAgent(ABC):
             if isinstance(defn, dict)
         }
 
-    def _normalize_field_names(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Map raw LLM keys to canonical schema keys; discard unrecognised keys."""
-        schema_fields = self._get_all_schema_fields()
+    def _get_canonical_schema_fields(self) -> Dict[str, Dict[str, Any]]:
+        """Return schema fields keyed by _key_token(description), deduplicated.
 
-        schema_map = {
-            self._key_token(k): k for k in schema_fields
-        }
+        Schema entries sharing the same description (synonyms) collapse to one
+        entry; the first occurrence in schema definition order wins.
+        """
+        seen: Dict[str, Dict[str, Any]] = {}
+        for field_def in self._get_all_schema_fields().values():
+            desc = field_def.get("description", "")
+            if not desc:
+                continue
+            canon = self._key_token(desc)
+            if canon not in seen:
+                seen[canon] = field_def
+        return seen
+
+    def _normalize_field_names(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Map raw LLM keys to canonical description-token keys; discard unrecognised keys.
+
+        Schema entries with identical descriptions (synonyms such as
+        'APGAR Score 1M' / 'APGAR 1M') collapse to a single output key
+        derived from _key_token(description).
+        """
+        # schema_key_token → canonical description token
+        schema_map: Dict[str, str] = {}
+        for schema_key, field_def in self._get_all_schema_fields().items():
+            desc = field_def.get("description", "")
+            canon = self._key_token(desc) if desc else self._key_token(schema_key)
+            schema_map[self._key_token(schema_key)] = canon
+
         logger.debug(
             f"Schema field map created with {len(schema_map)} entries"
         )
 
-        normalized = {}
+        normalized: Dict[str, Any] = {}
         for raw_key, value in data.items():
             try:
                 val_str = str(value).strip()
@@ -386,10 +409,10 @@ class BaseAgent(ABC):
                         f"⏭️  Skipping N/A value: {raw_key} = {val_str}"
                     )
                     continue
-                schema_key = schema_map.get(self._key_token(raw_key))
-                if schema_key:
-                    normalized[schema_key] = value
-                    logger.debug(f"✅ Matched '{raw_key}' → '{schema_key}'")
+                canon_key = schema_map.get(self._key_token(raw_key))
+                if canon_key:
+                    normalized[canon_key] = value
+                    logger.debug(f"✅ Matched '{raw_key}' → '{canon_key}'")
                 else:
                     logger.debug(
                         f"⏭️  Skipping '{raw_key}' - NOT IN SCHEMA"
@@ -404,7 +427,7 @@ class BaseAgent(ABC):
 
     def _convert_field_types(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Convert raw string values to typed values according to the schema."""
-        schema_fields = self._get_all_schema_fields()
+        schema_fields = self._get_canonical_schema_fields()
         converted = {}
 
         for schema_key, raw_value in data.items():
@@ -537,7 +560,7 @@ class BaseAgent(ABC):
         self, data: Dict[str, Any]
     ) -> Dict[str, Dict[str, Any]]:
         """Group typed fields into sections using schema section definitions."""
-        schema_fields = self._get_all_schema_fields()
+        schema_fields = self._get_canonical_schema_fields()
         sections: Dict[str, Dict[str, Any]] = {}
 
         # Initialise all sections that appear in the schema
@@ -580,7 +603,7 @@ class BaseAgent(ABC):
         self, data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Check coverage and required-field completeness against the schema."""
-        schema_fields = self._get_all_schema_fields()
+        schema_fields = self._get_canonical_schema_fields()
 
         extracted_fields: List[str] = []
         missing_required: List[str] = []
@@ -675,7 +698,7 @@ class BaseAgent(ABC):
         self, data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Group schema fields marked ``is_clinical_concept`` by category."""
-        schema_fields = self._get_all_schema_fields()
+        schema_fields = self._get_canonical_schema_fields()
         clinical_concepts: Dict[str, Any] = {}
 
         for schema_key, field_def in schema_fields.items():
@@ -715,7 +738,7 @@ class BaseAgent(ABC):
             "moderate": [],
             "observation": [],
         }
-        schema_fields = self._get_all_schema_fields()
+        schema_fields = self._get_canonical_schema_fields()
 
         for schema_key, data_value in data.items():
             field_def = schema_fields.get(schema_key)
@@ -844,7 +867,7 @@ class BaseAgent(ABC):
     ) -> tuple:
         """Build a human-readable text summary and return it with coverage metrics."""
         summary = [f"{self._get_summary_header()}\n"]
-        schema_fields = self._get_all_schema_fields()
+        schema_fields = self._get_canonical_schema_fields()
 
         # Build section display order from schema field order
         section_order: Dict[str, str] = {}
