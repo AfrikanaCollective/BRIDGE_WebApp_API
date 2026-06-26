@@ -10,6 +10,25 @@ from agents.json_normalizer import JSONNormalizer
 
 logger = logging.getLogger(__name__)
 
+# Section I diagnosis fields (lowercased for case-insensitive matching)
+_SECTION_I_DIAGNOSIS_FIELDS = frozenset({
+    "prematurity",
+    "lbw",
+    "birth asphyxia",
+    "newborn rds",
+    "neonatal sepsis",
+    "meconium aspiration",
+    "meningitis",
+    "congenital anomaly",
+    "multiple gestation",
+})
+
+# Raw VLM values that represent a positive checkbox selection
+_DIAGNOSIS_POSITIVE_VALUES = frozenset({"1", "2"})
+
+# If this many or more diagnosis fields fire simultaneously → hallucination
+_MASS_POSITIVE_THRESHOLD = 6
+
 
 class NARAgent(BaseAgent):
     """Agent for processing NAR (Neonatal Admission Record) documents."""
@@ -31,8 +50,34 @@ class NARAgent(BaseAgent):
         """Flatten section headers and clean field names via JSONNormalizer."""
         data = JSONNormalizer.normalize_structure(data)
         data = JSONNormalizer.clean_field_names(data)
+        if self.page_number == 2:
+            data = self._filter_diagnosis_false_positives(data)
         logger.info("✅ Normalized JSON structure to flat format")
         return data or None  # treat empty dict as failure
+
+    def _filter_diagnosis_false_positives(
+        self, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Nullify Section I diagnosis values when mass-positive hallucination is detected.
+
+        Qwen 3.5 9B conflates printed checkbox labels ('1', '2') with checked
+        values. When >= _MASS_POSITIVE_THRESHOLD diagnosis fields all return '1'
+        or '2' simultaneously, the result is almost certainly hallucinated.
+        """
+        positive_keys = [
+            k for k, v in data.items()
+            if k.strip().lower() in _SECTION_I_DIAGNOSIS_FIELDS
+            and str(v).strip() in _DIAGNOSIS_POSITIVE_VALUES
+        ]
+        if len(positive_keys) >= _MASS_POSITIVE_THRESHOLD:
+            logger.warning(
+                f"⚠️  Mass-positive hallucination detected in Section I: "
+                f"{len(positive_keys)}/{len(_SECTION_I_DIAGNOSIS_FIELDS)} "
+                f"diagnosis fields returned '1'/'2'. Nullifying all diagnosis values."
+            )
+            for k in positive_keys:
+                data[k] = "N/A"
+        return data
 
     def _fix_prefixed_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Remove section-letter prefixes (``F1_``, ``G_``, ``H_`` …) from keys.

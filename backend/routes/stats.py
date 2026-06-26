@@ -169,8 +169,8 @@ def _calculate_time_stats(
         dict: {
             "average": float,      # Simple arithmetic mean
             "median": float,       # 50th percentile
-            "p25": float,          # 2.5th percentile (min)
-            "p975": float,         # 97.5th percentile (max)
+            "p25": float,          # 25th percentile (min)
+            "p75": float,         # 75th percentile (max)
             "total_samples": int,
         }
     """
@@ -180,7 +180,7 @@ def _calculate_time_stats(
             "average": 0.0,
             "median": 0.0,
             "p25": 0.0,
-            "p975": 0.0,
+            "p75": 0.0,
             "total_samples": 0
         }
 
@@ -192,15 +192,15 @@ def _calculate_time_stats(
 
     # Calculate percentiles
     median = _calculate_percentile(sorted_times, 50)
-    p25 = _calculate_percentile(sorted_times, 2.5)
-    p975 = _calculate_percentile(sorted_times, 97.5)
+    p25 = _calculate_percentile(sorted_times, 25)
+    p75 = _calculate_percentile(sorted_times, 75)
 
     logger.info(
         f"⏱️  {stat_name} Statistics:\n"
         f"   Average: {average:.2f}s\n"
         f"   Median (50th %ile): {median:.2f}s\n"
-        f"   2.5th %ile: {p25:.2f}s\n"
-        f"   97.5th %ile: {p975:.2f}s\n"
+        f"   25th %ile: {p25:.2f}s\n"
+        f"   75th %ile: {p75:.2f}s\n"
         f"   Samples: {n}\n"
         f"   Range: {sorted_times[0]:.2f}s - {sorted_times[-1]:.2f}s"
     )
@@ -209,7 +209,7 @@ def _calculate_time_stats(
         "average": round(average, 2),
         "median": median,
         "p25": p25,
-        "p975": p975,
+        "p75": p75,
         "total_samples": n
     }
 
@@ -335,21 +335,21 @@ async def get_stats_overview(
             "average": 0.0,
             "median": 0.0,
             "p25": 0.0,
-            "p975": 0.0,
+            "p75": 0.0,
             "total_samples": 0
         }
         agent_stats = {
             "average": 0.0,
             "median": 0.0,
             "p25": 0.0,
-            "p975": 0.0,
+            "p75": 0.0,
             "total_samples": 0
         }
         total_stats = {
             "average": 0.0,
             "median": 0.0,
             "p25": 0.0,
-            "p975": 0.0,
+            "p75": 0.0,
             "total_samples": 0
         }
 
@@ -466,17 +466,17 @@ async def get_stats_overview(
             processing_time_breakdown=ProcessingTimeBreakdown(
                 llm_seconds=ProcessingTimeStats(
                     average=llm_stats.get("median", 0.0),
-                    max=int(llm_stats.get("p975", 0)),
+                    max=int(llm_stats.get("p75", 0)),
                     min=int(llm_stats.get("p25", 0))
                 ),
                 agent_seconds=ProcessingTimeStats(
                     average=agent_stats.get("median", 0.0),
-                    max=int(agent_stats.get("p975", 0)),
+                    max=int(agent_stats.get("p75", 0)),
                     min=int(agent_stats.get("p25", 0))
                 ),
                 total_seconds=ProcessingTimeStats(
                     average=total_stats.get("median", 0.0),
-                    max=int(total_stats.get("p975", 0)),
+                    max=int(total_stats.get("p75", 0)),
                     min=int(total_stats.get("p25", 0))
                 )
             ),

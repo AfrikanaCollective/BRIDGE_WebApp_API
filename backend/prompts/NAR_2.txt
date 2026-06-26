@@ -30,7 +30,7 @@ Your task:
    - Do NOT collapse similar lines.
    - Simply list them in the order they physically appear.
 
-6. For the fields with checkboxes, thoroughly go through all the values, identify then return ONLY the checkbox related to that field, that has the value or that has been ticked.
+6. For fields with checkboxes: a checkbox is considered ticked ONLY if there is a visible handwritten mark (tick ✓, cross X, fill, or pen stroke) physically INSIDE the checkbox boundary. A printed label or number next to the checkbox is NOT a tick. If no such mark is visible, return: N/A.
 
 7. If a value is blank or missing → return: N/A.
 
