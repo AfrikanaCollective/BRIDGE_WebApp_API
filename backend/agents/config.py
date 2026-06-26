@@ -197,16 +197,27 @@ ENUM_MAPPINGS = {
     "F": "Female",
     "M": "Male",
     "Indeterminate": "Indeterminate",
+    "I": "Indeterminate",
 
     "None": "None",
     "+": "Mild",
     "+++": "Severe",
+    "Mild": "Mild",
+    "Severe": "Severe",
 
     # Boolean shortcuts
     "Y": True,
     "N": False,
     "Yes": True,
     "No": False,
+    "N/A": None,
+}
+
+DIAGNOSIS_ENUM_MAPPINGS = {
+    # Diagnosis
+    "1": "Primary Diagnosis",
+    "2": "Secondary Diagnosis",
+    "None": "None",
     "N/A": None,
 }
 

@@ -402,7 +402,7 @@ class BaseAgent(ABC):
             try:
                 val_str = str(value).strip()
                 if val_str in {
-                    "", "N/A", "n/a", "NA", "na",
+                    "", "N/A", "n/a", "NA", "na", "N/A + N/A",
                     "unknown", "unkn", "Unknown", "UNKNOWN",
                 }:
                     logger.debug(

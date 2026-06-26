@@ -4,7 +4,7 @@ import re
 import logging
 from typing import Dict, Any, Optional
 
-from config import settings
+from config.settings import settings
 from agents.base_agent import BaseAgent
 from agents.itf_tools import ITFTools
 from agents.config import FieldType

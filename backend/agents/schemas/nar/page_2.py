@@ -4,7 +4,7 @@
 NAR Page 2 Schema - Neonatal Admission Record (Page 2)
 """
 
-from agents.config import FieldType, SectionType, ClinicalCategory, ENUM_MAPPINGS
+from agents.config import FieldType, SectionType, ClinicalCategory, ENUM_MAPPINGS, DIAGNOSIS_ENUM_MAPPINGS
 
 NAR_PAGE_2_SCHEMA = {
 
@@ -24,13 +24,14 @@ NAR_PAGE_2_SCHEMA = {
     "Jaundice": {
         "field_name": "Jaundice",
         "type": FieldType.ENUM,
+        "values": ["None", "Mild", "Severe", "Y", "N"],
         "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.HIGH,
         "is_clinical_concept": True,
         "description": "Level of jaundice",
-        "risk_flag_values": ["Severe"]
+        "risk_flag_values": ["Severe", "Y", "Yes"]
     },
 
     "Appearance": {
@@ -87,7 +88,6 @@ NAR_PAGE_2_SCHEMA = {
         "clinical_category": ClinicalCategory.HIGH,
         "enum_mapping": ENUM_MAPPINGS,
         "description": "Air entry in baby's lungs",
-        "risk_flag": True
     },
 
     "Central cyanosis": {
@@ -104,37 +104,37 @@ NAR_PAGE_2_SCHEMA = {
     "Lower chest indrawing": {
         "field_name": "Lower chest indrawing",
         "type": FieldType.ENUM,
-        "values": ["None", "Mild", "Severe"],
+        "values": ["None", "Mild", "Severe", "Y", "N"],
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.CRITICAL,
-        "enum_mapping": {"None": "None", "Mild": "Mild", "Severe": "Severe"},
+        "enum_mapping": ENUM_MAPPINGS,
         "description": "Indrawing of lower chest",
-        "risk_flag_values": ["Mild", "Severe"]
+        "risk_flag_values": ["Severe", "Yes", "Y"]
     },
 
     "Xiphoid retraction": {
         "field_name": "Xiphoid retraction",
         "type": FieldType.ENUM,
-        "values": ["None", "Mild", "Severe"],
+        "values": ["None", "Mild", "Severe", "Y", "N"],
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.HIGH,
-        "enum_mapping": {"None": "None", "Mild": "Mild", "Severe": "Severe"},
+        "enum_mapping": ENUM_MAPPINGS,
         "description": "Retraction of xiphoid process",
-        "risk_flag_values": ["Severe"]
+        "risk_flag_values": ["Severe", "Yes", "Y"]
     },
 
     "Intercostal retraction": {
         "field_name": "Intercostal retraction",
         "type": FieldType.ENUM,
-        "values": ["None", "Mild", "Severe"],
+        "values": ["None", "Mild", "Severe", "Y", "N"],
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.HIGH,
-        "enum_mapping": {"None": "None", "Mild": "Mild", "Severe": "Severe"},
+        "enum_mapping": ENUM_MAPPINGS,
         "description": "Retraction of intercostal muscles",
-        "risk_flag_values": ["Severe"]
+        "risk_flag_values": ["Severe", "Yes", "Y"]
     },
 
     "Capillary refill (Sternal)": {
@@ -150,12 +150,13 @@ NAR_PAGE_2_SCHEMA = {
     "Pallor/Anaemia": {
         "field_name": "Pallor/Anaemia",
         "type": FieldType.ENUM,
-        "values": ["None", "+", "+++"],
+        "values": ["None", "+", "+++", "Y", "N"],
+        "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.HIGH,
         "description": "Pallor or anaemia present in baby",
-        "risk_flag_values": ["+", "+++"]
+        "risk_flag_values": ["+++", "Y", "Yes", "Severe"]
     },
 
     "Murmur": {
@@ -221,7 +222,7 @@ NAR_PAGE_2_SCHEMA = {
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.HIGH,
         "description": "Condition of the umbilicus",
-        "risk_flag_values": ["Local pus", "Pus + Red skin", "Others"]
+        "risk_flag_values": ["Local pus", "Pus + Red skin"]
     },
 
 # ==================== F2: FURTHER EXAMINATION ====================
@@ -390,8 +391,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Prematurity": {
         "field_name": "Prematurity",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -401,8 +402,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "LBW": {
         "field_name": "LBW",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -412,8 +413,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Birth Asphyxia": {
         "field_name": "Birth Asphyxia",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -423,8 +424,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Newborn RDS": {
         "field_name": "Newborn RDS",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -434,8 +435,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Neonatal Sepsis": {
         "field_name": "Neonatal Sepsis",
-        "type": FieldType.BOOLEAN,
-        "values": ["N/A", "Yes", "No"],
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -445,8 +446,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Meconium Aspiration": {
         "field_name": "Meconium Aspiration",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -456,8 +457,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Meningitis": {
         "field_name": "Meningitis",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -467,8 +468,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Congenital Anomaly": {
         "field_name": "Congenital Anomaly",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.CRITICAL,
@@ -478,8 +479,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Multiple Gestation": {
         "field_name": "Multiple Gestation",
-        "type": FieldType.BOOLEAN,
-        "enum_mapping": ENUM_MAPPINGS,
+        "type": FieldType.ENUM,
+        "enum_mapping": DIAGNOSIS_ENUM_MAPPINGS,
         "required": False,
         "section": SectionType.DIAGNOSIS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -564,8 +565,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Caffeine Citrate": {
         "field_name": "Caffeine Citrate",
-        "type": FieldType.ENUM,
-        "values": ["N/A", "Yes", "No"],
+        "type": FieldType.BOOLEAN,
+        "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.INTERVENTIONS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -574,8 +575,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Chlorhexidine": {
         "field_name": "Chlorhexidine",
-        "type": FieldType.ENUM,
-        "values": ["N/A", "Yes", "No"],
+        "type": FieldType.BOOLEAN,
+        "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.INTERVENTIONS,
         "clinical_category": ClinicalCategory.OBSERVATION,
@@ -594,8 +595,8 @@ NAR_PAGE_2_SCHEMA = {
 
     "Nutrition/feeds": {
         "field_name": "Nutrition/feeds",
-        "type": FieldType.ENUM,
-        "values": ["N/A", "Yes", "No"],
+        "type": FieldType.BOOLEAN,
+        "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.INTERVENTIONS,
         "clinical_category": ClinicalCategory.OBSERVATION,
