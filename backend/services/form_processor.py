@@ -7,6 +7,7 @@ Image → LLM → Agent Processing → Storage
 
 import re
 import json
+import asyncio
 import aiohttp
 import logging
 from pathlib import Path
@@ -599,6 +600,9 @@ class FormProcessor:
                         logger.info(f"✅ Received LLM response")
                         return result
 
+        except asyncio.TimeoutError:
+            logger.error(f"❌ Request timed out after {timeout}s")
+            return {"error": "Time-out error"}
         except aiohttp.ClientError as e:
             logger.error(f"❌ Request failed: {e}")
             return {"error": str(e)}
