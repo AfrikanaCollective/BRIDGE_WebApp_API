@@ -166,7 +166,7 @@ class BulkUploadCLI:
                 curl_cmd,
                 capture_output=True,
                 text=True,
-                timeout=600,  # 5 minute timeout per file
+                timeout=900,  # 5 minute timeout per file
             )
 
             if result.returncode != 0:
@@ -227,7 +227,7 @@ class BulkUploadCLI:
             return UploadResult(
                 file_path=file_path,
                 success=False,
-                error="Upload timeout (10 minutes)",
+                error="Upload timeout (15 minutes)",
             )
         except Exception as e:
             return UploadResult(
