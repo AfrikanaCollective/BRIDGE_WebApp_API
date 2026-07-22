@@ -205,6 +205,9 @@ ENUM_MAPPINGS = {
     "Mild": "Mild",
     "Severe": "Severe",
 
+    "<18": "<18 hrs",
+    ">=18h": "≥18 hrs",
+
     # Boolean shortcuts
     "Y": True,
     "N": False,

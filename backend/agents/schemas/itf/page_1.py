@@ -376,10 +376,11 @@ ITF_PAGE_1_SCHEMA = {
 
     "ROM": {
         "field_name": "ROM",
-        "type": FieldType.STRING,
+        "type": FieldType.ENUM,
         "required": False,
         "section": SectionType.LABOUR_BIRTH,
         "clinical_category": ClinicalCategory.HIGH,
+        "enum_mapping": ENUM_MAPPINGS,
         "is_clinical_concept": False,
         "description": "Rupture of membranes (timing, e.g., >18h)"
     },

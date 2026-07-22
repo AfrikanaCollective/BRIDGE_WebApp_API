@@ -231,7 +231,7 @@ NAR_PAGE_1_SCHEMA = {
         "field_name": "ROM",
         "type": FieldType.ENUM,
         "required": True,
-        "values": ["<18", ">=18h", "Unkn"],
+        "enum_mapping": ENUM_MAPPINGS,
         "section": SectionType.INFANT_DETAILS,
         "clinical_category": ClinicalCategory.HIGH,
         "is_clinical_concept": False,
