@@ -218,8 +218,8 @@ ENUM_MAPPINGS = {
 
 DIAGNOSIS_ENUM_MAPPINGS = {
     # Diagnosis
-    "1": "Primary Diagnosis",
-    "2": "Secondary Diagnosis",
+    "1": "Primary",
+    "2": "Secondary",
     "None": "None",
     "N/A": None,
 }
