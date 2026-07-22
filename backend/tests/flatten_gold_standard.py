@@ -1,9 +1,8 @@
 """
 Flatten Images.json into a long-format gold standard dataset.
 """
-
-import json
 import re
+import json
 import pandas as pd
 from pathlib import Path
 
