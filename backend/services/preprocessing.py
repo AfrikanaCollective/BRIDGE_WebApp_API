@@ -48,7 +48,8 @@ class AdaptivePreprocessor:
             current_dpi: int = 300,
             resize_to_width: Optional[int] = 1200,
             save_to_temp: bool = False,
-            original_filename: Optional[str] = None
+            original_filename: Optional[str] = None,
+            simple_resize_only: bool = False
     ) -> Union[Image.Image, str]:
         """
         Full preprocessing pipeline: load → scale → denoise → enhance → normalize → resize.
@@ -67,6 +68,8 @@ class AdaptivePreprocessor:
             save_to_temp: If True, saves resized image to UPLOAD_TEMP_DIR with original_filename.
                          Returns file path instead of PIL Image.
             original_filename: Required if save_to_temp=True. Used to preserve filename in temp dir.
+            simple_resize_only: If True, skips all processing (denoising, contrast, brightness)
+                               and resizes to exactly resize_to_width pixels wide. PNG only.
 
         Returns:
             PIL Image (default) or str (if save_to_temp=True)
@@ -111,6 +114,27 @@ class AdaptivePreprocessor:
             f"Loaded image from {input_source}: {pil_image.size} "
             f"({pil_image.size[0] * pil_image.size[1]:,} pixels) in {load_time:.3f}s"
         )
+
+        # ==================== SIMPLE RESIZE PATH (no processing) ====================
+        if simple_resize_only:
+            if resize_to_width is not None:
+                orig_w, orig_h = pil_image.size
+                new_h = int(orig_h * resize_to_width / orig_w)
+                resized = pil_image.resize((resize_to_width, new_h), Image.Resampling.LANCZOS)
+                self.logger.info(
+                    f"Simple resize: {orig_w}×{orig_h} → {resize_to_width}×{new_h} "
+                    f"(no denoising/contrast/brightness)"
+                )
+                if save_to_temp:
+                    if not source_filename:
+                        raise ValueError(
+                            "original_filename required when save_to_temp=True and image is PIL/array"
+                        )
+                    return self._save_to_temp_dir(resized, source_filename)
+                return resized
+            else:
+                self.logger.info("Simple resize requested but resize_to_width is None — returning as-is")
+                return pil_image
 
         # ==================== STEP 3: ADAPTIVE RESOLUTION SCALING ====================
         t_scale_start = time.time()

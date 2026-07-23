@@ -28,7 +28,6 @@ router = APIRouter()
 
 
 # ==================== HELPER FUNCTIONS ====================
-
 def _dict_to_profile(profile_dict: dict, name: str = "DEFAULT") -> PreprocessingProfile:
     """
     Convert dictionary profile to PreprocessingProfile dataclass.
