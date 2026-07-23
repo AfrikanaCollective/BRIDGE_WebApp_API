@@ -124,9 +124,7 @@ class BulkUploadCLI:
         else:
             files = [
                 f for f in directory.glob("*")
-                if (f.is_file() and
-                    f.suffix.lower() in image_extensions and
-                    matches_file_type(f.name, file_type))
+                if (f.is_file() and f.suffix.lower() in image_extensions)
             ]
 
         # Return shuffled or sorted
