@@ -121,6 +121,13 @@ class BulkUploadCLI:
                         f.suffix.lower() in image_extensions and
                         matches_file_type(f.name, file_type))
                 ]
+        else:
+            files = [
+                f for f in directory.glob("*")
+                if (f.is_file() and
+                    f.suffix.lower() in image_extensions and
+                    matches_file_type(f.name, file_type))
+            ]
 
         # Return shuffled or sorted
         if shuffle:
@@ -263,7 +270,7 @@ class BulkUploadCLI:
             logger.info(f"   Form type: {form_type}")
             files = self._find_image_files(directory, recursive=recursive, file_type=form_type, shuffle=True)
         else:
-            files = self._find_image_files(directory, recursive=recursive)
+            files = self._find_image_files(directory, recursive=recursive, shuffle=True)
 
 
         if not files:
