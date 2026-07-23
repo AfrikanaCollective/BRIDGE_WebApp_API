@@ -541,6 +541,16 @@ NAR_PAGE_1_SCHEMA = {
         "description": "Oxygen Saturation"
     },
 
+    "O2 Sat": {
+            "field_name": "O2 Sat",
+            "type": FieldType.STRING,
+            "required": True,
+            "section": SectionType.INFANT_HISTORY,
+            "clinical_category": ClinicalCategory.OBSERVATION,
+            "is_clinical_concept": False,
+            "description": "Oxygen Saturation"
+    },
+
     "Birth Weight (grams)": {
         "field_name": "Birth Weight (grams)",
         "type": FieldType.INTEGER,
