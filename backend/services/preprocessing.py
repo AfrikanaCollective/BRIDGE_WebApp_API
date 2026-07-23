@@ -49,7 +49,8 @@ class AdaptivePreprocessor:
             resize_to_width: Optional[int] = 1200,
             save_to_temp: bool = False,
             original_filename: Optional[str] = None,
-            simple_resize_only: bool = False
+            simple_resize_only: bool = False,
+            scale_factor: Optional[float] = None
     ) -> Union[Image.Image, str]:
         """
         Full preprocessing pipeline: load → scale → denoise → enhance → normalize → resize.
@@ -70,6 +71,9 @@ class AdaptivePreprocessor:
             original_filename: Required if save_to_temp=True. Used to preserve filename in temp dir.
             simple_resize_only: If True, skips all processing (denoising, contrast, brightness)
                                and resizes to exactly resize_to_width pixels wide. PNG only.
+            scale_factor: Pre-specified scale factor for adaptive resolution scaling,
+                         bypassing the pixel-range auto-calculation. Ignored when
+                         simple_resize_only=True.
 
         Returns:
             PIL Image (default) or str (if save_to_temp=True)
@@ -138,7 +142,7 @@ class AdaptivePreprocessor:
 
         # ==================== STEP 3: ADAPTIVE RESOLUTION SCALING ====================
         t_scale_start = time.time()
-        scaled_pil_image = self._adaptive_scale(pil_image, current_dpi)
+        scaled_pil_image = self._adaptive_scale(pil_image, current_dpi, scale_factor=scale_factor)
         scale_time = time.time() - t_scale_start
 
         self.logger.debug(
@@ -223,7 +227,8 @@ class AdaptivePreprocessor:
             image: Union[Image.Image, str, np.ndarray],
             output_path: Union[str, Path],
             current_dpi: int = 300,
-            resize_to_width: Optional[int] = 1200
+            resize_to_width: Optional[int] = 1200,
+            scale_factor: Optional[float] = None
     ) -> str:
         """
         Preprocess image and save to disk.
@@ -233,6 +238,8 @@ class AdaptivePreprocessor:
             output_path: Where to save the preprocessed image
             current_dpi: Current DPI of the image (default: 300)
             resize_to_width: Final resize width (default: 1200)
+            scale_factor: Pre-specified scale factor for adaptive resolution scaling,
+                         bypassing the pixel-range auto-calculation
 
         Returns:
             Path to saved preprocessed image (str)
@@ -240,7 +247,8 @@ class AdaptivePreprocessor:
         processed_image = self.preprocess(
             image=image,
             current_dpi=current_dpi,
-            resize_to_width=resize_to_width
+            resize_to_width=resize_to_width,
+            scale_factor=scale_factor
         )
 
         output_path = Path(output_path)
@@ -279,42 +287,53 @@ class AdaptivePreprocessor:
     def _adaptive_scale(
             self,
             image: Image.Image,
-            current_dpi: int
+            current_dpi: int,
+            scale_factor: Optional[float] = None
     ) -> Image.Image:
         """
         Adaptively scale image based on profile target pixel range.
 
-        Target: ~600k-1.2M pixels, 150-244 DPI
+        Target: ~600k-1.2M pixels, DPI held near profile.target_dpi (240 for HANDWRITTEN)
 
         Args:
             image: PIL Image
             current_dpi: Current DPI
+            scale_factor: Pre-specified scale factor to apply directly, bypassing the
+                          pixel-range auto-calculation. Use when the caller already knows
+                          the factor needed to bring the image to the target DPI.
 
         Returns:
             Scaled PIL Image
         """
         width, height = image.size
         current_pixels = width * height
-        target_min_pixels = self.profile.target_min_pixels  # 600k
-        target_max_pixels = self.profile.target_max_pixels  # 1.2M
+        target_dpi = self.profile.target_dpi
 
-        # Calculate scale factor
-        if current_pixels < target_min_pixels:
-            scale_factor = (target_min_pixels / current_pixels) ** 0.5
-        elif current_pixels > target_max_pixels:
-            scale_factor = (target_max_pixels / current_pixels) ** 0.5
+        if scale_factor is None:
+            target_min_pixels = self.profile.target_min_pixels  # 600k
+            target_max_pixels = self.profile.target_max_pixels  # 1.2M
+
+            # Calculate scale factor
+            if current_pixels < target_min_pixels:
+                scale_factor = (target_min_pixels / current_pixels) ** 0.5
+            elif current_pixels > target_max_pixels:
+                scale_factor = (target_max_pixels / current_pixels) ** 0.5
+            else:
+                scale_factor = 1.0
         else:
-            scale_factor = 1.0
+            self.logger.debug(f"Using pre-specified scale factor: {scale_factor:.3f}")
 
         if abs(scale_factor - 1.0) < 0.01:  # No scaling needed
             return image
 
         new_width = int(width * scale_factor)
         new_height = int(height * scale_factor)
+        effective_dpi = current_dpi * scale_factor
 
         self.logger.debug(
             f"Adaptive scale: {current_pixels:,} pixels → {new_width * new_height:,} "
-            f"(factor: {scale_factor:.2f})"
+            f"(factor: {scale_factor:.2f}, effective DPI: {effective_dpi:.0f}, "
+            f"target DPI: {target_dpi})"
         )
 
         return image.resize(

@@ -517,9 +517,10 @@ async def upload_file(
                     processed_file_path = preprocessor.preprocess(
                         image=str(png_path),
                         current_dpi=300,
-                        resize_to_width=1500,
+                        resize_to_width=1200,
                         save_to_temp=True,
                         #simple_resize_only=True,
+                        scale_factor=0.8, #
                         original_filename=png_filename  # ← Maintains original filename
                     )
                 except Exception as preprocess_error:
