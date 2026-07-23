@@ -519,8 +519,8 @@ async def upload_file(
                         current_dpi=300,
                         resize_to_width=1200,
                         save_to_temp=True,
-                        #simple_resize_only=True,
-                        scale_factor=0.8, #
+                        simple_resize_only=True,
+                        #scale_factor=0.8, #
                         original_filename=png_filename  # ← Maintains original filename
                     )
                 except Exception as preprocess_error:

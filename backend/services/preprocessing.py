@@ -330,7 +330,7 @@ class AdaptivePreprocessor:
         new_height = int(height * scale_factor)
         effective_dpi = current_dpi * scale_factor
 
-        self.logger.debug(
+        self.logger.info(
             f"Adaptive scale: {current_pixels:,} pixels → {new_width * new_height:,} "
             f"(factor: {scale_factor:.2f}, effective DPI: {effective_dpi:.0f}, "
             f"target DPI: {target_dpi})"
