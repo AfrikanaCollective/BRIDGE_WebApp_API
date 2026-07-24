@@ -7,11 +7,9 @@ import '../styles/HistoryPanel.css';
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 const HistoryPanel = () => {
-    // ✅ Single source of truth for history data
     const [history, setHistory] = useState({
         total: 0,
-        page: 1,
-        limit: 20,
+        totalPages: 1,
         records: [],
     });
 
@@ -22,15 +20,27 @@ const HistoryPanel = () => {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [formTypeFilter, setFormTypeFilter] = useState('all');
     const [sortField, setSortField] = useState('timestamp');
     const [sortOrder, setSortOrder] = useState('desc');
 
-    const fetchResponses = useCallback(async () => {
+    // Fetches one page from the backend — all filtering/pagination is server-side.
+    const fetchHistory = useCallback(async (pageNum, pageSz, statusFlt, formTypeFlt) => {
         setLoading(true);
         try {
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/history`);
+            const params = { page: pageNum, limit: pageSz };
+            if (statusFlt && statusFlt !== 'all') {
+                params.status_filter = statusFlt;
+            }
+            if (formTypeFlt && formTypeFlt !== 'all') {
+                params.form_type = formTypeFlt;
+            }
 
-            // ✅ Map backend field names to frontend expectations
+            const response = await axios.get(
+                `${process.env.REACT_APP_API_URL}/history`,
+                { params }
+            );
+
             const mappedRecords = (response.data.records || []).map(rec => ({
                 ...rec,
                 processingId: rec.processingId || rec.processing_id || rec.id,
@@ -44,30 +54,29 @@ const HistoryPanel = () => {
             }));
 
             setHistory({
-                total: response.data.totalCount || mappedRecords.length,
-                page: response.data.page || 1,
-                limit: response.data.totalCount || 20,
+                total: response.data.totalCount || 0,
+                totalPages: response.data.totalPages || 1,
                 records: mappedRecords,
             });
         } catch (error) {
             console.error('Error fetching history:', error);
             toast.error('Failed to load history');
-            setHistory({ total: 0, page: 1, limit: 20, records: [] });
+            setHistory({ total: 0, totalPages: 1, records: [] });
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchResponses();
-    }, [fetchResponses]);
+        fetchHistory(page, pageSize, statusFilter, formTypeFilter);
+    }, [page, pageSize, statusFilter, formTypeFilter, fetchHistory]);
 
     const handleDelete = async (processingId) => {
         if (!window.confirm('Delete this record? This action cannot be undone.')) return;
         try {
             await axios.delete(`${process.env.REACT_APP_API_URL}/history/${processingId}`);
             toast.success('Record deleted successfully');
-            fetchResponses();
+            fetchHistory(page, pageSize, statusFilter, formTypeFilter);
         } catch (error) {
             console.error('Error deleting record:', error);
             toast.error('Failed to delete record');
@@ -121,7 +130,7 @@ const HistoryPanel = () => {
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        await fetchResponses();
+        await fetchHistory(page, pageSize, statusFilter, formTypeFilter);
         setRefreshing(false);
     };
 
@@ -132,12 +141,8 @@ const HistoryPanel = () => {
 
     const renderStatusBadge = (status) => {
         const config = {
-            completed: { cls: 'completed', label: 'Completed' },
-            processing: { cls: 'processing', label: 'Processing' },
             failed: { cls: 'failed', label: 'Failed' },
-            pending: { cls: 'pending', label: 'Pending' },
             success: { cls: 'completed', label: 'Success' },
-            error: { cls: 'failed', label: 'Error' },
         };
         const c = config[status] || { cls: '', label: status || 'Unknown' };
         return <span className={`status-badge ${c.cls}`}>{c.label}</span>;
@@ -170,12 +175,8 @@ const HistoryPanel = () => {
         }
     };
 
-    // ✅ Filter + sort + paginate using history.records
-    const filtered = history.records.filter(
-        r => statusFilter === 'all' || r.status === statusFilter
-    );
-
-    const sorted = [...filtered].sort((a, b) => {
+    // Sorting is client-side within the current page; filtering and pagination are server-side.
+    const sorted = [...history.records].sort((a, b) => {
         let av, bv;
 
         if (sortField === 'timestamp') {
@@ -193,8 +194,8 @@ const HistoryPanel = () => {
         return 0;
     });
 
-    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-    const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+    const totalPages = history.totalPages;
+    const paginated = sorted;
 
     const handleSort = (field) => {
         if (sortField === field) setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
@@ -229,6 +230,19 @@ const HistoryPanel = () => {
                     </span>
                 </div>
                 <div className="history-actions">
+                    <select
+                        className="history-filter-select"
+                        value={formTypeFilter}
+                        onChange={e => {
+                            setFormTypeFilter(e.target.value);
+                            setPage(1);
+                        }}
+                        aria-label="Filter by form type"
+                    >
+                        <option value="all">All Form Types</option>
+                        <option value="ITF">ITF</option>
+                        <option value="NAR">NAR</option>
+                    </select>
                     <select
                         className="history-filter-select"
                         value={statusFilter}
@@ -440,8 +454,8 @@ const HistoryPanel = () => {
                                 <div className="table-pagination">
                                     <div className="pagination-info">
                                         Showing {(page - 1) * pageSize + 1}–
-                                        {Math.min(page * pageSize, sorted.length)} of{' '}
-                                        {sorted.length} records
+                                        {Math.min(page * pageSize, history.total)} of{' '}
+                                        {history.total} records
                                     </div>
                                     <div className="pagination-controls">
                                         <select

@@ -32,7 +32,7 @@ const HomePage = () => {
         intervalRef.current = setInterval(() => {
             console.log('⏱️  5-minute interval timer fired');
             triggerStatsFetch();
-        }, 5 * 60 * 1000); // 5 minutes
+        }, 2 * 60 * 1000); // 2 minutes
 
         return () => {
             if (intervalRef.current) {

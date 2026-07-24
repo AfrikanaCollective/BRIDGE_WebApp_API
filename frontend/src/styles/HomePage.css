@@ -206,6 +206,23 @@
     .hero-actions {
         flex-direction: column;
     }
+
+    .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .cta-card .btn {
+        display: flex;
+        width: 100%;
+        max-width: 340px;
+        margin: 0 auto;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+    }
 }
 
 /* Small phone (480px) */
@@ -253,6 +270,17 @@
 
     .stat-value {
         font-size: 24px;
+    }
+
+    .hero-actions .btn,
+    .cta-card .btn {
+        font-size: var(--text-base, 1rem);
+        padding: 12px 16px;
+        min-height: 48px;
+    }
+
+    .cta-card .btn {
+        max-width: 100%;
     }
 }
 

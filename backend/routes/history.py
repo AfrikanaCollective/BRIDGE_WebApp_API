@@ -66,7 +66,6 @@ async def get_stats_overview(request: Request) -> HistoryStats:
             byStatus={
                 "success": stats.get("completed", 0),  # Map 'completed' → 'success'
                 "failed": stats.get("failed", 0),
-                "pending": stats.get("pending", 0),
             },
             byFormType=stats.get("by_form_type", {}),
             successRate=stats.get("completion_rate", 0.0),
