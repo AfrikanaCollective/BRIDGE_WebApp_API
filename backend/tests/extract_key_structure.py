@@ -12,6 +12,11 @@ sorted list of key names, matching the example format in the request. A
 level that contains at least one nested dict is kept as a dict, so nested
 substructures aren't flattened away.
 
+Also exports one JSON file covering every document in the collection: each
+entry is keyed by the document's `image_filename`, with the value being its
+`cleaned_json` flattened down to a single level of leaf key:value pairs
+(section/grouping structure discarded).
+
 Usage:
     python extract_key_structure.py
     python extract_key_structure.py --db mydb --collection mycoll --output result.json
@@ -20,6 +25,7 @@ Usage:
 import json
 import argparse
 from pathlib import Path
+from typing import Any, Dict
 from collections import defaultdict
 from pymongo import MongoClient
 from config.settings import settings
@@ -82,6 +88,26 @@ def structure_to_output(node):
     return output
 
 
+def flatten_cleaned_json(value: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recursively flatten a nested cleaned_json dict down to its leaf
+    key:value pairs, discarding section/grouping structure. If the same
+    leaf key appears under more than one branch, the last one encountered
+    wins.
+    """
+    flat: Dict[str, Any] = {}
+
+    def _recurse(node: Dict[str, Any]) -> None:
+        for key, val in node.items():
+            if isinstance(val, dict):
+                _recurse(val)
+            else:
+                flat[key] = val
+
+    _recurse(value)
+    return flat
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -101,6 +127,15 @@ def main():
         "--output",
         default="mongodb_key_structure.json",
         help="Path to write the combined output JSON (default: mongodb_key_structure.json)",
+    )
+    parser.add_argument(
+        "--documents-output",
+        default="llm_dataset.json",
+        help=(
+            "Path to write the {image_filename: flattened cleaned_json} JSON "
+            "covering every document in the collection "
+            "(default: llm_dataset.json)"
+        ),
     )
     args = parser.parse_args()
 
@@ -142,6 +177,39 @@ def main():
     print(f"Processed {doc_count} matching document(s) ({skipped} skipped due to missing fields).")
     print(f"Found {len(groups)} group(s): {', '.join(sorted(groups.keys()))}")
     print(f"Result written to: {args.output}")
+
+    # ==================== Per-document flattened export ====================
+
+    documents_projection = {"image_filename": 1, "cleaned_json": 1, "_id": 0}
+
+    documents_by_filename: Dict[str, Any] = {}
+    doc_total = 0
+    doc_skipped = 0
+
+    query = {"status": "success"}
+
+    for doc in coll.find(query, documents_projection):
+        doc_total += 1
+
+        image_filename = doc.get("image_filename")
+        cleaned_json = doc.get("cleaned_json")
+
+        if not image_filename or not isinstance(cleaned_json, dict):
+            doc_skipped += 1
+            continue
+
+        documents_by_filename[image_filename] = flatten_cleaned_json(cleaned_json)
+
+    documents_output_path = SCRIPT_DIR / args.documents_output
+
+    with open(documents_output_path, "w", encoding="utf-8") as f:
+        json.dump(documents_by_filename, f, indent=2, ensure_ascii=False)
+
+    print(
+        f"Processed {doc_total} document(s) for per-file export "
+        f"({doc_skipped} skipped due to missing image_filename/cleaned_json)."
+    )
+    print(f"Wrote {len(documents_by_filename)} document(s) to: {args.documents_output}")
 
     client.close()
 

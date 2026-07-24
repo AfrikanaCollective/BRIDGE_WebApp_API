@@ -70,10 +70,10 @@ def main():
         gold_standard_dataset["field"] != "hospital"
     ]
 
-    # 2. Exclude rows where value contains '?' or '@'
+    # 2. Exclude rows where value contains '?' or '!'
     #    NOTE: to match the R behavior exactly (dplyr::filter drops rows
     #    where the condition evaluates to NA), rows with value == None
-    #    are ALSO dropped here, since grepl(NA) -> NA -> filtered out in R.
+    #    are not dropped here,
     contains_symbol = gold_standard_dataset["value"].str.contains(
         r"\?|\!", regex=True, na=False
     )
