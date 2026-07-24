@@ -1,6 +1,7 @@
 {
   "ITF_1": {
     "mother_details": [
+      "additional_maternal_complications_prom_pprom_etc",
       "antenatal_ultrasound_performed",
       "antepartum_hemorrhage",
       "current_maternal_medications",
@@ -22,11 +23,14 @@
       "multiple_pregnancy",
       "number_of_anc_visits_attended",
       "number_of_fetuses_in_multiple_pregnancy",
+      "number_of_live_births",
       "number_of_prior_pregnancies_eg_3+0",
+      "number_of_stillbirths/deaths",
       "pre-eclampsia",
       "rhesus_factor_status",
       "syphilis_screening_vdrl_test",
-      "total_number_of_pregnancies"
+      "total_number_of_pregnancies",
+      "ultrasound_findings_-_anomalies_size_fluid_placenta_etc"
     ],
     "labour_birth": [
       "bag_and_mask_ventilation_given",
@@ -71,62 +75,9 @@
       "primary_clinical_indication_for_referral",
       "respiratory_rate",
       "temperature_in_°c"
-    ]
-  },
-  "NAR_1": {
-    "infant_details": [
-      "apgar_score_at_10_minutes",
-      "apgar_score_at_1_minute",
-      "apgar_score_at_5_minutes",
-      "baby's_date_of_birth",
-      "baby's_sex",
-      "baby's_time_of_birth",
-      "bag_and_mask_ventilation_given",
-      "date_infant_admitted",
-      "gestational_age_at_delivery_in_weeks",
-      "gestational_age_calculated_from",
-      "if_baby_is_born_outside_facility",
-      "mode_of_delivery",
-      "mother's_age_in_years",
-      "multiple_deliveries",
-      "number_of_fetuses_in_multiple_pregnancy",
-      "rupture_of_membranes_timing_in_hours",
-      "time_baby_seen",
-      "type_of_caesarean_section"
-    ],
-    "mother_details": [
-      "antenatal_ultrasound_performed",
-      "antepartum_hemorrhage",
-      "expected_date_of_delivery",
-      "hiv_status_prevention_of_mother-to-child_transmission",
-      "hypertension_in_pregnancy",
-      "mother's_blood_group",
-      "mother_had_prolonged_labour",
-      "mother_has_diabetes",
-      "number_of_anc_visits_attended",
-      "number_of_prior_pregnancies_eg_3+0",
-      "rhesus_anti-d_given",
-      "rhesus_factor_status",
-      "syphilis_screening_vdrl_test",
-      "ultrasound_findings"
     ],
     "infant_history": [
-      "baby_has_apnoea",
-      "baby_has_bilious_vomiting",
-      "baby_has_bloody_stool",
-      "baby_has_convulsions",
-      "baby_has_difficulty_breathing",
-      "baby_has_difficulty_feeding",
-      "baby_has_fever_present",
-      "baby_is_floppy",
-      "baby_passed_meconium_stool",
-      "baby_passed_urine",
-      "birth_weight_in_grams",
-      "current_weight_in_grams",
-      "heart_rate_beats_per_minute",
-      "oxygen_saturation",
-      "respiratory_rate",
-      "temperature_in_°c"
+      "oxygen_saturation"
     ]
   },
   "NAR_2": {
@@ -198,6 +149,68 @@
       "prophylaxis_for_prevention_of_mother-to-child_transmission",
       "surfactant_therapy_given",
       "vitamin_k_and_topical_eye_ointment_given"
+    ],
+    "action_plan": [
+      "action_plan_for_baby's_management"
+    ],
+    "summary": [
+      "summary_of_baby's_presentation_and_problems"
+    ]
+  },
+  "NAR_1": {
+    "infant_details": [
+      "apgar_score_at_10_minutes",
+      "apgar_score_at_1_minute",
+      "apgar_score_at_5_minutes",
+      "baby's_date_of_birth",
+      "baby's_sex",
+      "baby's_time_of_birth",
+      "bag_and_mask_ventilation_given",
+      "date_infant_admitted",
+      "gestational_age_at_delivery_in_weeks",
+      "gestational_age_calculated_from",
+      "if_baby_is_born_outside_facility",
+      "mode_of_delivery",
+      "mother's_age_in_years",
+      "multiple_deliveries",
+      "number_of_fetuses_in_multiple_pregnancy",
+      "rupture_of_membranes_timing_in_hours",
+      "time_baby_seen",
+      "type_of_caesarean_section"
+    ],
+    "mother_details": [
+      "antenatal_ultrasound_performed",
+      "antepartum_hemorrhage",
+      "expected_date_of_delivery",
+      "hiv_status_prevention_of_mother-to-child_transmission",
+      "hypertension_in_pregnancy",
+      "mother's_blood_group",
+      "mother_had_prolonged_labour",
+      "mother_has_diabetes",
+      "number_of_anc_visits_attended",
+      "number_of_prior_pregnancies_eg_3+0",
+      "rhesus_anti-d_given",
+      "rhesus_factor_status",
+      "syphilis_screening_vdrl_test",
+      "ultrasound_findings"
+    ],
+    "infant_history": [
+      "baby_has_apnoea",
+      "baby_has_bilious_vomiting",
+      "baby_has_bloody_stool",
+      "baby_has_convulsions",
+      "baby_has_difficulty_breathing",
+      "baby_has_difficulty_feeding",
+      "baby_has_fever_present",
+      "baby_is_floppy",
+      "baby_passed_meconium_stool",
+      "baby_passed_urine",
+      "birth_weight_in_grams",
+      "current_weight_in_grams",
+      "heart_rate_beats_per_minute",
+      "oxygen_saturation",
+      "respiratory_rate",
+      "temperature_in_°c"
     ]
   }
 }
