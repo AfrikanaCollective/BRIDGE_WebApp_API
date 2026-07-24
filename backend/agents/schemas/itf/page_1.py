@@ -55,7 +55,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "Parity Live": {
         "field_name": "Parity Live",
-        "type": FieldType.INTEGER,
+        "type": FieldType.STRING,
         "required": False,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.OBSERVATION,
@@ -65,7 +65,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "Parity Dead": {
         "field_name": "Parity Dead",
-        "type": FieldType.INTEGER,
+        "type": FieldType.STRING,
         "required": False,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.OBSERVATION,
@@ -782,7 +782,7 @@ ITF_PAGE_1_SCHEMA = {
         "field_name": "O2 Sat",
         "type": FieldType.STRING,
         "required": True,
-        "section": SectionType.INFANT_HISTORY,
+        "section": SectionType.INFANT_DETAILS,
         "clinical_category": ClinicalCategory.OBSERVATION,
         "is_clinical_concept": False,
         "description": "Oxygen Saturation"

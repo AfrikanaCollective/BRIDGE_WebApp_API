@@ -91,8 +91,8 @@ NAR_PAGE_1_SCHEMA = {
         "section": SectionType.INFANT_DETAILS,
         "clinical_category": ClinicalCategory.OBSERVATION,
         "is_clinical_concept": False,
-        "description": "Mother's age in years",
-        "validation": {"min": 10, "max": 60}
+        "description": "baby's age in days",
+        "validation": {"min": 0, "max": 29}
     },
 
     "Gestation age from?": {
@@ -269,7 +269,7 @@ NAR_PAGE_1_SCHEMA = {
         "section": SectionType.INFANT_DETAILS,
         "clinical_category": ClinicalCategory.ADMINISTRATIVE,
         "is_clinical_concept": False,
-        "description": "If baby is born outside facility",
+        "description": "Is baby born outside facility",
     },
 
     "If yes, where?": {
@@ -315,6 +315,26 @@ NAR_PAGE_1_SCHEMA = {
         "clinical_category": ClinicalCategory.OBSERVATION,
         "is_clinical_concept": False,
         "description": "Number of prior pregnancies (e.g., 3+0)"
+    },
+
+    "Parity Live": {
+        "field_name": "Parity Live",
+        "type": FieldType.INTEGER,
+        "required": False,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Number of live births"
+    },
+
+    "Parity Dead": {
+        "field_name": "Parity Dead",
+        "type": FieldType.INTEGER,
+        "required": False,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Number of stillbirths/deaths"
     },
 
     "EDD": {
@@ -434,6 +454,41 @@ NAR_PAGE_1_SCHEMA = {
         "enum_mapping": ENUM_MAPPINGS,
         "risk_flag": True
     },
+
+    "Hep B": {
+        "field_name": "Hep B",
+        "type": FieldType.ENUM,
+        "required": True,
+        "section": SectionType.MOTHER_DETAILS,
+        "is_clinical_concept": False,
+        "description": "Mother had Hepatitis B",
+        "enum_mapping": ENUM_MAPPINGS,
+        "risk_flag": True
+    },
+
+    "Hep B IG given": {
+        "field_name": "Hep B IG given",
+        "type": FieldType.ENUM,
+        "required": True,
+        "section": SectionType.MOTHER_DETAILS,
+        "is_clinical_concept": False,
+        "description": "Mother given HBIG treatment",
+        "enum_mapping": ENUM_MAPPINGS,
+        "risk_flag": True
+    },
+
+    "Mother on ARVs": {
+        "field_name": "Mother on ARVs",
+        "type": FieldType.ENUM,
+        "required": True,
+        "section": SectionType.MOTHER_DETAILS,
+        "is_clinical_concept": False,
+        "description": "Mother on ARVs",
+        "enum_mapping": ENUM_MAPPINGS,
+        "risk_flag": True
+    },
+
+
 
     "APH": {
         "field_name": "APH",
@@ -576,6 +631,26 @@ NAR_PAGE_1_SCHEMA = {
         "is_clinical_concept": False,
         "description": "Current weight in grams",
         "validation": {"min": 500, "max": 8000}
+    },
+
+    "Head circumference (cm)": {
+        "field_name": "Head circumference (cm)",
+        "type": FieldType.STRING,
+        "required": True,
+        "section": SectionType.INFANT_HISTORY,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Head circumference in cm",
+    },
+
+    "Length (cm)": {
+        "field_name": "Length (cm)",
+        "type": FieldType.STRING,
+        "required": True,
+        "section": SectionType.INFANT_HISTORY,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Length in cm",
     },
 
     "Fever": {
