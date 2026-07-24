@@ -53,6 +53,26 @@ ITF_PAGE_1_SCHEMA = {
         "description": "Number of prior pregnancies (e.g., 3+0)"
     },
 
+    "Parity Live": {
+        "field_name": "Parity Live",
+        "type": FieldType.INTEGER,
+        "required": False,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Number of live births"
+    },
+
+    "Parity Dead": {
+        "field_name": "Parity Dead",
+        "type": FieldType.INTEGER,
+        "required": False,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Number of stillbirths/deaths"
+    },
+
     "Gravida": {
         "field_name": "Gravida",
         "type": FieldType.INTEGER,
@@ -756,6 +776,16 @@ ITF_PAGE_1_SCHEMA = {
         "is_clinical_concept": False,
         "description": "Respiratory rate",
         "validation": {"min": 60, "max": 100}
+    },
+
+    "O2 Sat": {
+        "field_name": "O2 Sat",
+        "type": FieldType.STRING,
+        "required": True,
+        "section": SectionType.INFANT_HISTORY,
+        "clinical_category": ClinicalCategory.OBSERVATION,
+        "is_clinical_concept": False,
+        "description": "Oxygen Saturation"
     },
 
     "APGAR Score 1M": {

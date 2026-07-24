@@ -75,7 +75,7 @@ def main():
     #    where the condition evaluates to NA), rows with value == None
     #    are ALSO dropped here, since grepl(NA) -> NA -> filtered out in R.
     contains_symbol = gold_standard_dataset["value"].str.contains(
-        r"\?|@", regex=True, na=True
+        r"\?", regex=True, na=False
     )
     gold_standard_dataset = gold_standard_dataset[~contains_symbol]
 

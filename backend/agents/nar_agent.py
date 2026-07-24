@@ -282,6 +282,10 @@ class NARAgent(BaseAgent):
 
         return extracted
 
+    def _split_computed_fields(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """NAR has no computed-field splitting — pass-through."""
+        return data
+
     def _get_summary_header(self) -> str:
         return f"=== NAR PAGE {self.page_number} SUMMARY ==="
 

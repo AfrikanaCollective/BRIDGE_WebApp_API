@@ -3,6 +3,7 @@
 import re
 import json
 import logging
+import unicodedata
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -16,11 +17,12 @@ logger = logging.getLogger(__name__)
 class BaseAgent(ABC):
     """Abstract base class for all form processing agents.
 
-    Subclasses must implement five abstract hooks:
+    Subclasses must implement six abstract hooks:
         _normalize_json_structure  — post-extraction, form-specific JSON fixing
         _fix_prefixed_keys         — remove section-prefix noise from keys
         _collapse_option_keys      — merge Y/N/Pos/Neg suffix variants
         _extract_numeric_values    — strip unit suffixes from numeric fields
+        _split_computed_fields     — derive new fields from composite raw values
         _get_summary_header        — first line of the text summary
     """
 
@@ -81,6 +83,16 @@ class BaseAgent(ABC):
         ...
 
     @abstractmethod
+    def _split_computed_fields(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Derive new fields from composite raw values, run right before field-name normalization.
+
+        ITF: splits ``Parity`` ('<live>+<dead>') into ``Parity Live`` /
+        ``Parity Dead``.
+        NAR: pass-through.
+        """
+        ...
+
+    @abstractmethod
     def _get_summary_header(self) -> str:
         """Return the form-specific title line for the text summary."""
         ...
@@ -99,14 +111,15 @@ class BaseAgent(ABC):
             6. _fix_prefixed_keys         ← hook
             7. _collapse_option_keys      ← hook
             8. _extract_numeric_values    ← hook
-            9. Normalize field names
-           10. Convert field types
-           11. Categorise into sections
-           12. Validate against schema
-           13. Extract clinical concepts
-           14. Identify risk flags
-           15. Generate summary
-           16. Compile result dict
+            9. _split_computed_fields     ← hook
+           10. Normalize field names
+           11. Convert field types
+           12. Categorise into sections
+           13. Validate against schema
+           14. Extract clinical concepts
+           15. Identify risk flags
+           16. Generate summary
+           17. Compile result dict
         """
         try:
             file_path_obj = Path(file_path)
@@ -149,6 +162,9 @@ class BaseAgent(ABC):
 
             form_data = self._extract_numeric_values(form_data)
             logger.info("✅ Extracted numeric values from suffix fields")
+
+            form_data = self._split_computed_fields(form_data)
+            logger.info("✅ Split computed fields")
 
             normalized = self._normalize_field_names(form_data)
             logger.info("✅ Normalized field names (only schema-defined fields kept)")
@@ -1061,7 +1077,8 @@ class BaseAgent(ABC):
     def _key_token(key: str) -> str:
         """Normalise a field name for case-insensitive, punctuation-insensitive comparison."""
         return (
-            key.lower()
+            unicodedata.normalize("NFKC", key)
+            .lower()
             .strip()
             .replace("(", "")
             .replace(")", "")

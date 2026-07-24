@@ -19,10 +19,12 @@ Usage:
 
 import json
 import argparse
+from pathlib import Path
 from collections import defaultdict
 from pymongo import MongoClient
 from config.settings import settings
 
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 def merge_keys(existing, new_value):
     """
@@ -81,6 +83,7 @@ def structure_to_output(node):
 
 
 def main():
+
     parser = argparse.ArgumentParser(
         description="Extract unique cleaned_json key structure grouped by form_type/page_number."
     )
@@ -96,8 +99,8 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="cleaned_json_key_structure.json",
-        help="Path to write the combined output JSON (default: cleaned_json_key_structure.json)",
+        default="mongodb_key_structure.json",
+        help="Path to write the combined output JSON (default: mongodb_key_structure.json)",
     )
     args = parser.parse_args()
 
@@ -131,7 +134,9 @@ def main():
         for group_name, structure in groups.items()
     }
 
-    with open(args.output, "w", encoding="utf-8") as f:
+    output_path = SCRIPT_DIR / args.output
+
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
     print(f"Processed {doc_count} matching document(s) ({skipped} skipped due to missing fields).")
