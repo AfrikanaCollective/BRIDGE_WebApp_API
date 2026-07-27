@@ -221,7 +221,7 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
                                     : 'Drag a file here or click to select'}
                             </p>
                             <p className="drop-zone-hint">
-                                Supported: PNG, JPG, JPEG, PDF, TIFF (Max 15MB each)
+                                Supported: PNG, JPG, JPEG, PDF (Max 15MB each)
                             </p>
                         </div>
                     </div>
@@ -304,7 +304,7 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
                         <h4>Processing Details</h4>
                         <ul>
                             <li>Max file size: 15MB</li>
-                            <li>Processing time: 1-2 minutes</li>
+                            <li>Processing time: 8 to 12 seconds per page</li>
                             <li>Results available in history</li>
                         </ul>
                     </div>

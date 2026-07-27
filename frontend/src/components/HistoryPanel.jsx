@@ -253,12 +253,8 @@ const HistoryPanel = () => {
                         aria-label="Filter by status"
                     >
                         <option value="all">All Status</option>
-                        <option value="completed">Completed</option>
                         <option value="success">Success</option>
-                        <option value="processing">Processing</option>
                         <option value="failed">Failed</option>
-                        <option value="error">Error</option>
-                        <option value="pending">Pending</option>
                     </select>
                     <button
                         type="button"
