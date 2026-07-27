@@ -283,8 +283,39 @@ class NARAgent(BaseAgent):
         return extracted
 
     def _split_computed_fields(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """NAR has no computed-field splitting — pass-through."""
-        return data
+        """Split ``Parity`` ('<live>+<dead>', e.g. '3+0') into ``Parity Live`` / ``Parity Dead``.
+
+        Falls through to the original ``Parity`` key:value pair when the raw
+        value contains no ``+``. When the value strips down to a lone ``+``
+        (or one side of it is blank), the corresponding derived field is
+        omitted so it reads as missing rather than as an empty string.
+        """
+        parity_key = next(
+            (key for key in data if self._key_token(key) == self._key_token("Parity")),
+            None,
+        )
+        if parity_key is None:
+            return data
+
+        raw_value = str(data[parity_key]).strip()
+        if "+" not in raw_value:
+            return data
+
+        live_part, _, dead_part = raw_value.partition("+")
+        live_part = live_part.strip()
+        dead_part = dead_part.strip()
+
+        split_data = {key: value for key, value in data.items() if key != parity_key}
+        if live_part:
+            split_data["Parity Live"] = live_part
+        if dead_part:
+            split_data["Parity Dead"] = dead_part
+
+        logger.info(
+            f"✅ Split '{parity_key}'='{raw_value}' → "
+            f"Parity Live='{live_part or None}', Parity Dead='{dead_part or None}'"
+        )
+        return split_data
 
     def _get_summary_header(self) -> str:
         return f"=== NAR PAGE {self.page_number} SUMMARY ==="
