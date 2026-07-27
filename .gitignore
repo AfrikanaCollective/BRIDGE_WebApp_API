@@ -1,6 +1,8 @@
 .env
 .idea/
 *.pyc
+llm_dataset.json
+mongodb_key_structure.json
 __pycache__/
 .pyctest_reports/
 node_modules/
