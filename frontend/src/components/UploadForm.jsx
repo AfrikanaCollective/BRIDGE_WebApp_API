@@ -297,7 +297,6 @@ const UploadForm = ({ onSuccess, isBatchMode = false }) => {
                             <li>PNG (.png)</li>
                             <li>JPEG (.jpg, .jpeg)</li>
                             <li>PDF (.pdf)</li>
-                            <li>TIFF (.tiff)</li>
                         </ul>
                     </div>
                     <div className="info-box">
