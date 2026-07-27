@@ -154,6 +154,7 @@
     display: flex;
     gap: var(--spacing-md);
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .refresh-btn {
@@ -951,9 +952,15 @@
         width: 100%;
     }
 
+    .history-filter-select {
+        width: 100%;
+        min-width: unset;
+    }
+
     .refresh-btn {
         width: 100%;
         height: 36px;
+        min-width: unset;
     }
 
     .history-content {
@@ -1058,6 +1065,7 @@
         width: 100%;
         height: 32px;
         font-size: var(--font-size-xs);
+        min-width: unset;
     }
 
     .history-content {
@@ -1531,7 +1539,16 @@
     align-items: center;
     gap: 6px;
     min-height: 40px;
-    min-width: 150px;
+}
+
+/* min-width is desktop/tablet only — on mobile the responsive rules
+   above make the button full-width, and this fixed min-width would
+   otherwise win the cascade (it's declared after the media queries)
+   and force horizontal overflow on small screens. */
+@media (min-width: 769px) {
+    .refresh-btn {
+        min-width: 150px;
+    }
 }
 
 
