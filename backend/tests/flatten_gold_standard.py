@@ -3,6 +3,7 @@ Flatten Images.json into a long-format gold standard dataset.
 """
 import re
 import json
+import numpy as np
 import pandas as pd
 from pathlib import Path
 
@@ -77,7 +78,23 @@ def main():
     contains_symbol = gold_standard_dataset["value"].str.contains(
         r"\?|\!", regex=True, na=False
     )
-    gold_standard_dataset = gold_standard_dataset[~contains_symbol]
+
+    value_no_spaces = gold_standard_dataset["value"].str.replace(r"\s+", "", regex=True)
+
+    # Pattern A — "@" combined ONLY with letters and/or digits (ignoring spaces) -> remove
+    contains_at_alnum = value_no_spaces.str.match(
+        r"^(?=.*@)[A-Za-z0-9@]+$", na=False
+    )
+
+    # Pattern B — "@" alone, or "@" combined ONLY with ".", "/", ":" (ignoring spaces) -> recode to NaN
+    contains_at_special_only = value_no_spaces.str.match(
+        r"^(?=.*@)[@./:]+$", na=False
+    )
+
+    gold_standard_dataset.loc[contains_at_special_only, "value"] = np.nan
+
+    rows_to_remove = contains_symbol | contains_at_alnum
+    gold_standard_dataset = gold_standard_dataset[~rows_to_remove]
 
     # --- Write to CSV ---
     gold_standard_dataset.to_csv(
