@@ -157,18 +157,17 @@ const HomePage = () => {
                             {stats?.avgProcessingTime != null
                                 ? `${Number(stats.avgProcessingTime).toFixed(2)}s`
                                 : '0s'}
-                            (
-                            IQR: 
-                            {stats?.lowCiTime != null
+                        </div>
+                        <div className="stat-sub">
+                            IQR: {stats?.lowCiTime != null
                                 ? `${Number(stats.lowCiTime).toFixed(2)}s`
                                 : '0s'}
-                             -
+                            {' - '}
                             {stats?.highCiTime != null
                                 ? `${Number(stats.highCiTime).toFixed(2)}s`
                                 : '0s'}
-                            )
                         </div>
-                        <div className="stat-label">Avg. Processing Time</div>
+                        <div className="stat-label">Median Processing Time</div>
                     </div>
                     <div className="stat-item">
                         <div className="stat-value">{stats?.activeSessions ?? 0}</div>

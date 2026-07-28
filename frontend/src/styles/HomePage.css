@@ -137,6 +137,16 @@
     line-height: 1.2;
 }
 
+.stat-sub {
+    font-family: var(--font-secondary, 'Poppins', sans-serif);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-gray-500, #6b7280);
+    letter-spacing: 0.2px;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
 .stat-label {
     font-size: 18px;
     color: var(--color-gray-500, #6b7280);
@@ -270,6 +280,10 @@
 
     .stat-value {
         font-size: 24px;
+    }
+
+    .stat-sub {
+        font-size: 11px;
     }
 
     .hero-actions .btn,
