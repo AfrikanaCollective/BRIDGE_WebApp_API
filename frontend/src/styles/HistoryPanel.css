@@ -154,7 +154,7 @@
     display: flex;
     gap: var(--spacing-md);
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .refresh-btn {
@@ -950,6 +950,7 @@
 
     .history-actions {
         width: 100%;
+        flex-wrap: wrap;
     }
 
     .history-filter-select {
