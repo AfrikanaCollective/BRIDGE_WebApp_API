@@ -466,18 +466,18 @@ async def get_stats_overview(
             processing_time_breakdown=ProcessingTimeBreakdown(
                 llm_seconds=ProcessingTimeStats(
                     average=llm_stats.get("median", 0.0),
-                    max=int(llm_stats.get("p75", 0)),
-                    min=int(llm_stats.get("p25", 0))
+                    max=llm_stats.get("p75", 0),
+                    min=llm_stats.get("p25", 0)
                 ),
                 agent_seconds=ProcessingTimeStats(
                     average=agent_stats.get("median", 0.0),
-                    max=int(agent_stats.get("p75", 0)),
-                    min=int(agent_stats.get("p25", 0))
+                    max=agent_stats.get("p75", 0),
+                    min=agent_stats.get("p25", 0)
                 ),
                 total_seconds=ProcessingTimeStats(
                     average=total_stats.get("median", 0.0),
-                    max=int(total_stats.get("p75", 0)),
-                    min=int(total_stats.get("p25", 0))
+                    max=total_stats.get("p75", 0),
+                    min=total_stats.get("p25", 0)
                 )
             ),
             success_rate=success_rate,

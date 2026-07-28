@@ -157,6 +157,16 @@ const HomePage = () => {
                             {stats?.avgProcessingTime != null
                                 ? `${Number(stats.avgProcessingTime).toFixed(2)}s`
                                 : '0s'}
+                            (
+                            IQR: 
+                            {stats?.lowCiTime != null
+                                ? `${Number(stats.lowCiTime).toFixed(2)}s`
+                                : '0s'}
+                             -
+                            {stats?.highCiTime != null
+                                ? `${Number(stats.highCiTime).toFixed(2)}s`
+                                : '0s'}
+                            )
                         </div>
                         <div className="stat-label">Avg. Processing Time</div>
                     </div>

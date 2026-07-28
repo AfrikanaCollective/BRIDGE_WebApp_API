@@ -7,7 +7,7 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 // ==================== COOLDOWN STATE ====================
-const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
 let lastFetchTime = 0;
 
 // ==================== ASYNC THUNKS ====================
@@ -76,6 +76,8 @@ const initialState = {
         totalForms: 0,
         successRate: 0,
         avgProcessingTime: 0,
+        lowCiTime: 0,
+        highCiTime: 0,
         activeSessions: 0,
     },
     loading: false,
@@ -122,6 +124,10 @@ const statsSlice = createSlice({
                     successRate: backendData.success_rate ?? 0,
                     avgProcessingTime:
                         backendData.processing_time_breakdown?.total_seconds?.average ?? 0,
+                    lowCiTime:
+                        backendData.processing_time_breakdown?.total_seconds?.min ?? 0,
+                    highCiTime:
+                        backendData.processing_time_breakdown?.total_seconds?.max ?? 0,
                     activeSessions: backendData.active_sessions ?? 0,
                 };
 
