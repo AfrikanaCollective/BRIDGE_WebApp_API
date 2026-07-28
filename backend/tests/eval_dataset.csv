@@ -83,7 +83,6 @@ hospital,patient_id,form_type,page,field,gold_value,llm_value
 76,76000172,NAR,1,rhesus,unknown,Unknown
 76,76000172,NAR,1,sex,female,Female
 76,76000172,NAR,1,temparature,34.8,34.8
-76,76000172,NAR,1,time_birth,0:@2,
 76,76000172,NAR,1,time_seen,08:30,08:30
 76,76000172,NAR,1,was_resuscitated,,True
 76,76000172,NAR,1,weight,790,790
@@ -2697,7 +2696,6 @@ Age units"
 52,52000622,NAR,1,born_before_arrival,FALSE,False
 52,52000622,NAR,1,born_where,,Home/roadside
 52,52000622,NAR,1,date,02-04-2025,2025-04-02
-52,52000622,NAR,1,date_estimated_delivery_date,2@-@@-@@@,
 52,52000622,NAR,1,delivery_type,cs,Breech
 52,52000622,NAR,1,gestation_in_weeks,,
 52,52000622,NAR,1,gestation_type,lmp,LMP
@@ -5469,7 +5467,6 @@ Age units"
 40,40000532,ITF,1,birth_weight,2600,2600
 40,40000532,ITF,1,blood_group,a,A
 40,40000532,ITF,1,chest_compressions,FALSE,False
-40,40000532,ITF,1,date_estimated_delivery_date,23-@4-2025,2025-04-20
 40,40000532,ITF,1,date_last_menstrual_period,,
 40,40000532,ITF,1,delivery_type,cs,CS
 40,40000532,ITF,1,fetal_distress,FALSE,False
@@ -5853,7 +5850,6 @@ Age units"
 40,40000133,ITF,1,baby_age,01,1
 40,40000133,ITF,1,baby_from,labour,Labour ward
 40,40000133,ITF,1,birth_date,27-12-025,2025-12-27
-40,40000133,ITF,1,birth_weight,30@,30
 40,40000133,ITF,1,blood_group,o,O
 40,40000133,ITF,1,chest_compressions,,
 40,40000133,ITF,1,date_estimated_delivery_date,27-02-2025,2025-02-27
@@ -5999,7 +5995,6 @@ Age"
 40,40000144,ITF,1,attended_anc,TRUE,True
 40,40000144,ITF,1,baby_age,0,0
 40,40000144,ITF,1,baby_from,referral,Referral in
-40,40000144,ITF,1,birth_date,02-02-2@25,2025-02-02
 40,40000144,ITF,1,birth_weight,3290,3290
 40,40000144,ITF,1,blood_group,b,B
 40,40000144,ITF,1,chest_compressions,FALSE,False
@@ -7027,7 +7022,6 @@ C: Infant Details"
 76,76000253,ITF,1,prescribed_opv,,False
 76,76000253,ITF,1,prescribed_oxygen,,False
 76,76000253,ITF,1,pulse_oximetry,90,90
-76,76000253,ITF,1,pulse_rate,1@,1
 76,76000253,ITF,1,rapture_of_membrane,lt18,<18 hrs
 76,76000253,ITF,1,respiratory_rate,61,61
 76,76000253,ITF,1,rhesus,positive,Positive
@@ -8030,7 +8024,6 @@ C: Infant Details"
 52,52000004,ITF,1,birth_weight,2600,2600
 52,52000004,ITF,1,blood_group,b,AB
 52,52000004,ITF,1,chest_compressions,FALSE,False
-52,52000004,ITF,1,date_estimated_delivery_date,13-@3-2024,2024-03-15
 52,52000004,ITF,1,date_last_menstrual_period,20-12-2024,2024-01-01
 52,52000004,ITF,1,delivery_type,svd,SVD
 52,52000004,ITF,1,fetal_distress,FALSE,False
@@ -9320,7 +9313,6 @@ C: Infant Details"
 52,52000017,NAR,1,time_birth,11:10,11:10
 52,52000017,NAR,1,time_seen,11:00,10:00
 52,52000017,NAR,1,was_resuscitated,FALSE,False
-52,52000017,NAR,1,weight,1@,
 40,40000008,ITF,1,abnormal_placenta,FALSE,False
 40,40000008,ITF,1,anc_visits,,
 40,40000008,ITF,1,antenatal_steroids,,False
@@ -9752,7 +9744,6 @@ C: Infant Details"
 72,72000001,NAR,1,sex,female,Female
 72,72000001,NAR,1,temparature,,
 72,72000001,NAR,1,time_birth,,
-72,72000001,NAR,1,time_seen,0@:59,
 72,72000001,NAR,1,was_resuscitated,,False
 72,72000001,NAR,1,weight,,
 63,63000001,NAR,2,appearance,sick,Sick
@@ -10239,7 +10230,6 @@ C: Infant Details"
 53,53000104,NAR,1,born_before_arrival,,False
 53,53000104,NAR,1,born_where,,Home/roadside
 53,53000104,NAR,1,date,30-11-2024,2024-11-30
-53,53000104,NAR,1,date_estimated_delivery_date,@-@@-@22,
 53,53000104,NAR,1,delivery_type,,SVD
 53,53000104,NAR,1,gestation_in_weeks,40,40
 53,53000104,NAR,1,gestation_type,,U/S
@@ -10580,7 +10570,6 @@ C: Infant Details"
 76,76000038,ITF,1,apgar_5m,10,
 76,76000038,ITF,1,attended_anc,TRUE,True
 76,76000038,ITF,1,baby_from,referral,
-76,76000038,ITF,1,birth_date,4@-02-2025,2025-02-04
 76,76000038,ITF,1,birth_weight,,
 76,76000038,ITF,1,blood_group,a,A
 76,76000038,ITF,1,chest_compressions,FALSE,False
@@ -11257,7 +11246,6 @@ C: Infant Details"
 52,52000020,NAR,1,born_before_arrival,FALSE,False
 52,52000020,NAR,1,born_where,,
 52,52000020,NAR,1,date,26-12-2024,2024-12-20
-52,52000020,NAR,1,date_estimated_delivery_date,@-01-2025,2025-12-20
 52,52000020,NAR,1,delivery_type,svd,SVD
 52,52000020,NAR,1,gestation_in_weeks,,40
 52,52000020,NAR,1,gestation_type,,LMP
@@ -11523,7 +11511,6 @@ C: Infant Details"
 72,72000002,NAR,1,apgar_1m,9,9
 72,72000002,NAR,1,apgar_5m,0,10
 72,72000002,NAR,1,baby_age_in_days,01,1
-72,72000002,NAR,1,birth_date,0@-11-2024,2024-01-01
 72,72000002,NAR,1,birth_weight,3440,3440
 72,72000002,NAR,1,blood_group,o,O
 72,72000002,NAR,1,born_before_arrival,FALSE,False
@@ -12677,7 +12664,6 @@ C: Infant Details"
 76,76000046,ITF,1,sex,female,Female
 76,76000046,ITF,1,temparature,,
 76,76000046,ITF,1,was_resuscitated,,
-76,76000046,ITF,1,weight,2@@,2
 63,63000020,ITF,1,abnormal_placenta,FALSE,
 63,63000020,ITF,1,anc_visits,7,7
 63,63000020,ITF,1,antenatal_steroids,,False
@@ -13120,7 +13106,6 @@ C: Infant Details"
 72,72000005,NAR,1,apgar_5m,7,7
 72,72000005,NAR,1,baby_age_in_days,,
 72,72000005,NAR,1,birth_date,02-11-2722,2024-11-02
-72,72000005,NAR,1,birth_weight,1@,3700
 72,72000005,NAR,1,blood_group,ab,O
 72,72000005,NAR,1,born_before_arrival,,False
 72,72000005,NAR,1,born_where,,
@@ -13164,7 +13149,6 @@ C: Infant Details"
 72,72000005,NAR,1,respiratory_rate,,
 72,72000005,NAR,1,rhesus,positive,Positive
 72,72000005,NAR,1,sex,female,Female
-72,72000005,NAR,1,temparature,0@.,38.5
 72,72000005,NAR,1,time_birth,,12:00
 72,72000005,NAR,1,time_seen,,12:00
 72,72000005,NAR,1,was_resuscitated,FALSE,False
@@ -13212,7 +13196,6 @@ C: Infant Details"
 72,72000005,ITF,1,baby_age,00,0
 72,72000005,ITF,1,baby_from,theatre,
 72,72000005,ITF,1,birth_date,02-11-2024,2024-11-02
-72,72000005,ITF,1,birth_weight,3@71,3
 72,72000005,ITF,1,blood_group,ab,O
 72,72000005,ITF,1,chest_compressions,,False
 72,72000005,ITF,1,date_last_menstrual_period,,2024-07-07
@@ -13826,7 +13809,6 @@ C: Infant Details"
 52,52000423,NAR,1,passed_urine,FALSE,False
 52,52000423,NAR,1,prolonged_labour,FALSE,False
 52,52000423,NAR,1,pulse_oximetry,,
-52,52000423,NAR,1,pulse_rate,1@,
 52,52000423,NAR,1,rapture_of_membrane,lt18,True
 52,52000423,NAR,1,respiratory_rate,,
 52,52000423,NAR,1,rhesus,unknown,False
@@ -14644,7 +14626,6 @@ C: Infant Details"
 40,40000305,NAR,1,born_before_arrival,TRUE,False
 40,40000305,NAR,1,born_where,facility,Other facility
 40,40000305,NAR,1,date,19-02-2025,2025-04-19
-40,40000305,NAR,1,date_estimated_delivery_date,8@-03-2025,
 40,40000305,NAR,1,delivery_type,svd,
 40,40000305,NAR,1,gestation_type,lmp,LMP
 40,40000305,NAR,1,given_anti_D_medication,FALSE,False
@@ -15160,7 +15141,6 @@ Age units"
 52,52000122,NAR,1,rhesus,positive,Positive
 52,52000122,NAR,1,sex,,Female
 52,52000122,NAR,1,temparature,36.5,36.5
-52,52000122,NAR,1,time_birth,17:@,
 52,52000122,NAR,1,time_seen,17:20,17:20
 52,52000122,NAR,1,was_resuscitated,,True
 52,52000122,NAR,1,weight,2095,2095
@@ -15170,7 +15150,6 @@ Age units"
 52,52000124,NAR,1,apgar_5m,,
 52,52000124,NAR,1,baby_age_in_days,13,13
 52,52000124,NAR,1,birth_date,28-11-2024,2024-11-28
-52,52000124,NAR,1,birth_weight,1@85,1485
 52,52000124,NAR,1,blood_group,b,B
 52,52000124,NAR,1,born_before_arrival,TRUE,True
 52,52000124,NAR,1,born_where,facility,Other facility
@@ -15322,7 +15301,6 @@ Age units"
 52,52000126,NAR,1,born_before_arrival,TRUE,True
 52,52000126,NAR,1,born_where,,Mbiuni health centre
 52,52000126,NAR,1,date,15-01-2025,2025-01-15
-52,52000126,NAR,1,date_estimated_delivery_date,05-@@-@@@,
 52,52000126,NAR,1,delivery_type,svd,
 52,52000126,NAR,1,gestation_in_weeks,,
 52,52000126,NAR,1,gestation_type,lmp,LMP
@@ -15708,7 +15686,6 @@ Age units"
 76,76000056,NAR,1,rhesus,,Positive
 76,76000056,NAR,1,temparature,39.4,39.4
 76,76000056,NAR,1,time_birth,,
-76,76000056,NAR,1,time_seen,9@:30,
 76,76000056,NAR,1,was_resuscitated,,True
 76,76000056,NAR,1,weight,3560,3560
 76,76000056,NAR,2,appearance,well,Well
@@ -16168,7 +16145,6 @@ Age units"
 72,72000010,NAR,1,respiratory_rate,,
 72,72000010,NAR,1,rhesus,negative,
 72,72000010,NAR,1,sex,female,Female
-72,72000010,NAR,1,temparature,6@.,36.5
 72,72000010,NAR,1,time_birth,,
 72,72000010,NAR,1,time_seen,17:30,17:30
 72,72000010,NAR,1,was_resuscitated,,
@@ -16278,8 +16254,6 @@ Age units"
 72,72001218,ITF,1,birth_weight,1001,2100
 72,72001218,ITF,1,blood_group,unknown,A
 72,72001218,ITF,1,chest_compressions,FALSE,False
-72,72001218,ITF,1,date_estimated_delivery_date,50-@2-3@04,
-72,72001218,ITF,1,date_last_menstrual_period,19-01-40@,
 72,72001218,ITF,1,delivery_type,cs,CS
 72,72001218,ITF,1,fetal_distress,,True
 72,72001218,ITF,1,gestation_in_weeks,00,34
@@ -16360,7 +16334,6 @@ Age units"
 72,72000011,NAR,1,apgar_5m,,
 72,72000011,NAR,1,baby_age_in_days,,
 72,72000011,NAR,1,birth_date,63-11-2024,2024-11-03
-72,72000011,NAR,1,birth_weight,0@,4035
 72,72000011,NAR,1,blood_group,b,B
 72,72000011,NAR,1,born_before_arrival,,False
 72,72000011,NAR,1,born_where,,
@@ -16404,11 +16377,9 @@ Age units"
 72,72000011,NAR,1,respiratory_rate,4,44
 72,72000011,NAR,1,rhesus,positive,Positive
 72,72000011,NAR,1,sex,male,Female
-72,72000011,NAR,1,temparature,2@.,36.1
 72,72000011,NAR,1,time_birth,,
 72,72000011,NAR,1,time_seen,,
 72,72000011,NAR,1,was_resuscitated,,True
-72,72000011,NAR,1,weight,1@@,
 72,72000011,ITF,1,abnormal_placenta,FALSE,False
 72,72000011,ITF,1,anc_visits,4,44
 72,72000011,ITF,1,antenatal_steroids,FALSE,False
@@ -16464,7 +16435,6 @@ Age units"
 72,72000011,ITF,1,sex,male,Male
 72,72000011,ITF,1,temparature,36.1,36.1
 72,72000011,ITF,1,was_resuscitated,FALSE,False
-72,72000011,ITF,1,weight,8@@,8
 72,72000013,NAR,2,appearance,well,Well
 72,72000013,NAR,2,capillary_refill_in_seconds,2,
 72,72000013,NAR,2,cry,normal,Normal
@@ -16506,7 +16476,6 @@ Age units"
 72,72000013,NAR,1,apgar_5m,,
 72,72000013,NAR,1,baby_age_in_days,,
 72,72000013,NAR,1,birth_date,63-11-2024,2024-11-03
-72,72000013,NAR,1,birth_weight,0@,4035
 72,72000013,NAR,1,blood_group,b,B
 72,72000013,NAR,1,born_before_arrival,,False
 72,72000013,NAR,1,born_where,,
@@ -16550,11 +16519,9 @@ Age units"
 72,72000013,NAR,1,respiratory_rate,4,44
 72,72000013,NAR,1,rhesus,positive,Positive
 72,72000013,NAR,1,sex,male,Female
-72,72000013,NAR,1,temparature,2@.,36.1
 72,72000013,NAR,1,time_birth,,
 72,72000013,NAR,1,time_seen,,
 72,72000013,NAR,1,was_resuscitated,,True
-72,72000013,NAR,1,weight,1@@,
 72,72000013,ITF,1,abnormal_placenta,FALSE,False
 72,72000013,ITF,1,anc_visits,4,44
 72,72000013,ITF,1,antenatal_steroids,FALSE,False
@@ -16610,7 +16577,6 @@ Age units"
 72,72000013,ITF,1,sex,male,Male
 72,72000013,ITF,1,temparature,36.1,36.1
 72,72000013,ITF,1,was_resuscitated,FALSE,False
-72,72000013,ITF,1,weight,8@@,8
 72,72000017,NAR,2,appearance,well,Well
 72,72000017,NAR,2,capillary_refill_in_seconds,2,
 72,72000017,NAR,2,cry,normal,Normal
@@ -16652,7 +16618,6 @@ Age units"
 72,72000017,NAR,1,apgar_5m,9,9
 72,72000017,NAR,1,baby_age_in_days,,0
 72,72000017,NAR,1,birth_date,02-11-2024,2024-11-02
-72,72000017,NAR,1,birth_weight,0@,3000
 72,72000017,NAR,1,blood_group,o,O
 72,72000017,NAR,1,born_before_arrival,,False
 72,72000017,NAR,1,born_where,,
@@ -16696,7 +16661,6 @@ Age units"
 72,72000017,NAR,1,respiratory_rate,,
 72,72000017,NAR,1,rhesus,positive,Positive
 72,72000017,NAR,1,sex,female,Female
-72,72000017,NAR,1,temparature,@.5,36.5
 72,72000017,NAR,1,time_birth,,11:00
 72,72000017,NAR,1,time_seen,,11:00
 72,72000017,NAR,1,was_resuscitated,,False
@@ -16850,11 +16814,9 @@ Age units"
 72,72000018,NAR,1,apgar_5m,9,9
 72,72000018,NAR,1,baby_age_in_days,,
 72,72000018,NAR,1,birth_date,01-11-2024,2024-11-01
-72,72000018,NAR,1,birth_weight,1@,
 72,72000018,NAR,1,blood_group,a,A
 72,72000018,NAR,1,born_before_arrival,,
 72,72000018,NAR,1,born_where,,Home/roadside
-72,72000018,NAR,1,date,01-1@-224,2024-11-01
 72,72000018,NAR,1,date_estimated_delivery_date,,
 72,72000018,NAR,1,delivery_type,svd,Yes
 72,72000018,NAR,1,gestation_in_weeks,32,37
@@ -16897,7 +16859,6 @@ Age units"
 72,72000018,NAR,1,time_birth,,
 72,72000018,NAR,1,time_seen,,
 72,72000018,NAR,1,was_resuscitated,FALSE,False
-72,72000018,NAR,1,weight,4@@,
 72,72000020,ITF,1,abnormal_placenta,FALSE,False
 72,72000020,ITF,1,anc_visits,4,4
 72,72000020,ITF,1,antenatal_steroids,FALSE,False
@@ -16995,7 +16956,6 @@ Age units"
 72,72000020,NAR,1,apgar_5m,9,9
 72,72000020,NAR,1,baby_age_in_days,,
 72,72000020,NAR,1,birth_date,02-10-2024,2024-10-02
-72,72000020,NAR,1,birth_weight,0@,
 72,72000020,NAR,1,blood_group,o,O
 72,72000020,NAR,1,born_before_arrival,,False
 72,72000020,NAR,1,born_where,,
@@ -17138,7 +17098,6 @@ Age units"
 72,72000022,NAR,1,apgar_5m,9,9
 72,72000022,NAR,1,baby_age_in_days,01,1
 72,72000022,NAR,1,birth_date,08-11-2024,
-72,72000022,NAR,1,birth_weight,9@,2677
 72,72000022,NAR,1,blood_group,a,A
 72,72000022,NAR,1,born_before_arrival,FALSE,False
 72,72000022,NAR,1,born_where,,
@@ -17177,16 +17136,13 @@ Age units"
 72,72000022,NAR,1,passed_urine,,
 72,72000022,NAR,1,prolonged_labour,FALSE,
 72,72000022,NAR,1,pulse_oximetry,0,98
-72,72000022,NAR,1,pulse_rate,@6,148
 72,72000022,NAR,1,rapture_of_membrane,lt18,<18 hrs
 72,72000022,NAR,1,respiratory_rate,6,58
 72,72000022,NAR,1,rhesus,positive,Positive
 72,72000022,NAR,1,sex,female,Female
-72,72000022,NAR,1,temparature,5@.6,35.9
 72,72000022,NAR,1,time_birth,,
 72,72000022,NAR,1,time_seen,12:10,12:10
 72,72000022,NAR,1,was_resuscitated,FALSE,False
-72,72000022,NAR,1,weight,24@,
 72,72000023,NAR,2,capillary_refill_in_seconds,2,
 72,72000023,NAR,2,cry,normal,Normal
 72,72000023,NAR,2,given_bcg,,
@@ -17228,7 +17184,6 @@ Risk of NNS 2° PROM. 7 24horo."
 72,72000023,NAR,1,apgar_5m,9,9
 72,72000023,NAR,1,baby_age_in_days,,
 72,72000023,NAR,1,birth_date,06-11-2024,2024-11-06
-72,72000023,NAR,1,birth_weight,0@,3100
 72,72000023,NAR,1,blood_group,a,No
 72,72000023,NAR,1,born_before_arrival,FALSE,False
 72,72000023,NAR,1,born_where,,
@@ -17487,7 +17442,6 @@ Age units"
 72,72000025,NAR,1,apgar_5m,8,8
 72,72000025,NAR,1,baby_age_in_days,00,0
 72,72000025,NAR,1,birth_date,31-10-2024,2024-10-31
-72,72000025,NAR,1,birth_weight,0@,4250
 72,72000025,NAR,1,blood_group,b,B
 72,72000025,NAR,1,born_before_arrival,FALSE,False
 72,72000025,NAR,1,born_where,,Home/roadside
@@ -17529,11 +17483,9 @@ Age units"
 72,72000025,NAR,1,respiratory_rate,0,40
 72,72000025,NAR,1,rhesus,positive,Negative
 72,72000025,NAR,1,sex,female,Female
-72,72000025,NAR,1,temparature,0@.,36.0
 72,72000025,NAR,1,time_birth,09:45,09:45
 72,72000025,NAR,1,time_seen,09:45,09:45
 72,72000025,NAR,1,was_resuscitated,FALSE,False
-72,72000025,NAR,1,weight,@0,4250
 76,76000004,ITF,1,abnormal_placenta,FALSE,False
 76,76000004,ITF,1,anc_visits,,
 76,76000004,ITF,1,antenatal_steroids,,False
@@ -18267,7 +18219,6 @@ Age units"
 72,72001000,NAR,1,apgar_5m,0,10
 72,72001000,NAR,1,baby_age_in_days,0,1
 72,72001000,NAR,1,birth_date,27-01-2025,2025-01-27
-72,72001000,NAR,1,birth_weight,2@,2500
 72,72001000,NAR,1,blood_group,o,O
 72,72001000,NAR,1,born_before_arrival,FALSE,False
 72,72001000,NAR,1,born_where,,Home/roadside
@@ -18314,7 +18265,6 @@ Age units"
 72,72001000,NAR,1,time_birth,11:12,11:12
 72,72001000,NAR,1,time_seen,04:10,04:10
 72,72001000,NAR,1,was_resuscitated,FALSE,False
-72,72001000,NAR,1,weight,0@,2500
 72,72001000,ITF,1,abnormal_placenta,FALSE,False
 72,72001000,ITF,1,anc_visits,4,4
 72,72001000,ITF,1,antenatal_steroids,FALSE,False
@@ -18443,7 +18393,6 @@ Age units"
 72,72000030,ITF,1,blood_group,b,AB
 72,72000030,ITF,1,chest_compressions,FALSE,False
 72,72000030,ITF,1,date_estimated_delivery_date,20-10-2022,2024-10-20
-72,72000030,ITF,1,date_last_menstrual_period,13-10-@@@,2024-10-13
 72,72000030,ITF,1,delivery_type,svd,SVD
 72,72000030,ITF,1,fetal_distress,FALSE,False
 72,72000030,ITF,1,gestation_in_weeks,42,42
@@ -18675,7 +18624,6 @@ Age units"
 72,72000031,ITF,1,birth_weight,2000,2000
 72,72000031,ITF,1,blood_group,b,AB
 72,72000031,ITF,1,chest_compressions,FALSE,False
-72,72000031,ITF,1,date_last_menstrual_period,7-@7-0@@,
 72,72000031,ITF,1,delivery_type,cs,
 72,72000031,ITF,1,fetal_distress,FALSE,False
 72,72000031,ITF,1,gestation_in_weeks,34,34
@@ -19245,13 +19193,11 @@ C:Infant Details"
 72,72000036,NAR,1,passed_urine,FALSE,True
 72,72000036,NAR,1,prolonged_labour,FALSE,
 72,72000036,NAR,1,pulse_oximetry,94,94
-72,72000036,NAR,1,pulse_rate,1@8,148
 72,72000036,NAR,1,rapture_of_membrane,lt18,<18 hrs
 72,72000036,NAR,1,respiratory_rate,58,58
 72,72000036,NAR,1,rhesus,positive,Positive
 72,72000036,NAR,1,sex,,Female
 72,72000036,NAR,1,temparature,35.5,35.5
-72,72000036,NAR,1,time_birth,7@:@,
 72,72000036,NAR,1,time_seen,,
 72,72000036,NAR,1,was_resuscitated,,False
 72,72000036,NAR,1,weight,,
@@ -20878,13 +20824,10 @@ C: Infant Details"
 40,40000017,NAR,1,apgar_1m,9,9
 40,40000017,NAR,1,apgar_5m,0,10
 40,40000017,NAR,1,baby_age_in_days,,
-40,40000017,NAR,1,birth_date,8@-1@-2025,2025-01-08
 40,40000017,NAR,1,birth_weight,3355,3255
 40,40000017,NAR,1,blood_group,o,O
 40,40000017,NAR,1,born_before_arrival,FALSE,False
 40,40000017,NAR,1,born_where,,Other facility
-40,40000017,NAR,1,date,8-@1-2525,2025-01-08
-40,40000017,NAR,1,date_estimated_delivery_date,2@-01-2025,2025-01-12
 40,40000017,NAR,1,delivery_type,cs,CS
 40,40000017,NAR,1,gestation_in_weeks,2,39
 40,40000017,NAR,1,gestation_type,,U/S
@@ -21141,8 +21084,6 @@ C: Infant Details"
 72,72000045,ITF,1,birth_weight,1985,1985
 72,72000045,ITF,1,blood_group,o,O
 72,72000045,ITF,1,chest_compressions,FALSE,False
-72,72000045,ITF,1,date_estimated_delivery_date,2@-02-2025,2025-02-02
-72,72000045,ITF,1,date_last_menstrual_period,28-4@-2024,2024-04-20
 72,72000045,ITF,1,delivery_type,svd,SVD
 72,72000045,ITF,1,fetal_distress,FALSE,False
 72,72000045,ITF,1,gestation_in_weeks,35,35
@@ -21268,7 +21209,6 @@ C: Infant Details"
 72,72000046,NAR,1,sex,male,Female
 72,72000046,NAR,1,temparature,37.6,37.6
 72,72000046,NAR,1,time_birth,,
-72,72000046,NAR,1,time_seen,3@:40,
 72,72000046,NAR,1,was_resuscitated,FALSE,False
 72,72000046,NAR,1,weight,,
 72,72000046,ITF,1,abnormal_placenta,FALSE,False
@@ -21385,7 +21325,6 @@ C: Infant Details"
 72,72000047,NAR,1,apgar_1m,3,8
 72,72000047,NAR,1,apgar_5m,9,9
 72,72000047,NAR,1,baby_age_in_days,07,1
-72,72000047,NAR,1,birth_date,05-1@-2024,2024-11-09
 72,72000047,NAR,1,birth_weight,3050,3050
 72,72000047,NAR,1,blood_group,b,B
 72,72000047,NAR,1,born_before_arrival,FALSE,False
@@ -22390,7 +22329,6 @@ C: Infant Details"
 72,72000054,NAR,1,born_before_arrival,,False
 72,72000054,NAR,1,born_where,,[unclear]
 72,72000054,NAR,1,date,02-11-2024,2021-11-02
-72,72000054,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000054,NAR,1,delivery_type,svd,Yes
 72,72000054,NAR,1,gestation_in_weeks,,
 72,72000054,NAR,1,gestation_type,,U/S
@@ -24821,7 +24759,6 @@ Age units"
 72,72000073,NAR,1,blood_group,b,B
 72,72000073,NAR,1,born_before_arrival,,False
 72,72000073,NAR,1,born_where,,
-72,72000073,NAR,1,date,10-1@-2024,
 72,72000073,NAR,1,date_estimated_delivery_date,15-12-2024,
 72,72000073,NAR,1,delivery_type,svd,
 72,72000073,NAR,1,gestation_in_weeks,35,3
@@ -25021,7 +24958,6 @@ Age units"
 72,72000074,NAR,1,born_before_arrival,FALSE,False
 72,72000074,NAR,1,born_where,,
 72,72000074,NAR,1,date,10-11-2024,
-72,72000074,NAR,1,date_estimated_delivery_date,17-1@-2024,
 72,72000074,NAR,1,delivery_type,cs,N
 72,72000074,NAR,1,gestation_in_weeks,30,39
 72,72000074,NAR,1,gestation_type,us,U/S
@@ -25162,7 +25098,6 @@ Age units"
 72,72000075,ITF,1,birth_weight,3500,3500
 72,72000075,ITF,1,blood_group,o,O
 72,72000075,ITF,1,chest_compressions,FALSE,False
-72,72000075,ITF,1,date_last_menstrual_period,7@-@7-2024,
 72,72000075,ITF,1,delivery_type,svd,
 72,72000075,ITF,1,fetal_distress,FALSE,False
 72,72000075,ITF,1,gestation_in_weeks,38,38
@@ -25217,7 +25152,6 @@ Age units"
 72,72000076,ITF,1,birth_weight,3400,3400
 72,72000076,ITF,1,blood_group,o,O
 72,72000076,ITF,1,chest_compressions,FALSE,False
-72,72000076,ITF,1,date_estimated_delivery_date,7@-10-2024,2024-11-11
 72,72000076,ITF,1,delivery_type,svd,SVD
 72,72000076,ITF,1,fetal_distress,FALSE,False
 72,72000076,ITF,1,gestation_in_weeks,38,38
@@ -25360,7 +25294,6 @@ Age units"
 72,72000077,ITF,1,birth_weight,116,1
 72,72000077,ITF,1,blood_group,o,O
 72,72000077,ITF,1,chest_compressions,FALSE,False
-72,72000077,ITF,1,date_estimated_delivery_date,@-02-2024,
 72,72000077,ITF,1,date_last_menstrual_period,04-11-2024,
 72,72000077,ITF,1,delivery_type,cs,CS
 72,72000077,ITF,1,fetal_distress,,False
@@ -25871,7 +25804,6 @@ Age units"
 72,72000081,NAR,1,apgar_1m,8,8
 72,72000081,NAR,1,apgar_5m,9,9
 72,72000081,NAR,1,baby_age_in_days,,
-72,72000081,NAR,1,birth_date,@-@@-2@@,
 72,72000081,NAR,1,birth_weight,2920,2920
 72,72000081,NAR,1,blood_group,a,A
 72,72000081,NAR,1,born_before_arrival,,False
@@ -26849,7 +26781,6 @@ C: Infant Details"
 72,72000084,ITF,1,blood_group,b,AB
 72,72000084,ITF,1,chest_compressions,TRUE,False
 72,72000084,ITF,1,date_estimated_delivery_date,12-12-2024,2024-12-12
-72,72000084,ITF,1,date_last_menstrual_period,5-@3-2024,2024-03-05
 72,72000084,ITF,1,delivery_type,cs,
 72,72000084,ITF,1,fetal_distress,FALSE,False
 72,72000084,ITF,1,gestation_in_weeks,34,34
@@ -27411,7 +27342,6 @@ C: Infant Details"
 72,72000088,NAR,1,apgar_1m,,
 72,72000088,NAR,1,apgar_5m,,
 72,72000088,NAR,1,baby_age_in_days,,
-72,72000088,NAR,1,birth_date,2-@@-@@@,
 72,72000088,NAR,1,birth_weight,,
 72,72000088,NAR,1,blood_group,,[unclear]
 72,72000088,NAR,1,born_before_arrival,,
@@ -27739,7 +27669,6 @@ C: Infant Details"
 72,72000090,NAR,1,born_before_arrival,,False
 72,72000090,NAR,1,born_where,,
 72,72000090,NAR,1,date,11-11-2024,2024-11-01
-72,72000090,NAR,1,date_estimated_delivery_date,@-@@-2@@,
 72,72000090,NAR,1,delivery_type,,
 72,72000090,NAR,1,gestation_in_weeks,,
 72,72000090,NAR,1,gestation_type,,U/S
@@ -28309,7 +28238,6 @@ C: Infant Details"
 72,72000094,NAR,1,born_before_arrival,FALSE,False
 72,72000094,NAR,1,born_where,,Home/roadside
 72,72000094,NAR,1,date,12-11-2024,2024-11-12
-72,72000094,NAR,1,date_estimated_delivery_date,@-@@-2@@,
 72,72000094,NAR,1,delivery_type,svd,SVD
 72,72000094,NAR,1,gestation_in_weeks,35,35
 72,72000094,NAR,1,gestation_type,lmp,LMP
@@ -28395,7 +28323,6 @@ C: Infant Details"
 72,72000095,NAR,1,born_before_arrival,,False
 72,72000095,NAR,1,born_where,,
 72,72000095,NAR,1,date,16-11-2024,2024-09-16
-72,72000095,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000095,NAR,1,delivery_type,svd,
 72,72000095,NAR,1,gestation_in_weeks,,
 72,72000095,NAR,1,gestation_type,,U/S
@@ -28792,7 +28719,6 @@ C: Infant Details"
 72,72000099,NAR,1,blood_group,o,O
 72,72000099,NAR,1,born_before_arrival,,False
 72,72000099,NAR,1,born_where,,[unclear]
-72,72000099,NAR,1,date,15-11-@024,2024-11-15
 72,72000099,NAR,1,date_estimated_delivery_date,,
 72,72000099,NAR,1,delivery_type,svd,
 72,72000099,NAR,1,gestation_in_weeks,,
@@ -29039,7 +28965,6 @@ C: Infant Details"
 72,72000102,NAR,1,apgar_1m,,
 72,72000102,NAR,1,apgar_5m,,
 72,72000102,NAR,1,baby_age_in_days,,
-72,72000102,NAR,1,birth_date,@-@@-@@2,
 72,72000102,NAR,1,birth_weight,,
 72,72000102,NAR,1,blood_group,,[unclear]
 72,72000102,NAR,1,born_before_arrival,,
@@ -29101,7 +29026,6 @@ C: Infant Details"
 72,72000102,ITF,1,blood_group,o,O
 72,72000102,ITF,1,chest_compressions,FALSE,False
 72,72000102,ITF,1,date_estimated_delivery_date,3-11-2024,
-72,72000102,ITF,1,date_last_menstrual_period,24-@2-2024,
 72,72000102,ITF,1,delivery_type,cs,
 72,72000102,ITF,1,fetal_distress,,
 72,72000102,ITF,1,gestation_in_weeks,38,38
@@ -29333,7 +29257,6 @@ C: Infant Details"
 72,72000104,NAR,1,born_before_arrival,FALSE,False
 72,72000104,NAR,1,born_where,,Home/roadside
 72,72000104,NAR,1,date,14-11-2024,2024-11-14
-72,72000104,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000104,NAR,1,delivery_type,svd,
 72,72000104,NAR,1,gestation_in_weeks,,
 72,72000104,NAR,1,gestation_type,,U/S
@@ -29477,7 +29400,6 @@ C: Infant Details"
 72,72000105,ITF,1,rhesus,positive,Positive
 72,72000105,ITF,1,sex,male,Male
 72,72000105,ITF,1,was_resuscitated,FALSE,False
-72,72000105,ITF,1,weight,3@@,2
 72,72000105,NAR,1,anc_visits,,
 72,72000105,NAR,1,apgar_10m,,
 72,72000105,NAR,1,apgar_1m,2,7
@@ -30182,7 +30104,6 @@ C: Infant Details"
 72,72001001,NAR,1,apgar_5m,9,9
 72,72001001,NAR,1,baby_age_in_days,06,6
 72,72001001,NAR,1,birth_date,29-01-2025,2025-01-29
-72,72001001,NAR,1,birth_weight,1@,3200
 72,72001001,NAR,1,blood_group,o,O
 72,72001001,NAR,1,born_before_arrival,FALSE,False
 72,72001001,NAR,1,born_where,,
@@ -30383,7 +30304,6 @@ C: Infant Details"
 72,72001002,NAR,1,passed_urine,,
 72,72001002,NAR,1,prolonged_labour,,
 72,72001002,NAR,1,pulse_oximetry,00,98
-72,72001002,NAR,1,pulse_rate,@6,163
 72,72001002,NAR,1,rapture_of_membrane,lt18,<18 hrs
 72,72001002,NAR,1,respiratory_rate,,50
 72,72001002,NAR,1,rhesus,positive,Positive
@@ -30474,7 +30394,6 @@ C: Infant Details"
 52,52000022,NAR,1,born_before_arrival,TRUE,True
 52,52000022,NAR,1,born_where,home,Home/roadside
 52,52000022,NAR,1,date,16-12-2024,2024-12-16
-52,52000022,NAR,1,date_estimated_delivery_date,1@-@@-@@@,
 52,52000022,NAR,1,delivery_type,svd,SVD
 52,52000022,NAR,1,gestation_in_weeks,38,38
 52,52000022,NAR,1,gestation_type,,U/S
@@ -31574,7 +31493,6 @@ C: Infant Details"
 72,72001003,NAR,1,apgar_1m,8,8
 72,72001003,NAR,1,apgar_5m,9,9
 72,72001003,NAR,1,baby_age_in_days,04,4
-72,72001003,NAR,1,birth_weight,0@,2470
 72,72001003,NAR,1,blood_group,o,N
 72,72001003,NAR,1,born_before_arrival,FALSE,False
 72,72001003,NAR,1,born_where,,
@@ -31960,7 +31878,6 @@ C: Infant Details"
 72,72001005,ITF,1,birth_weight,1665,1665
 72,72001005,ITF,1,blood_group,o,O
 72,72001005,ITF,1,chest_compressions,FALSE,False
-72,72001005,ITF,1,date_last_menstrual_period,07-1@-@@@,
 72,72001005,ITF,1,delivery_type,svd,SVD
 72,72001005,ITF,1,fetal_distress,,False
 72,72001005,ITF,1,gestation_in_weeks,38,38
@@ -32673,7 +32590,6 @@ C: Infant Details"
 40,40000040,ITF,1,sex,male,Male
 40,40000040,ITF,1,temparature,36.0,36.0
 40,40000040,ITF,1,was_resuscitated,FALSE,False
-40,40000040,ITF,1,weight,16@,16
 40,40000042,ITF,1,abnormal_placenta,FALSE,False
 40,40000042,ITF,1,anc_visits,,
 40,40000042,ITF,1,antenatal_steroids,FALSE,False
@@ -33303,7 +33219,6 @@ Age units"
 72,72001008,NAR,1,blood_group,a,[blank]
 72,72001008,NAR,1,born_before_arrival,,
 72,72001008,NAR,1,born_where,,[blank]
-72,72001008,NAR,1,date,@-@@-@2@,
 72,72001008,NAR,1,date_estimated_delivery_date,,
 72,72001008,NAR,1,delivery_type,,[blank]
 72,72001008,NAR,1,gestation_in_weeks,,
@@ -33496,7 +33411,6 @@ Age units"
 72,72001009,NAR,1,apgar_5m,,
 72,72001009,NAR,1,baby_age_in_days,00,1
 72,72001009,NAR,1,birth_date,30-01-2025,2024-01-30
-72,72001009,NAR,1,birth_weight,0@,4025
 72,72001009,NAR,1,blood_group,o,O
 72,72001009,NAR,1,born_before_arrival,FALSE,False
 72,72001009,NAR,1,born_where,,
@@ -33540,7 +33454,6 @@ Age units"
 72,72001009,NAR,1,respiratory_rate,45,48
 72,72001009,NAR,1,rhesus,negative,Unknown
 72,72001009,NAR,1,sex,male,Female
-72,72001009,NAR,1,temparature,0@.6,36.9
 72,72001009,NAR,1,time_birth,,
 72,72001009,NAR,1,time_seen,06:00,06:00
 72,72001009,NAR,1,was_resuscitated,,False
@@ -33586,12 +33499,10 @@ Age units"
 40,40000046,NAR,1,apgar_1m,8,8
 40,40000046,NAR,1,apgar_5m,9,9
 40,40000046,NAR,1,baby_age_in_days,,
-40,40000046,NAR,1,birth_date,9-@1-2025,
 40,40000046,NAR,1,birth_weight,2500,2
 40,40000046,NAR,1,blood_group,ab,AB
 40,40000046,NAR,1,born_before_arrival,FALSE,False
 40,40000046,NAR,1,born_where,,Home/roadside
-40,40000046,NAR,1,date,9-@1-2025,
 40,40000046,NAR,1,date_estimated_delivery_date,27-01-2025,
 40,40000046,NAR,1,delivery_type,svd,
 40,40000046,NAR,1,gestation_in_weeks,38,3
@@ -34343,7 +34254,6 @@ Age units"
 76,76000006,ITF,1,baby_age,,5
 76,76000006,ITF,1,baby_from,labour,
 76,76000006,ITF,1,birth_date,13-01-2025,2025-01-13
-76,76000006,ITF,1,birth_weight,20@,40
 76,76000006,ITF,1,blood_group,o,O
 76,76000006,ITF,1,chest_compressions,FALSE,False
 76,76000006,ITF,1,date_estimated_delivery_date,05-06-2024,2024-06-05
@@ -34712,7 +34622,6 @@ Age units"
 76,76000008,NAR,1,sex,male,Male
 76,76000008,NAR,1,temparature,37.0,37.0
 76,76000008,NAR,1,time_birth,,
-76,76000008,NAR,1,time_seen,1@:57,
 76,76000008,NAR,1,was_resuscitated,,False
 76,76000008,NAR,1,weight,2000,2000
 76,76000008,ITF,1,abnormal_placenta,FALSE,False
@@ -35731,7 +35640,6 @@ Age units"
 52,52000062,ITF,1,blood_group,o,O
 52,52000062,ITF,1,chest_compressions,TRUE,True
 52,52000062,ITF,1,date_estimated_delivery_date,03-04-2024,2024-04-03
-52,52000062,ITF,1,date_last_menstrual_period,8@-11-2024,2024-11-08
 52,52000062,ITF,1,fetal_distress,TRUE,True
 52,52000062,ITF,1,gestation_in_weeks,44,40
 52,52000062,ITF,1,given_bcg,FALSE,False
@@ -35963,7 +35871,6 @@ Age units"
 52,52000063,NAR,1,born_before_arrival,FALSE,False
 52,52000063,NAR,1,born_where,,Home/roadside
 52,52000063,NAR,1,date,04-01-2025,2025-01-04
-52,52000063,NAR,1,date_estimated_delivery_date,@-@@-00@,
 52,52000063,NAR,1,delivery_type,cs,
 52,52000063,NAR,1,gestation_in_weeks,,
 52,52000063,NAR,1,gestation_type,lmp,
@@ -39627,7 +39534,6 @@ C: Infant Details"
 72,72000251,NAR,1,born_before_arrival,FALSE,
 72,72000251,NAR,1,born_where,,[blank]
 72,72000251,NAR,1,date,04-11-2024,2024-11-04
-72,72000251,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000251,NAR,1,delivery_type,svd,ticked
 72,72000251,NAR,1,gestation_in_weeks,,
 72,72000251,NAR,1,gestation_type,us,U/S
@@ -39683,7 +39589,6 @@ C: Infant Details"
 72,72000251,ITF,1,blood_group,o,O
 72,72000251,ITF,1,chest_compressions,FALSE,False
 72,72000251,ITF,1,date_estimated_delivery_date,27-01-2024,2024-01-27
-72,72000251,ITF,1,date_last_menstrual_period,20-04-20@,
 72,72000251,ITF,1,delivery_type,svd,SVD
 72,72000251,ITF,1,fetal_distress,,False
 72,72000251,ITF,1,gestation_in_weeks,28,38
@@ -39829,7 +39734,6 @@ C: Infant Details"
 52,52000070,ITF,1,birth_weight,4000,4000
 52,52000070,ITF,1,blood_group,a,A
 52,52000070,ITF,1,chest_compressions,FALSE,False
-52,52000070,ITF,1,date_estimated_delivery_date,@-@@-2@@,
 52,52000070,ITF,1,date_last_menstrual_period,,
 52,52000070,ITF,1,delivery_type,svd,SVD
 52,52000070,ITF,1,fetal_distress,FALSE,False
@@ -40268,7 +40172,6 @@ C: Infant Details"
 63,63000003,ITF,1,blood_group,o,O
 63,63000003,ITF,1,chest_compressions,FALSE,False
 63,63000003,ITF,1,date_estimated_delivery_date,30-12-2024,2024-12-30
-63,63000003,ITF,1,date_last_menstrual_period,2@-03-2024,2024-03-04
 63,63000003,ITF,1,delivery_type,cs,CS
 63,63000003,ITF,1,fetal_distress,,False
 63,63000003,ITF,1,gestation_in_weeks,38,38
@@ -41672,7 +41575,6 @@ C: Infant Details"
 72,72001029,ITF,1,birth_weight,3120,3120
 72,72001029,ITF,1,blood_group,a,A
 72,72001029,ITF,1,chest_compressions,FALSE,False
-72,72001029,ITF,1,date_estimated_delivery_date,11-01-25@,2025-11-10
 72,72001029,ITF,1,delivery_type,cs,
 72,72001029,ITF,1,fetal_distress,TRUE,True
 72,72001029,ITF,1,given_bcg,,False
@@ -42185,7 +42087,6 @@ C: Infant Details"
 72,72001035,ITF,1,attended_anc,TRUE,True
 72,72001035,ITF,1,baby_age,04,4
 72,72001035,ITF,1,baby_from,postnatal,Postnatal ward
-72,72001035,ITF,1,birth_date,31-0@-2025,
 72,72001035,ITF,1,birth_weight,4200,4200
 72,72001035,ITF,1,blood_group,a,A
 72,72001035,ITF,1,chest_compressions,FALSE,False
@@ -43329,7 +43230,6 @@ Age units"
 52,52000077,NAR,1,rhesus,positive,Negative
 52,52000077,NAR,1,sex,female,Female
 52,52000077,NAR,1,temparature,37.4,37.4
-52,52000077,NAR,1,time_birth,20:@,
 52,52000077,NAR,1,time_seen,20:40,20:44
 52,52000077,NAR,1,was_resuscitated,FALSE,False
 52,52000077,NAR,1,weight,2775,2745
@@ -43904,7 +43804,6 @@ C: Infant Details"
 76,76000021,ITF,1,attended_anc,TRUE,True
 76,76000021,ITF,1,baby_age,03,3
 76,76000021,ITF,1,baby_from,referral,
-76,76000021,ITF,1,birth_date,1@-02-2025,
 76,76000021,ITF,1,birth_weight,2000,2000
 76,76000021,ITF,1,chest_compressions,,False
 76,76000021,ITF,1,delivery_type,cs,
@@ -45760,7 +45659,6 @@ C: Infant Details"
 52,52000091,ITF,1,baby_age,,
 52,52000091,ITF,1,baby_from,postnatal,Postnatal ward
 52,52000091,ITF,1,birth_date,15-01-2025,2025-01-19
-52,52000091,ITF,1,birth_weight,31@0,3150
 52,52000091,ITF,1,blood_group,a,A
 52,52000091,ITF,1,chest_compressions,FALSE,False
 52,52000091,ITF,1,date_estimated_delivery_date,19-01-2025,2025-01-19
@@ -45965,7 +45863,6 @@ C: Infant Details"
 76,76000026,ITF,1,birth_weight,1800,1800
 76,76000026,ITF,1,blood_group,o,O
 76,76000026,ITF,1,chest_compressions,FALSE,False
-76,76000026,ITF,1,date_estimated_delivery_date,62-4@-2025,2025-02-04
 76,76000026,ITF,1,date_last_menstrual_period,02-05-2024,2024-05-02
 76,76000026,ITF,1,delivery_type,svd,SVD
 76,76000026,ITF,1,fetal_distress,FALSE,False
@@ -47411,7 +47308,6 @@ C: Infant Details"
 72,72001044,NAR,1,blood_group,o,O
 72,72001044,NAR,1,born_before_arrival,,
 72,72001044,NAR,1,born_where,,[blank]
-72,72001044,NAR,1,date,@-@@-@2@,
 72,72001044,NAR,1,date_estimated_delivery_date,,
 72,72001044,NAR,1,delivery_type,,
 72,72001044,NAR,1,gestation_in_weeks,40,40
@@ -49253,7 +49149,6 @@ C: Infant Details"
 52,52000103,NAR,1,blood_group,o,N
 52,52000103,NAR,1,born_before_arrival,FALSE,False
 52,52000103,NAR,1,born_where,,Home/roadside
-52,52000103,NAR,1,date,02-0@-2025,2025-06-02
 52,52000103,NAR,1,date_estimated_delivery_date,01-01-2025,2025-06-06
 52,52000103,NAR,1,delivery_type,,
 52,52000103,NAR,1,gestation_in_weeks,40,40
@@ -53895,7 +53790,6 @@ Age units"
 52,52000117,NAR,1,sex,,Female
 52,52000117,NAR,1,temparature,35.2,35.2
 52,52000117,NAR,1,time_birth,,
-52,52000117,NAR,1,time_seen,20:@,02:40
 52,52000117,NAR,1,was_resuscitated,TRUE,True
 52,52000117,NAR,1,weight,550,550
 52,52000117,NAR,2,appearance,,
@@ -54279,7 +54173,6 @@ Age units"
 40,40000076,ITF,1,sex,female,Female
 40,40000076,ITF,1,temparature,,
 40,40000076,ITF,1,was_resuscitated,,
-40,40000076,ITF,1,weight,3@@,3
 76,76000055,NAR,2,capillary_refill_in_seconds,3,
 76,76000055,NAR,2,chest_indrawing,TRUE,True
 76,76000055,NAR,2,cry,normal,Normal
@@ -56257,7 +56150,6 @@ Age units"
 63,63000176,ITF,1,blood_group,unknown,Unknown
 63,63000176,ITF,1,chest_compressions,,False
 63,63000176,ITF,1,date_estimated_delivery_date,16-03-2025,2024-03-16
-63,63000176,ITF,1,date_last_menstrual_period,9@-06-2024,
 63,63000176,ITF,1,delivery_type,svd,SVD
 63,63000176,ITF,1,fetal_distress,,
 63,63000176,ITF,1,gestation_in_weeks,29,29
@@ -56871,7 +56763,6 @@ Age units"
 76,76000064,ITF,1,prescribed_opv,FALSE,False
 76,76000064,ITF,1,prescribed_oxygen,,False
 76,76000064,ITF,1,pulse_oximetry,,
-76,76000064,ITF,1,pulse_rate,0@,0
 76,76000064,ITF,1,rapture_of_membrane,,
 76,76000064,ITF,1,respiratory_rate,68,68
 76,76000064,ITF,1,rhesus,positive,Positive
@@ -57888,7 +57779,6 @@ Age units"
 52,52000157,NAR,1,blood_group,b,B
 52,52000157,NAR,1,born_before_arrival,FALSE,False
 52,52000157,NAR,1,born_where,,
-52,52000157,NAR,1,date_estimated_delivery_date,8-@3-2025,
 52,52000157,NAR,1,delivery_type,svd,SVD
 52,52000157,NAR,1,gestation_in_weeks,65,35
 52,52000157,NAR,1,gestation_type,us,U/S
@@ -59093,7 +58983,6 @@ Age units"
 40,40000087,NAR,1,sex,male,Male
 40,40000087,NAR,1,temparature,36.8,36.2
 40,40000087,NAR,1,time_birth,06:25,06:25
-40,40000087,NAR,1,time_seen,6@:25,06:05
 40,40000087,NAR,1,was_resuscitated,FALSE,False
 40,40000087,NAR,1,weight,,
 40,40000087,NAR,2,appearance,,
@@ -60269,7 +60158,6 @@ Age units"
 76,76000068,ITF,1,blood_group,unknown,Unknown
 76,76000068,ITF,1,chest_compressions,TRUE,True
 76,76000068,ITF,1,date_estimated_delivery_date,11-05-2025,2025-05-11
-76,76000068,ITF,1,date_last_menstrual_period,4@-08-2024,2024-08-04
 76,76000068,ITF,1,delivery_type,svd,SVD
 76,76000068,ITF,1,fetal_distress,TRUE,True
 76,76000068,ITF,1,gestation_in_weeks,26,26
@@ -65297,7 +65185,6 @@ C: Infant Details"
 52,52000434,ITF,1,sex,female,Female
 52,52000434,ITF,1,temparature,36.6,36.6
 52,52000434,ITF,1,was_resuscitated,FALSE,False
-52,52000434,ITF,1,weight,3@16,3
 52,52000182,NAR,2,appearance,well,Well
 52,52000182,NAR,2,capillary_refill_in_seconds,2,
 52,52000182,NAR,2,chest_indrawing,FALSE,False
@@ -66999,7 +66886,6 @@ Age units"
 52,52000191,NAR,1,blood_group,unknown,
 52,52000191,NAR,1,born_before_arrival,FALSE,False
 52,52000191,NAR,1,born_where,,
-52,52000191,NAR,1,date,17-0@-2025,2025-07-10
 52,52000191,NAR,1,delivery_type,svd,
 52,52000191,NAR,1,gestation_type,,
 52,52000191,NAR,1,given_anti_D_medication,FALSE,
@@ -70778,7 +70664,6 @@ C: Infant Details"
 40,40000113,NAR,1,born_before_arrival,FALSE,False
 40,40000113,NAR,1,born_where,,Home/roadside
 40,40000113,NAR,1,date,27-01-2027,2027-01-27
-40,40000113,NAR,1,date_estimated_delivery_date,1@-@@-@@@,
 40,40000113,NAR,1,delivery_type,svd,SVD
 40,40000113,NAR,1,gestation_in_weeks,41,41
 40,40000113,NAR,1,gestation_type,,U/S
@@ -71913,7 +71798,6 @@ Age units"
 40,40000119,NAR,1,time_birth,08:00,08:00
 40,40000119,NAR,1,time_seen,,
 40,40000119,NAR,1,was_resuscitated,,False
-40,40000119,NAR,1,weight,2@40,2
 40,40000119,NAR,2,appearance,well,Well
 40,40000119,NAR,2,capillary_refill_in_seconds,2,2 seconds
 40,40000119,NAR,2,chest_indrawing,mild,Mild
@@ -72004,7 +71888,6 @@ Age units"
 40,40000119,ITF,1,sex,,
 40,40000119,ITF,1,temparature,36.7,36.7
 40,40000119,ITF,1,was_resuscitated,TRUE,True
-40,40000119,ITF,1,weight,2@40,240
 40,40000120,NAR,2,appearance,well,Well
 40,40000120,NAR,2,capillary_refill_in_seconds,2,2 seconds
 40,40000120,NAR,2,chest_indrawing,mild,Mild
@@ -73743,7 +73626,6 @@ Age units"
 40,40000326,NAR,1,rhesus,unknown,Unknown
 40,40000326,NAR,1,sex,female,Female
 40,40000326,NAR,1,temparature,36.2,36.2
-40,40000326,NAR,1,time_birth,7@:30,
 40,40000326,NAR,1,time_seen,,
 40,40000326,NAR,1,was_resuscitated,FALSE,False
 40,40000326,NAR,1,weight,1430,1430
@@ -74768,8 +74650,6 @@ Age units"
 76,76000084,ITF,1,birth_weight,3200,3200
 76,76000084,ITF,1,blood_group,a,A
 76,76000084,ITF,1,chest_compressions,,
-76,76000084,ITF,1,date_estimated_delivery_date,20-2@-2025,2025-02-22
-76,76000084,ITF,1,date_last_menstrual_period,16-@5-2024,2024-05-16
 76,76000084,ITF,1,delivery_type,,
 76,76000084,ITF,1,fetal_distress,,
 76,76000084,ITF,1,gestation_in_weeks,,
@@ -75041,7 +74921,6 @@ C: Infant Details"
 72,72000112,NAR,1,rhesus,positive,Negative
 72,72000112,NAR,1,sex,,Female
 72,72000112,NAR,1,temparature,36.,36
-72,72000112,NAR,1,time_birth,5@:@,
 72,72000112,NAR,1,time_seen,,
 72,72000112,NAR,1,was_resuscitated,FALSE,False
 72,72000112,NAR,1,weight,,
@@ -79522,7 +79401,6 @@ Age units"
 40,40000134,NAR,1,rhesus,positive,Positive
 40,40000134,NAR,1,sex,male,Female
 40,40000134,NAR,1,temparature,37.8,37.8
-40,40000134,NAR,1,time_birth,15:@,
 40,40000134,NAR,1,time_seen,15:30,15:30
 40,40000134,NAR,1,was_resuscitated,FALSE,False
 40,40000134,NAR,1,weight,,
@@ -81857,7 +81735,6 @@ Age units"
 40,40000150,NAR,1,respiratory_rate,,
 40,40000150,NAR,1,rhesus,positive,Positive
 40,40000150,NAR,1,sex,male,Male
-40,40000150,NAR,1,temparature,3@.,36.5
 40,40000150,NAR,1,time_birth,01:35,
 40,40000150,NAR,1,time_seen,,
 40,40000150,NAR,1,was_resuscitated,FALSE,False
@@ -84601,7 +84478,6 @@ Age units"
 63,63000051,NAR,1,born_before_arrival,TRUE,True
 63,63000051,NAR,1,born_where,,Home/roadside
 63,63000051,NAR,1,date,09-01-2025,2025-01-09
-63,63000051,NAR,1,date_estimated_delivery_date,17-6@-2025,2025-06-17
 63,63000051,NAR,1,delivery_type,svd,Yes
 63,63000051,NAR,1,given_anti_D_medication,,False
 63,63000051,NAR,1,had_cs,,
@@ -84851,7 +84727,6 @@ Age units"
 72,72000126,NAR,1,born_before_arrival,FALSE,False
 72,72000126,NAR,1,born_where,,
 72,72000126,NAR,1,date,15-11-2024,
-72,72000126,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000126,NAR,1,delivery_type,cs,Breech
 72,72000126,NAR,1,gestation_in_weeks,,
 72,72000126,NAR,1,gestation_type,,U/S
@@ -86614,7 +86489,6 @@ Age units"
 72,72000269,NAR,1,rhesus,positive,Post
 72,72000269,NAR,1,sex,female,Female
 72,72000269,NAR,1,temparature,37.3,37.3
-72,72000269,NAR,1,time_birth,1@:@,
 72,72000269,NAR,1,time_seen,08:15,08:15
 72,72000269,NAR,1,was_resuscitated,FALSE,False
 72,72000269,NAR,1,weight,,
@@ -86666,7 +86540,6 @@ Age units"
 72,72000269,ITF,1,birth_weight,2500,2500
 72,72000269,ITF,1,blood_group,a,A
 72,72000269,ITF,1,chest_compressions,FALSE,False
-72,72000269,ITF,1,date_estimated_delivery_date,18-22-4@@,
 72,72000269,ITF,1,delivery_type,cs,
 72,72000269,ITF,1,fetal_distress,TRUE,True
 72,72000269,ITF,1,gestation_in_weeks,,
@@ -86808,8 +86681,6 @@ Age units"
 52,52000705,ITF,1,birth_weight,7900,1900
 52,52000705,ITF,1,blood_group,b,B
 52,52000705,ITF,1,chest_compressions,,False
-52,52000705,ITF,1,date_estimated_delivery_date,@-04-2025,2025-02-04
-52,52000705,ITF,1,date_last_menstrual_period,@-07-2024,2024-02-07
 52,52000705,ITF,1,delivery_type,svd,SVD
 52,52000705,ITF,1,fetal_distress,TRUE,True
 52,52000705,ITF,1,gestation_in_weeks,34,34
@@ -89295,7 +89166,6 @@ Age units"
 52,52000413,ITF,1,blood_group,o,O
 52,52000413,ITF,1,chest_compressions,,False
 52,52000413,ITF,1,date_estimated_delivery_date,,
-52,52000413,ITF,1,date_last_menstrual_period,@-07-2024,2024-04-04
 52,52000413,ITF,1,delivery_type,svd,
 52,52000413,ITF,1,fetal_distress,,False
 52,52000413,ITF,1,given_bcg,,
@@ -91676,7 +91546,6 @@ Age units"
 40,40000167,NAR,1,born_before_arrival,FALSE,False
 40,40000167,NAR,1,born_where,,
 40,40000167,NAR,1,date,28-01-2025,2025-01-28
-40,40000167,NAR,1,date_estimated_delivery_date,29-03-24@,
 40,40000167,NAR,1,delivery_type,svd,
 40,40000167,NAR,1,gestation_in_weeks,31,31
 40,40000167,NAR,1,gestation_type,lmp,LMP
@@ -91934,7 +91803,6 @@ C: Infant Details"
 40,40000168,ITF,1,birth_weight,2100,2100
 40,40000168,ITF,1,blood_group,o,O
 40,40000168,ITF,1,chest_compressions,,False
-40,40000168,ITF,1,date_estimated_delivery_date,26-03-25@,
 40,40000168,ITF,1,date_last_menstrual_period,19-06-2024,2024-06-19
 40,40000168,ITF,1,delivery_type,cs,
 40,40000168,ITF,1,fetal_distress,,False
@@ -92279,7 +92147,6 @@ C: Infant Details"
 72,72000129,ITF,1,blood_group,b,AB
 72,72000129,ITF,1,chest_compressions,TRUE,False
 72,72000129,ITF,1,date_estimated_delivery_date,4-11-2024,
-72,72000129,ITF,1,date_last_menstrual_period,29-@1-2024,
 72,72000129,ITF,1,delivery_type,cs,
 72,72000129,ITF,1,fetal_distress,TRUE,False
 72,72000129,ITF,1,gestation_in_weeks,38,38
@@ -95038,7 +94905,6 @@ Age units"
 72,72000137,NAR,1,apgar_1m,8,8
 72,72000137,NAR,1,apgar_5m,9,9
 72,72000137,NAR,1,baby_age_in_days,,
-72,72000137,NAR,1,birth_date,05-11-2@@,2024-11-05
 72,72000137,NAR,1,birth_weight,2100,2100
 72,72000137,NAR,1,blood_group,b,B
 72,72000137,NAR,1,born_before_arrival,,
@@ -95911,7 +95777,6 @@ Age units"
 40,40000317,NAR,1,born_before_arrival,,False
 40,40000317,NAR,1,born_where,,
 40,40000317,NAR,1,date,05-03-2025,2025-03-05
-40,40000317,NAR,1,date_estimated_delivery_date,16-03-25@,
 40,40000317,NAR,1,delivery_type,cs,Y
 40,40000317,NAR,1,gestation_in_weeks,,
 40,40000317,NAR,1,gestation_type,,U/S
@@ -97206,7 +97071,6 @@ Age units"
 72,72000279,NAR,1,blood_group,o,O
 72,72000279,NAR,1,born_before_arrival,,False
 72,72000279,NAR,1,born_where,,
-72,72000279,NAR,1,date,26-1@-2024,2024-11-26
 72,72000279,NAR,1,date_estimated_delivery_date,,
 72,72000279,NAR,1,delivery_type,cs,SVD
 72,72000279,NAR,1,gestation_in_weeks,,
@@ -97261,7 +97125,6 @@ Age units"
 72,72000283,ITF,1,birth_weight,2300,2300
 72,72000283,ITF,1,blood_group,a,A
 72,72000283,ITF,1,chest_compressions,FALSE,False
-72,72000283,ITF,1,date_estimated_delivery_date,71-12-5@@,2024-11-23
 72,72000283,ITF,1,delivery_type,cs,
 72,72000283,ITF,1,fetal_distress,TRUE,False
 72,72000283,ITF,1,given_bcg,,False
@@ -98269,7 +98132,6 @@ C: Infant Details"
 52,52000414,ITF,1,birth_weight,2700,2700
 52,52000414,ITF,1,blood_group,,
 52,52000414,ITF,1,chest_compressions,FALSE,False
-52,52000414,ITF,1,date_estimated_delivery_date,0-@0-5204,
 52,52000414,ITF,1,delivery_type,svd,SVD
 52,52000414,ITF,1,fetal_distress,,False
 52,52000414,ITF,1,gestation_in_weeks,39,39
@@ -98543,7 +98405,6 @@ Age units"
 76,76000262,NAR,1,rhesus,positive,True
 76,76000262,NAR,1,sex,female,Female
 76,76000262,NAR,1,temparature,36.7,36.7
-76,76000262,NAR,1,time_birth,11:@,11:00
 76,76000262,NAR,1,time_seen,,11:00
 76,76000262,NAR,1,was_resuscitated,FALSE,False
 76,76000262,NAR,1,weight,2300,2300
@@ -102785,7 +102646,6 @@ Age units"
 72,72000148,NAR,1,rapture_of_membrane,unknown,
 72,72000148,NAR,1,respiratory_rate,48,48
 72,72000148,NAR,1,rhesus,positive,Positive
-72,72000148,NAR,1,temparature,3@.7,36.1
 72,72000148,NAR,1,time_birth,,
 72,72000148,NAR,1,time_seen,,
 72,72000148,NAR,1,was_resuscitated,FALSE,True
@@ -103319,7 +103179,6 @@ Age units"
 72,72000151,NAR,1,blood_group,o,O
 72,72000151,NAR,1,born_before_arrival,,False
 72,72000151,NAR,1,born_where,,
-72,72000151,NAR,1,date,1@-11-2024,2024-01-01
 72,72000151,NAR,1,date_estimated_delivery_date,,
 72,72000151,NAR,1,delivery_type,,
 72,72000151,NAR,1,gestation_in_weeks,,
@@ -104038,7 +103897,6 @@ Age units"
 72,72000154,NAR,1,born_before_arrival,FALSE,False
 72,72000154,NAR,1,born_where,,
 72,72000154,NAR,1,date,04-11-2024,
-72,72000154,NAR,1,date_estimated_delivery_date,@-@@-222,
 72,72000154,NAR,1,delivery_type,cs,
 72,72000154,NAR,1,gestation_in_weeks,31,31
 72,72000154,NAR,1,gestation_type,,U/S
@@ -104826,7 +104684,6 @@ Age"
 72,72000160,NAR,1,born_before_arrival,,
 72,72000160,NAR,1,born_where,,[unclear]
 72,72000160,NAR,1,date,16-11-2024,2024-11-16
-72,72000160,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000160,NAR,1,delivery_type,svd,
 72,72000160,NAR,1,gestation_in_weeks,,
 72,72000160,NAR,1,gestation_type,,LMP
@@ -108811,7 +108668,6 @@ Age units"
 40,40000199,NAR,1,born_before_arrival,FALSE,False
 40,40000199,NAR,1,born_where,,N
 40,40000199,NAR,1,date,10-02-2025,2025-02-10
-40,40000199,NAR,1,date_estimated_delivery_date,1@-03-2025,2025-03-10
 40,40000199,NAR,1,delivery_type,cs,
 40,40000199,NAR,1,gestation_type,lmp,LMP
 40,40000199,NAR,1,given_anti_D_medication,FALSE,False
@@ -110143,7 +109999,6 @@ Age units"
 52,52000268,NAR,1,sex,female,Female
 52,52000268,NAR,1,temparature,36.9,36.9
 52,52000268,NAR,1,time_birth,03:20,03:20
-52,52000268,NAR,1,time_seen,1@:00,11:00
 52,52000268,NAR,1,was_resuscitated,FALSE,False
 52,52000268,NAR,1,weight,1762,1762
 52,52000269,ITF,1,abnormal_placenta,FALSE,False
@@ -112218,7 +112073,6 @@ Age units"
 76,76000124,NAR,1,born_before_arrival,FALSE,False
 76,76000124,NAR,1,born_where,,
 76,76000124,NAR,1,date,14-03-2025,2025-10-04
-76,76000124,NAR,1,date_estimated_delivery_date,11-02-25@,
 76,76000124,NAR,1,delivery_type,cs,Breech
 76,76000124,NAR,1,gestation_in_weeks,38,38
 76,76000124,NAR,1,gestation_type,,U/S
@@ -113859,7 +113713,6 @@ C: Infant Details"
 72,72000258,NAR,1,blood_group,o,O
 72,72000258,NAR,1,born_before_arrival,FALSE,False
 72,72000258,NAR,1,born_where,,Home/roadside
-72,72000258,NAR,1,date,22-1@-2024,2024-11-02
 72,72000258,NAR,1,date_estimated_delivery_date,25-11-2024,2024-11-25
 72,72000258,NAR,1,delivery_type,svd,SVD
 72,72000258,NAR,1,gestation_in_weeks,38,38
@@ -114217,7 +114070,6 @@ C: Infant Details"
 63,63000168,NAR,1,blood_group,,
 63,63000168,NAR,1,born_before_arrival,TRUE,True
 63,63000168,NAR,1,born_where,home,Home/roadside
-63,63000168,NAR,1,date,12-02-2@25,2025-02-12
 63,63000168,NAR,1,date_estimated_delivery_date,28-00-2025,2025-04-28
 63,63000168,NAR,1,delivery_type,svd,Yes
 63,63000168,NAR,1,gestation_in_weeks,29,29
@@ -115814,7 +115666,6 @@ Age units"
 76,76000277,ITF,1,birth_weight,2720,2920
 76,76000277,ITF,1,blood_group,ab,AB
 76,76000277,ITF,1,chest_compressions,TRUE,False
-76,76000277,ITF,1,date_estimated_delivery_date,18-5@-2025,2024-08-10
 76,76000277,ITF,1,delivery_type,svd,SVD
 76,76000277,ITF,1,gestation_in_weeks,38,38
 76,76000277,ITF,1,given_bcg,,False
@@ -116085,7 +115936,6 @@ Age units"
 52,52000283,NAR,1,rhesus,positive,Positive
 52,52000283,NAR,1,sex,male,Male
 52,52000283,NAR,1,temparature,36.2,36.2
-52,52000283,NAR,1,time_birth,1:@,
 52,52000283,NAR,1,time_seen,23:39,23:39
 52,52000283,NAR,1,was_resuscitated,,True
 52,52000283,NAR,1,weight,,
@@ -116800,7 +116650,6 @@ Age units"
 76,76000286,NAR,1,apgar_1m,6,6
 76,76000286,NAR,1,apgar_5m,7,7
 76,76000286,NAR,1,baby_age_in_days,0,0
-76,76000286,NAR,1,birth_date,12-@4-2025,2024-10-07
 76,76000286,NAR,1,birth_weight,3300,3300
 76,76000286,NAR,1,blood_group,o,O
 76,76000286,NAR,1,born_before_arrival,FALSE,False
@@ -119262,12 +119111,10 @@ C: Infant Details"
 72,72000174,NAR,1,apgar_1m,,
 72,72000174,NAR,1,apgar_5m,,
 72,72000174,NAR,1,baby_age_in_days,,
-72,72000174,NAR,1,birth_date,@-@@-@@2,
 72,72000174,NAR,1,birth_weight,3300,3300
 72,72000174,NAR,1,blood_group,,Unknown
 72,72000174,NAR,1,born_before_arrival,,False
 72,72000174,NAR,1,born_where,,[blank]
-72,72000174,NAR,1,date,7-@@-222,
 72,72000174,NAR,1,date_estimated_delivery_date,,
 72,72000174,NAR,1,delivery_type,,SVD
 72,72000174,NAR,1,gestation_in_weeks,,
@@ -120379,7 +120226,6 @@ C: Infant Details"
 72,72000180,ITF,1,blood_group,b,AB
 72,72000180,ITF,1,chest_compressions,FALSE,False
 72,72000180,ITF,1,date_estimated_delivery_date,10-12-2024,2021-08-10
-72,72000180,ITF,1,date_last_menstrual_period,5@-03-2024,2020-08-05
 72,72000180,ITF,1,delivery_type,cs,CS
 72,72000180,ITF,1,fetal_distress,FALSE,False
 72,72000180,ITF,1,gestation_in_weeks,38,38
@@ -120610,7 +120456,6 @@ Age units"
 72,72000181,NAR,1,apgar_1m,7,
 72,72000181,NAR,1,apgar_5m,8,
 72,72000181,NAR,1,baby_age_in_days,,
-72,72000181,NAR,1,birth_date,6@--,
 72,72000181,NAR,1,birth_weight,2800,2800
 72,72000181,NAR,1,blood_group,o,O
 72,72000181,NAR,1,date,18-11-2024,2024-11-18
@@ -121580,7 +121425,6 @@ Age units"
 72,72000187,NAR,1,born_before_arrival,,False
 72,72000187,NAR,1,born_where,,
 72,72000187,NAR,1,date,18-11-2024,
-72,72000187,NAR,1,date_estimated_delivery_date,@-@@-222,
 72,72000187,NAR,1,delivery_type,,SVD
 72,72000187,NAR,1,gestation_in_weeks,37,37
 72,72000187,NAR,1,gestation_type,,U/S
@@ -122526,7 +122370,6 @@ Age units"
 52,52000297,ITF,1,blood_group,o,O
 52,52000297,ITF,1,chest_compressions,,
 52,52000297,ITF,1,date_estimated_delivery_date,,
-52,52000297,ITF,1,date_last_menstrual_period,@-@@-2@@,
 52,52000297,ITF,1,delivery_type,svd,CS
 52,52000297,ITF,1,fetal_distress,,
 52,52000297,ITF,1,gestation_in_weeks,39,39
@@ -122857,7 +122700,6 @@ C: Infant Details"
 Age units"
 52,52000299,ITF,1,temparature,36.8,36.8
 52,52000299,ITF,1,was_resuscitated,TRUE,True
-52,52000299,ITF,1,weight,35@1,3550
 52,52000299,NAR,2,appearance,well,Well
 52,52000299,NAR,2,capillary_refill_in_seconds,2,
 52,52000299,NAR,2,chest_indrawing,FALSE,False
@@ -125096,8 +124938,6 @@ C: Infant Details"
 72,72000274,NAR,1,blood_group,o,O
 72,72000274,NAR,1,born_before_arrival,,False
 72,72000274,NAR,1,born_where,,
-72,72000274,NAR,1,date,22-1@-2024,2024-01-12
-72,72000274,NAR,1,date_estimated_delivery_date,22-@@-2024,2024-09-12
 72,72000274,NAR,1,gestation_in_weeks,38,38
 72,72000274,NAR,1,gestation_type,lmp,LMP
 72,72000274,NAR,1,given_anti_D_medication,,False
@@ -126747,7 +126587,6 @@ Age units"
 76,76000134,NAR,1,sex,female,Female
 76,76000134,NAR,1,temparature,36.0,36.0
 76,76000134,NAR,1,time_birth,,
-76,76000134,NAR,1,time_seen,9@:30,
 76,76000134,NAR,1,was_resuscitated,FALSE,
 76,76000134,NAR,1,weight,1960,1960
 76,76000134,ITF,1,abnormal_placenta,FALSE,False
@@ -127055,7 +126894,6 @@ Age units"
 76,76000136,ITF,1,birth_weight,2500,2500
 76,76000136,ITF,1,blood_group,a,A
 76,76000136,ITF,1,chest_compressions,FALSE,False
-76,76000136,ITF,1,date_estimated_delivery_date,4@-04-2025,2025-04-04
 76,76000136,ITF,1,date_last_menstrual_period,28-06-2024,2024-06-08
 76,76000136,ITF,1,delivery_type,cs,
 76,76000136,ITF,1,fetal_distress,FALSE,False
@@ -128425,7 +128263,6 @@ Age units"
 76,76000246,NAR,1,born_before_arrival,TRUE,True
 76,76000246,NAR,1,born_where,facility,Other facility
 76,76000246,NAR,1,date,17-04-2025,2025-04-17
-76,76000246,NAR,1,date_estimated_delivery_date,05-04-20@5,2025-01-05
 76,76000246,NAR,1,delivery_type,svd,SVD
 76,76000246,NAR,1,gestation_in_weeks,41,41
 76,76000246,NAR,1,gestation_type,lmp,LMP
@@ -128464,7 +128301,6 @@ Age units"
 76,76000246,NAR,1,respiratory_rate,43,42
 76,76000246,NAR,1,rhesus,positive,Positive
 76,76000246,NAR,1,sex,male,Female
-76,76000246,NAR,1,temparature,3@.9,36.9
 76,76000246,NAR,1,time_birth,,14:00
 76,76000246,NAR,1,time_seen,21:50,14:00
 76,76000246,NAR,1,was_resuscitated,FALSE,False
@@ -128965,7 +128801,6 @@ Age units"
 52,52000710,NAR,1,blood_group,o,O
 52,52000710,NAR,1,born_before_arrival,FALSE,False
 52,52000710,NAR,1,born_where,,
-52,52000710,NAR,1,date,21-04-2@@5,2024-01-01
 52,52000710,NAR,1,date_estimated_delivery_date,17-05-2025,2024-01-01
 52,52000710,NAR,1,delivery_type,svd,
 52,52000710,NAR,1,gestation_in_weeks,,38
@@ -130267,7 +130102,6 @@ Age units"
 72,72000272,NAR,1,apgar_1m,5,5
 72,72000272,NAR,1,apgar_5m,6,6
 72,72000272,NAR,1,baby_age_in_days,,
-72,72000272,NAR,1,birth_date,@-@@-@@2,2024-11-22
 72,72000272,NAR,1,birth_weight,2600,2600
 72,72000272,NAR,1,blood_group,o,O
 72,72000272,NAR,1,born_before_arrival,,False
@@ -131161,7 +130995,6 @@ Age units"
 76,76000150,NAR,1,apgar_1m,5,5
 76,76000150,NAR,1,apgar_5m,6,6
 76,76000150,NAR,1,baby_age_in_days,,
-76,76000150,NAR,1,birth_date,00-@@-@@@,
 76,76000150,NAR,1,birth_weight,3000,2000
 76,76000150,NAR,1,blood_group,o,O
 76,76000150,NAR,1,born_before_arrival,FALSE,False
@@ -133306,7 +133139,6 @@ Age units"
 72,72000297,ITF,1,blood_group,o,O
 72,72000297,ITF,1,chest_compressions,FALSE,False
 72,72000297,ITF,1,date_estimated_delivery_date,13-12-2024,2024-12-03
-72,72000297,ITF,1,date_last_menstrual_period,6-@3-2024,2024-03-06
 72,72000297,ITF,1,delivery_type,svd,SVD
 72,72000297,ITF,1,fetal_distress,,False
 72,72000297,ITF,1,gestation_in_weeks,31,31
@@ -133449,7 +133281,6 @@ C: Infant Details"
 72,72000298,ITF,1,birth_weight,3300,3300
 72,72000298,ITF,1,blood_group,a,A
 72,72000298,ITF,1,chest_compressions,FALSE,False
-72,72000298,ITF,1,date_estimated_delivery_date,@-12-2024,
 72,72000298,ITF,1,delivery_type,cs,CS
 72,72000298,ITF,1,fetal_distress,TRUE,False
 72,72000298,ITF,1,gestation_in_weeks,40,40
@@ -134559,7 +134390,6 @@ C: Infant Details"
 63,63000203,NAR,1,born_before_arrival,TRUE,False
 63,63000203,NAR,1,born_where,facility,Other facility
 63,63000203,NAR,1,date,12-02-2025,2025-02-12
-63,63000203,NAR,1,date_estimated_delivery_date,26-01-25@,
 63,63000203,NAR,1,delivery_type,svd,SVD
 63,63000203,NAR,1,gestation_in_weeks,40,40
 63,63000203,NAR,1,given_anti_D_medication,,False
@@ -136948,7 +136778,6 @@ Age units"
 76,76000159,ITF,1,prescribed_opv,FALSE,False
 76,76000159,ITF,1,prescribed_oxygen,TRUE,False
 76,76000159,ITF,1,pulse_oximetry,98,93
-76,76000159,ITF,1,pulse_rate,1@,1
 76,76000159,ITF,1,rapture_of_membrane,unknown,Unknown
 76,76000159,ITF,1,respiratory_rate,48,48
 76,76000159,ITF,1,rhesus,positive,Positive
@@ -140028,7 +139857,6 @@ Age units"
 63,63000184,NAR,1,sex,female,Female
 63,63000184,NAR,1,temparature,36.4,36.4
 63,63000184,NAR,1,time_birth,14:00,14:00
-63,63000184,NAR,1,time_seen,1@:@,
 63,63000184,NAR,1,was_resuscitated,,False
 63,63000184,NAR,1,weight,,
 76,76000169,NAR,2,capillary_refill_in_seconds,2,
@@ -140215,7 +140043,6 @@ Age units"
 72,72000276,NAR,1,apgar_1m,8,8
 72,72000276,NAR,1,apgar_5m,9,9
 72,72000276,NAR,1,baby_age_in_days,,
-72,72000276,NAR,1,birth_date,@-@@-@2@,
 72,72000276,NAR,1,birth_weight,3100,3100
 72,72000276,NAR,1,blood_group,o,
 72,72000276,NAR,1,born_before_arrival,,
@@ -140506,7 +140333,6 @@ Age units"
 72,72000281,ITF,1,attended_anc,TRUE,False
 72,72000281,ITF,1,baby_age,35,35
 72,72000281,ITF,1,baby_from,,
-72,72000281,ITF,1,birth_date,24-1@-2024,2024-11-29
 72,72000281,ITF,1,birth_weight,3100,3100
 72,72000281,ITF,1,blood_group,a,A
 72,72000281,ITF,1,chest_compressions,FALSE,False
@@ -142067,7 +141893,6 @@ C: Infant Details"
 76,76000179,NAR,1,blood_group,o,O
 76,76000179,NAR,1,born_before_arrival,TRUE,False
 76,76000179,NAR,1,born_where,facility,
-76,76000179,NAR,1,date,20-0@-2025,2023-01-28
 76,76000179,NAR,1,date_estimated_delivery_date,,
 76,76000179,NAR,1,delivery_type,svd,SVD
 76,76000179,NAR,1,gestation_in_weeks,38,28
@@ -142211,7 +142036,6 @@ C: Infant Details"
 76,76000180,ITF,1,attended_anc,TRUE,True
 76,76000180,ITF,1,baby_age,,
 76,76000180,ITF,1,baby_from,postnatal,
-76,76000180,ITF,1,birth_date,24-03-2@25,2025-02-24
 76,76000180,ITF,1,birth_weight,1800,1800
 76,76000180,ITF,1,blood_group,,
 76,76000180,ITF,1,chest_compressions,TRUE,True
@@ -143124,7 +142948,6 @@ Age units"
 52,52000301,NAR,1,born_before_arrival,,False
 52,52000301,NAR,1,born_where,,Home/roadside
 52,52000301,NAR,1,date,14-02-2025,2025-02-14
-52,52000301,NAR,1,date_estimated_delivery_date,1@-01-2025,2025-02-01
 52,52000301,NAR,1,delivery_type,svd,SVD
 52,52000301,NAR,1,gestation_in_weeks,40,40
 52,52000301,NAR,1,gestation_type,lmp,LMP
@@ -145439,7 +145262,6 @@ C: Infant Details"
 52,52000320,ITF,1,blood_group,unknown,Unknown
 52,52000320,ITF,1,chest_compressions,FALSE,False
 52,52000320,ITF,1,date_estimated_delivery_date,08-12-2024,2024-12-08
-52,52000320,ITF,1,date_last_menstrual_period,3@-03-2024,
 52,52000320,ITF,1,delivery_type,cs,CS
 52,52000320,ITF,1,fetal_distress,FALSE,False
 52,52000320,ITF,1,gestation_in_weeks,,
@@ -146281,7 +146103,6 @@ C: Infant Details"
 63,63000077,NAR,1,born_before_arrival,TRUE,True
 63,63000077,NAR,1,born_where,home,Home/roadside
 63,63000077,NAR,1,date,01-01-2025,2025-01-01
-63,63000077,NAR,1,date_estimated_delivery_date,23-2@-2025,2025-02-23
 63,63000077,NAR,1,delivery_type,svd,SVD
 63,63000077,NAR,1,gestation_in_weeks,32,32
 63,63000077,NAR,1,gestation_type,,ROM
@@ -148401,7 +148222,6 @@ C: Infant Details"
 40,40000209,NAR,1,born_before_arrival,FALSE,False
 40,40000209,NAR,1,born_where,,
 40,40000209,NAR,1,date,11-02-2025,2025-02-11
-40,40000209,NAR,1,date_estimated_delivery_date,20-3@-2025,2025-03-20
 40,40000209,NAR,1,delivery_type,svd,
 40,40000209,NAR,1,gestation_type,lmp,LMP
 40,40000209,NAR,1,given_anti_D_medication,FALSE,False
@@ -150484,7 +150304,6 @@ C: Infant Details"
 72,72000193,ITF,1,attended_anc,TRUE,True
 72,72000193,ITF,1,baby_age,1,1
 72,72000193,ITF,1,baby_from,theatre,Theatre
-72,72000193,ITF,1,birth_date,21-@1-2024,2024-11-20
 72,72000193,ITF,1,birth_weight,3200,3200
 72,72000193,ITF,1,blood_group,a,A
 72,72000193,ITF,1,chest_compressions,FALSE,False
@@ -153209,7 +153028,6 @@ C: Infant Details"
 63,63000083,ITF,1,attended_anc,TRUE,True
 63,63000083,ITF,1,baby_age,,
 63,63000083,ITF,1,birth_date,19-01-2025,2025-01-19
-63,63000083,ITF,1,birth_weight,2@@,2
 63,63000083,ITF,1,blood_group,o,O
 63,63000083,ITF,1,chest_compressions,,False
 63,63000083,ITF,1,date_estimated_delivery_date,08-01-2025,2025-01-08
@@ -155190,7 +155008,6 @@ C: Infant Details"
 52,52000348,NAR,1,born_before_arrival,,False
 52,52000348,NAR,1,born_where,,
 52,52000348,NAR,1,date,26-01-2025,2025-01-26
-52,52000348,NAR,1,date_estimated_delivery_date,@-@@-@@2,
 52,52000348,NAR,1,delivery_type,svd,SVD
 52,52000348,NAR,1,gestation_in_weeks,35,35
 52,52000348,NAR,1,gestation_type,,U/S
@@ -157773,7 +157590,6 @@ Age units"
 40,40000227,NAR,1,sex,female,Female
 40,40000227,NAR,1,temparature,38.0,38.6
 40,40000227,NAR,1,time_birth,05:30,05:30
-40,40000227,NAR,1,time_seen,8@:00,08:00
 40,40000227,NAR,1,was_resuscitated,,False
 40,40000227,NAR,1,weight,,
 40,40000228,NAR,2,appearance,well,Well
@@ -158413,7 +158229,6 @@ C: Infant Details"
 52,52000354,NAR,1,time_birth,,14:00
 52,52000354,NAR,1,time_seen,02:53,02:53
 52,52000354,NAR,1,was_resuscitated,,False
-52,52000354,NAR,1,weight,44@5,4415
 52,52000354,ITF,1,abnormal_placenta,FALSE,False
 52,52000354,ITF,1,anc_visits,2,2
 52,52000354,ITF,1,antenatal_steroids,FALSE,False
@@ -160096,8 +159911,6 @@ Age units"
 72,72000202,NAR,1,blood_group,a,A
 72,72000202,NAR,1,born_before_arrival,TRUE,False
 72,72000202,NAR,1,born_where,facility,Other facility
-72,72000202,NAR,1,date,7@-11-2024,
-72,72000202,NAR,1,date_estimated_delivery_date,-@-2024,
 72,72000202,NAR,1,delivery_type,svd,
 72,72000202,NAR,1,gestation_in_weeks,40,40
 72,72000202,NAR,1,gestation_type,,
@@ -160149,7 +159962,6 @@ Age units"
 72,72000202,ITF,1,birth_date,07-11-2024,2024-11-07
 72,72000202,ITF,1,blood_group,a,A
 72,72000202,ITF,1,chest_compressions,,False
-72,72000202,ITF,1,date_estimated_delivery_date,-@-2024,
 72,72000202,ITF,1,date_last_menstrual_period,--202,
 72,72000202,ITF,1,delivery_type,svd,SVD
 72,72000202,ITF,1,fetal_distress,FALSE,False
@@ -160674,7 +160486,6 @@ Age units"
 52,52000361,NAR,1,blood_group,a,Y
 52,52000361,NAR,1,born_before_arrival,,False
 52,52000361,NAR,1,born_where,,N
-52,52000361,NAR,1,date,@-@@-@@2,
 52,52000361,NAR,1,date_estimated_delivery_date,02-02-2025,2025-02-02
 52,52000361,NAR,1,delivery_type,svd,
 52,52000361,NAR,1,gestation_in_weeks,40,40
@@ -160803,7 +160614,6 @@ Age units"
 52,52000364,NAR,1,rhesus,,
 52,52000364,NAR,1,sex,male,Male
 52,52000364,NAR,1,temparature,37.0,37.0
-52,52000364,NAR,1,time_birth,22:@,08:00
 52,52000364,NAR,1,time_seen,09:00,09:00
 52,52000364,NAR,1,was_resuscitated,FALSE,False
 52,52000364,NAR,1,weight,3945,3945
@@ -163084,7 +162894,6 @@ C: Infant Details"
 63,63000097,NAR,1,apgar_1m,,
 63,63000097,NAR,1,apgar_5m,,
 63,63000097,NAR,1,baby_age_in_days,,
-63,63000097,NAR,1,birth_date,7@-01-2025,2025-01-01
 63,63000097,NAR,1,birth_weight,2500,2500
 63,63000097,NAR,1,blood_group,o,O
 63,63000097,NAR,1,born_before_arrival,TRUE,True
@@ -163129,7 +162938,6 @@ C: Infant Details"
 63,63000097,NAR,1,rhesus,positive,Positive
 63,63000097,NAR,1,temparature,36.9,36.9
 63,63000097,NAR,1,time_birth,5:45,
-63,63000097,NAR,1,time_seen,8@:30,
 63,63000097,NAR,1,was_resuscitated,FALSE,False
 63,63000097,NAR,1,weight,2930,2930
 63,63000097,NAR,2,appearance,sick,Sick
@@ -164236,7 +164044,6 @@ C: Infant Details"
 Age units"
 40,40000246,ITF,1,temparature,36.8,36.8
 40,40000246,ITF,1,was_resuscitated,FALSE,False
-40,40000246,ITF,1,weight,35@,35
 40,40000246,NAR,2,appearance,well,Well
 40,40000246,NAR,2,capillary_refill_in_seconds,1,1 seconds
 40,40000246,NAR,2,chest_indrawing,none,None
@@ -165391,7 +165198,6 @@ C: infant Details"
 Age units"
 52,52000418,ITF,1,temparature,36.5,36.5
 52,52000418,ITF,1,was_resuscitated,TRUE,True
-52,52000418,ITF,1,weight,29@0,2900
 63,63000165,NAR,2,appearance,well,Well
 63,63000165,NAR,2,capillary_refill_in_seconds,,
 63,63000165,NAR,2,chest_indrawing,FALSE,False
@@ -167504,7 +167310,6 @@ C: Infant Details"
 72,72000208,NAR,1,apgar_1m,8,8
 72,72000208,NAR,1,apgar_5m,9,9
 72,72000208,NAR,1,baby_age_in_days,1,
-72,72000208,NAR,1,birth_date,@-@@-@@2,
 72,72000208,NAR,1,birth_weight,,
 72,72000208,NAR,1,blood_group,o,O
 72,72000208,NAR,1,born_before_arrival,FALSE,False
@@ -168506,7 +168311,6 @@ C: Infant Details"
 52,52000373,NAR,1,rhesus,unknown,Unknown
 52,52000373,NAR,1,sex,male,Female
 52,52000373,NAR,1,temparature,36.9,36.9
-52,52000373,NAR,1,time_birth,07:@,07:00
 52,52000373,NAR,1,time_seen,12:00,12:00
 52,52000373,NAR,1,was_resuscitated,FALSE,False
 52,52000373,NAR,1,weight,1280,1280
@@ -168668,7 +168472,6 @@ C: Infant Details"
 63,63000108,ITF,1,birth_weight,1700,1700
 63,63000108,ITF,1,blood_group,b,B
 63,63000108,ITF,1,chest_compressions,FALSE,False
-63,63000108,ITF,1,date_estimated_delivery_date,27-3@-2025,2025-03-27
 63,63000108,ITF,1,date_last_menstrual_period,18-06-2024,2024-06-18
 63,63000108,ITF,1,delivery_type,svd,SVD
 63,63000108,ITF,1,fetal_distress,,False
@@ -169573,7 +169376,6 @@ C: Infant Details"
 72,72000212,NAR,1,rhesus,positive,Positive
 72,72000212,NAR,1,temparature,,
 72,72000212,NAR,1,time_birth,,
-72,72000212,NAR,1,time_seen,@:@4,
 72,72000212,NAR,1,weight,,
 72,72000212,ITF,1,abnormal_placenta,FALSE,False
 72,72000212,ITF,1,anc_visits,,
@@ -170649,7 +170451,6 @@ Age units"
 72,72000214,ITF,1,blood_group,a,A
 72,72000214,ITF,1,chest_compressions,FALSE,False
 72,72000214,ITF,1,date_estimated_delivery_date,51-12-022,
-72,72000214,ITF,1,date_last_menstrual_period,22-20-24@,2024-02-29
 72,72000214,ITF,1,delivery_type,cs,CS
 72,72000214,ITF,1,fetal_distress,,
 72,72000214,ITF,1,given_bcg,,False
@@ -170736,7 +170537,6 @@ Age units"
 72,72000214,NAR,1,blood_group,a,A
 72,72000214,NAR,1,born_before_arrival,,
 72,72000214,NAR,1,born_where,,
-72,72000214,NAR,1,date,2@-11-2024,2024-01-01
 72,72000214,NAR,1,date_estimated_delivery_date,,
 72,72000214,NAR,1,delivery_type,cs,
 72,72000214,NAR,1,gestation_in_weeks,,
@@ -171133,7 +170933,6 @@ Age units"
 63,63000111,ITF,1,blood_group,a,A
 63,63000111,ITF,1,chest_compressions,FALSE,False
 63,63000111,ITF,1,date_estimated_delivery_date,13-05-2025,2025-01-10
-63,63000111,ITF,1,date_last_menstrual_period,5@-08-2024,2024-02-08
 63,63000111,ITF,1,delivery_type,breech,Breech
 63,63000111,ITF,1,fetal_distress,,False
 63,63000111,ITF,1,gestation_in_weeks,22,22
@@ -173760,7 +173559,6 @@ Age units"
 72,72000220,NAR,1,rhesus,positive,Negative
 72,72000220,NAR,1,sex,male,Female
 72,72000220,NAR,1,temparature,36.5,36.5
-72,72000220,NAR,1,time_birth,8@:@,
 72,72000220,NAR,1,time_seen,,
 72,72000220,NAR,1,was_resuscitated,,False
 72,72000220,NAR,1,weight,,
@@ -174558,7 +174356,6 @@ Age units"
 53,53000106,ITF,1,birth_weight,2288,2285
 53,53000106,ITF,1,blood_group,o,O
 53,53000106,ITF,1,chest_compressions,FALSE,False
-53,53000106,ITF,1,date_estimated_delivery_date,29-10-24@,
 53,53000106,ITF,1,date_last_menstrual_period,22-03-2024,
 53,53000106,ITF,1,delivery_type,svd,SVD
 53,53000106,ITF,1,fetal_distress,FALSE,False
@@ -175874,7 +175671,6 @@ PHA: MUR not"
 63,63000180,NAR,1,born_before_arrival,TRUE,False
 63,63000180,NAR,1,born_where,home,Home/roadside
 63,63000180,NAR,1,date,14-02-2025,2025-02-14
-63,63000180,NAR,1,date_estimated_delivery_date,02-@1-2025,2025-02-02
 63,63000180,NAR,1,delivery_type,svd,Yes
 63,63000180,NAR,1,gestation_in_weeks,38,38
 63,63000180,NAR,1,gestation_type,lmp,LMP
@@ -179415,7 +179211,6 @@ C: Infant Details"
 72,72000225,NAR,1,born_before_arrival,TRUE,False
 72,72000225,NAR,1,born_where,facility,Home/roadside
 72,72000225,NAR,1,date,07-10-2024,2024-10-07
-72,72000225,NAR,1,date_estimated_delivery_date,7@-@@-@@@,2025-01-07
 72,72000225,NAR,1,delivery_type,svd,SVD
 72,72000225,NAR,1,gestation_type,,U/S
 72,72000225,NAR,1,given_anti_D_medication,FALSE,False
@@ -184668,8 +184463,6 @@ C: Infant Details"
 40,40000275,ITF,1,birth_weight,2600,2600
 40,40000275,ITF,1,blood_group,a,A
 40,40000275,ITF,1,chest_compressions,FALSE,False
-40,40000275,ITF,1,date_estimated_delivery_date,5-@2-2025,2025-02-05
-40,40000275,ITF,1,date_last_menstrual_period,2@-@5-2025,2025-05-27
 40,40000275,ITF,1,delivery_type,svd,SVD
 40,40000275,ITF,1,fetal_distress,TRUE,False
 40,40000275,ITF,1,gestation_in_weeks,,
@@ -187234,7 +187027,6 @@ Age units"
 40,40000292,NAR,1,born_before_arrival,FALSE,False
 40,40000292,NAR,1,born_where,,
 40,40000292,NAR,1,date,28-02-2025,2025-02-28
-40,40000292,NAR,1,date_estimated_delivery_date,24-3@-2025,2025-03-24
 40,40000292,NAR,1,delivery_type,svd,SVD
 40,40000292,NAR,1,gestation_in_weeks,36,36
 40,40000292,NAR,1,gestation_type,,U/S
@@ -188087,7 +187879,6 @@ C: Infant Details"
 40,40000296,NAR,1,sex,male,Male
 40,40000296,NAR,1,temparature,36.9,36.9
 40,40000296,NAR,1,time_birth,11:06,10:06
-40,40000296,NAR,1,time_seen,1@:06,10:06
 40,40000296,NAR,1,was_resuscitated,FALSE,False
 40,40000296,NAR,1,weight,1195,1195
 40,40000296,ITF,1,abnormal_placenta,FALSE,False
@@ -188933,7 +188724,6 @@ C: Infant Details"
 40,40000300,NAR,1,apgar_1m,,
 40,40000300,NAR,1,apgar_5m,,
 40,40000300,NAR,1,baby_age_in_days,,
-40,40000300,NAR,1,birth_date,@-@@-2@@,
 40,40000300,NAR,1,birth_weight,3700,3200
 40,40000300,NAR,1,blood_group,,A
 40,40000300,NAR,1,born_before_arrival,,False
@@ -189901,7 +189691,6 @@ C: Infant Details"
 52,52000410,ITF,1,birth_weight,2200,2200
 52,52000410,ITF,1,blood_group,a,A
 52,52000410,ITF,1,chest_compressions,FALSE,False
-52,52000410,ITF,1,date_estimated_delivery_date,25-@3-2025,2025-08-25
 52,52000410,ITF,1,date_last_menstrual_period,18-06-2024,2024-06-18
 52,52000410,ITF,1,delivery_type,svd,SVD
 52,52000410,ITF,1,fetal_distress,,False
@@ -190441,13 +190230,11 @@ C: Infant Details"
 72,72000229,NAR,1,apgar_1m,8,8
 72,72000229,NAR,1,apgar_5m,9,9
 72,72000229,NAR,1,baby_age_in_days,07,0
-72,72000229,NAR,1,birth_date,20-@1-2024,2024-11-20
 72,72000229,NAR,1,birth_weight,3400,3400
 72,72000229,NAR,1,blood_group,o,O
 72,72000229,NAR,1,born_before_arrival,FALSE,False
 72,72000229,NAR,1,born_where,,Home/roadside
 72,72000229,NAR,1,date,20-11-2024,2024-11-20
-72,72000229,NAR,1,date_estimated_delivery_date,22-@1-2024,2024-11-29
 72,72000229,NAR,1,delivery_type,cs,
 72,72000229,NAR,1,gestation_in_weeks,,
 72,72000229,NAR,1,gestation_type,us,U/S
@@ -190502,7 +190289,6 @@ C: Infant Details"
 72,72000230,ITF,1,birth_weight,2900,2900
 72,72000230,ITF,1,blood_group,b,B
 72,72000230,ITF,1,chest_compressions,FALSE,False
-72,72000230,ITF,1,date_estimated_delivery_date,77-@@-@@@,
 72,72000230,ITF,1,date_last_menstrual_period,,
 72,72000230,ITF,1,delivery_type,cs,CS
 72,72000230,ITF,1,fetal_distress,TRUE,True
@@ -190929,7 +190715,6 @@ C: Infant Details"
 76,76000232,ITF,1,birth_weight,3090,3090
 76,76000232,ITF,1,blood_group,a,A
 76,76000232,ITF,1,chest_compressions,TRUE,True
-76,76000232,ITF,1,date_estimated_delivery_date,4@-06-2025,
 76,76000232,ITF,1,date_last_menstrual_period,27-08-2024,2024-08-27
 76,76000232,ITF,1,fetal_distress,FALSE,False
 76,76000232,ITF,1,gestation_in_weeks,31,31
@@ -192299,8 +192084,6 @@ C: Infant Details"
 72,72000237,NAR,1,blood_group,,[unclear]
 72,72000237,NAR,1,born_before_arrival,,
 72,72000237,NAR,1,born_where,,[unclear]
-72,72000237,NAR,1,date,@-@@-2@@,
-72,72000237,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000237,NAR,1,delivery_type,,[unclear]
 72,72000237,NAR,1,gestation_in_weeks,,
 72,72000237,NAR,1,gestation_type,,[unclear]
@@ -193980,7 +193763,6 @@ Age units"
 72,72000264,NAR,1,sex,female,Female
 72,72000264,NAR,1,temparature,34.2,34.2
 72,72000264,NAR,1,time_birth,,
-72,72000264,NAR,1,time_seen,4@:40,
 72,72000264,NAR,1,was_resuscitated,FALSE,False
 72,72000264,NAR,1,weight,,
 52,52000420,NAR,2,appearance,sick,Sick
@@ -194417,13 +194199,11 @@ Age units"
 72,72000242,NAR,1,apgar_1m,4,4
 72,72000242,NAR,1,apgar_5m,9,5
 72,72000242,NAR,1,baby_age_in_days,,
-72,72000242,NAR,1,birth_date,13-1@-2024,2024-11-13
 72,72000242,NAR,1,birth_weight,1100,1100
 72,72000242,NAR,1,blood_group,unknown,Unknown
 72,72000242,NAR,1,born_before_arrival,TRUE,False
 72,72000242,NAR,1,born_where,facility,Other facility
 72,72000242,NAR,1,date,13-11-2084,2024-11-13
-72,72000242,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000242,NAR,1,delivery_type,,SVD
 72,72000242,NAR,1,gestation_in_weeks,,
 72,72000242,NAR,1,gestation_type,lmp,LMP
@@ -198703,7 +198483,6 @@ C: Infant Details"
 72,72000309,NAR,1,blood_group,a,O
 72,72000309,NAR,1,born_before_arrival,FALSE,False
 72,72000309,NAR,1,born_where,,
-72,72000309,NAR,1,date,0@-11-2024,2024-11-10
 72,72000309,NAR,1,delivery_type,svd,
 72,72000309,NAR,1,gestation_in_weeks,38,38
 72,72000309,NAR,1,gestation_type,lmp,LMP
@@ -198741,7 +198520,6 @@ C: Infant Details"
 72,72000309,NAR,1,rhesus,positive,Negative
 72,72000309,NAR,1,sex,male,Female
 72,72000309,NAR,1,temparature,31.2,37.2
-72,72000309,NAR,1,time_birth,1@:20,12:20
 72,72000309,NAR,1,time_seen,50:04,05:00
 72,72000309,NAR,1,was_resuscitated,FALSE,False
 72,72000309,NAR,1,weight,,
@@ -198758,7 +198536,6 @@ C: Infant Details"
 72,72000309,ITF,1,birth_weight,3680,3680
 72,72000309,ITF,1,blood_group,a,A
 72,72000309,ITF,1,chest_compressions,FALSE,False
-72,72000309,ITF,1,date_last_menstrual_period,0@-11-2024,2024-01-01
 72,72000309,ITF,1,delivery_type,svd,SVD
 72,72000309,ITF,1,fetal_distress,,False
 72,72000309,ITF,1,gestation_in_weeks,38,38
@@ -201278,7 +201055,6 @@ Age units"
 76,76000292,NAR,1,born_before_arrival,FALSE,False
 76,76000292,NAR,1,born_where,,
 76,76000292,NAR,1,date,12-04-2025,2025-04-12
-76,76000292,NAR,1,date_estimated_delivery_date,12-@5-2025,2025-02-02
 76,76000292,NAR,1,delivery_type,cs,Breech
 76,76000292,NAR,1,gestation_in_weeks,36,36
 76,76000292,NAR,1,gestation_type,,U/S
@@ -204922,8 +204698,6 @@ Age units"
 72,72000322,NAR,1,blood_group,o,O
 72,72000322,NAR,1,born_before_arrival,,False
 72,72000322,NAR,1,born_where,,
-72,72000322,NAR,1,date,22-1@-2024,2024-02-02
-72,72000322,NAR,1,date_estimated_delivery_date,24-0@-2025,2025-02-04
 72,72000322,NAR,1,delivery_type,cs,N
 72,72000322,NAR,1,gestation_in_weeks,,38
 72,72000322,NAR,1,gestation_type,lmp,LMP
@@ -205058,13 +204832,11 @@ Age units"
 72,72000323,NAR,1,apgar_1m,7,7
 72,72000323,NAR,1,apgar_5m,8,8
 72,72000323,NAR,1,baby_age_in_days,01,0
-72,72000323,NAR,1,birth_date,22-@@-2024,
 72,72000323,NAR,1,birth_weight,1225,1225
 72,72000323,NAR,1,blood_group,o,O
 72,72000323,NAR,1,born_before_arrival,FALSE,False
 72,72000323,NAR,1,born_where,,Home/roadside
 72,72000323,NAR,1,date,22-11-2224,
-72,72000323,NAR,1,date_estimated_delivery_date,26-0@-2025,
 72,72000323,NAR,1,delivery_type,svd,SVD
 72,72000323,NAR,1,gestation_in_weeks,20,39
 72,72000323,NAR,1,gestation_type,lmp,LMP
@@ -206550,7 +206322,6 @@ Age units"
 40,40000356,NAR,1,rhesus,positive,Negative
 40,40000356,NAR,1,sex,male,Female
 40,40000356,NAR,1,temparature,36.8,36.8
-40,40000356,NAR,1,time_birth,3@:50,02:50
 40,40000356,NAR,1,time_seen,,11:00
 40,40000356,NAR,1,was_resuscitated,FALSE,False
 40,40000356,NAR,1,weight,2200,2200
@@ -207462,7 +207233,6 @@ Age units"
 40,40000365,ITF,1,birth_date,10-03-2025,2025-03-10
 40,40000365,ITF,1,birth_weight,3400,3400
 40,40000365,ITF,1,chest_compressions,FALSE,False
-40,40000365,ITF,1,date_estimated_delivery_date,@-13-2025,2025-02-03
 40,40000365,ITF,1,date_last_menstrual_period,27-05-2024,2024-04-27
 40,40000365,ITF,1,delivery_type,svd,SVD
 40,40000365,ITF,1,fetal_distress,FALSE,False
@@ -209353,7 +209123,6 @@ C: Infant Details"
 40,40000377,NAR,1,born_before_arrival,FALSE,False
 40,40000377,NAR,1,born_where,,
 40,40000377,NAR,1,date,08-06-2025,2025-06-08
-40,40000377,NAR,1,date_estimated_delivery_date,13-02-25@,
 40,40000377,NAR,1,gestation_in_weeks,43,43
 40,40000377,NAR,1,gestation_type,us,U/S
 40,40000377,NAR,1,given_anti_D_medication,FALSE,False
@@ -212072,7 +211841,6 @@ Age units"
 76,76000318,ITF,1,birth_weight,600,600
 76,76000318,ITF,1,blood_group,o,O
 76,76000318,ITF,1,chest_compressions,,False
-76,76000318,ITF,1,date_estimated_delivery_date,2@-05-2025,2025-09-09
 76,76000318,ITF,1,date_last_menstrual_period,21-11-2024,2024-11-21
 76,76000318,ITF,1,delivery_type,breech,Forceps
 76,76000318,ITF,1,fetal_distress,TRUE,False
@@ -213034,7 +212802,6 @@ Age units"
 52,52000485,ITF,1,blood_group,b,AB
 52,52000485,ITF,1,chest_compressions,FALSE,False
 52,52000485,ITF,1,date_estimated_delivery_date,04-03-2025,2025-03-04
-52,52000485,ITF,1,date_last_menstrual_period,01-0@-2024,2024-07-04
 52,52000485,ITF,1,delivery_type,cs,CS
 52,52000485,ITF,1,fetal_distress,FALSE,False
 52,52000485,ITF,1,gestation_in_weeks,40,40
@@ -213414,7 +213181,6 @@ C: Infant Details"
 52,52000487,ITF,1,birth_weight,3000,3000
 52,52000487,ITF,1,blood_group,b,B
 52,52000487,ITF,1,chest_compressions,FALSE,False
-52,52000487,ITF,1,date_estimated_delivery_date,7@-@1-@@@,
 52,52000487,ITF,1,date_last_menstrual_period,,
 52,52000487,ITF,1,delivery_type,svd,SVD
 52,52000487,ITF,1,fetal_distress,FALSE,False
@@ -214662,7 +214428,6 @@ Age units"
 72,72000330,NAR,1,born_before_arrival,FALSE,False
 72,72000330,NAR,1,born_where,,Home/roadside
 72,72000330,NAR,1,date,14-11-2024,2024-11-10
-72,72000330,NAR,1,date_estimated_delivery_date,0-@@-@@@,2024-09-08
 72,72000330,NAR,1,delivery_type,svd,SVD
 72,72000330,NAR,1,gestation_in_weeks,33,33
 72,72000330,NAR,1,gestation_type,,U/S
@@ -216480,7 +216245,6 @@ C: Infant Details"
 52,52000500,ITF,1,birth_weight,1255,1255
 52,52000500,ITF,1,blood_group,unknown,Unknown
 52,52000500,ITF,1,chest_compressions,FALSE,False
-52,52000500,ITF,1,date_estimated_delivery_date,@-@1-@@@,
 52,52000500,ITF,1,delivery_type,cs,CS
 52,52000500,ITF,1,fetal_distress,,False
 52,52000500,ITF,1,gestation_in_weeks,,
@@ -217429,7 +217193,6 @@ Variable breathe sounds"
 40,40000636,NAR,1,passed_urine,TRUE,True
 40,40000636,NAR,1,prolonged_labour,FALSE,False
 40,40000636,NAR,1,pulse_oximetry,90,0
-40,40000636,NAR,1,pulse_rate,1@,1
 40,40000636,NAR,1,rapture_of_membrane,lt18,<18 hrs
 40,40000636,NAR,1,respiratory_rate,52,52
 40,40000636,NAR,1,rhesus,positive,Negative
@@ -217509,7 +217272,6 @@ Variable breathe sounds"
 53,53000132,ITF,1,blood_group,,
 53,53000132,ITF,1,chest_compressions,FALSE,False
 53,53000132,ITF,1,date_estimated_delivery_date,09-12-2024,2024-12-09
-53,53000132,ITF,1,date_last_menstrual_period,2@-03-2024,2024-02-02
 53,53000132,ITF,1,delivery_type,cs,SVD
 53,53000132,ITF,1,fetal_distress,,False
 53,53000132,ITF,1,gestation_in_weeks,37,37
@@ -217561,7 +217323,6 @@ Variable breathe sounds"
 53,53000132,NAR,1,born_before_arrival,FALSE,False
 53,53000132,NAR,1,born_where,,
 53,53000132,NAR,1,date,03-12-2024,2024-12-03
-53,53000132,NAR,1,date_estimated_delivery_date,@-@@-222,
 53,53000132,NAR,1,delivery_type,cs,Breech
 53,53000132,NAR,1,gestation_in_weeks,39,39
 53,53000132,NAR,1,gestation_type,,U/S
@@ -218575,7 +218336,6 @@ Variable breathe sounds"
 72,72000337,ITF,1,birth_weight,1526,1580
 72,72000337,ITF,1,blood_group,b,B
 72,72000337,ITF,1,chest_compressions,FALSE,False
-72,72000337,ITF,1,date_estimated_delivery_date,0-@1-@2@,
 72,72000337,ITF,1,date_last_menstrual_period,,
 72,72000337,ITF,1,delivery_type,svd,SVD
 72,72000337,ITF,1,given_bcg,FALSE,False
@@ -219051,12 +218811,9 @@ Variable breathe sounds"
 72,72000339,ITF,1,attended_anc,TRUE,True
 72,72000339,ITF,1,baby_age,1,1
 72,72000339,ITF,1,baby_from,postnatal,Postnatal ward
-72,72000339,ITF,1,birth_date,20-11-24@,
 72,72000339,ITF,1,birth_weight,3900,3900
 72,72000339,ITF,1,blood_group,o,O
 72,72000339,ITF,1,chest_compressions,FALSE,False
-72,72000339,ITF,1,date_estimated_delivery_date,10-12-24@,
-72,72000339,ITF,1,date_last_menstrual_period,33-24-@@@,
 72,72000339,ITF,1,delivery_type,cs,CS
 72,72000339,ITF,1,fetal_distress,,False
 72,72000339,ITF,1,given_bcg,TRUE,True
@@ -219634,7 +219391,6 @@ C: Infant Details"
 40,40000383,NAR,1,born_before_arrival,,False
 40,40000383,NAR,1,born_where,,
 40,40000383,NAR,1,date,17-03-2025,2025-03-17
-40,40000383,NAR,1,date_estimated_delivery_date,6@-03-2025,
 40,40000383,NAR,1,delivery_type,svd,
 40,40000383,NAR,1,gestation_in_weeks,38,38
 40,40000383,NAR,1,gestation_type,lmp,LMR
@@ -219690,7 +219446,6 @@ C: Infant Details"
 40,40000383,ITF,1,blood_group,a,A
 40,40000383,ITF,1,chest_compressions,FALSE,False
 40,40000383,ITF,1,date_estimated_delivery_date,06-03-2025,2025-08-06
-40,40000383,ITF,1,date_last_menstrual_period,3@-05-2024,2024-02-05
 40,40000383,ITF,1,delivery_type,svd,SVD
 40,40000383,ITF,1,fetal_distress,,False
 40,40000383,ITF,1,gestation_in_weeks,38,38
@@ -219924,7 +219679,6 @@ C: Infant Details"
 40,40000386,NAR,1,born_before_arrival,FALSE,False
 40,40000386,NAR,1,born_where,,
 40,40000386,NAR,1,date,17-03-2025,2025-03-07
-40,40000386,NAR,1,date_estimated_delivery_date,17-04-25@,
 40,40000386,NAR,1,delivery_type,svd,
 40,40000386,NAR,1,gestation_in_weeks,35,35
 40,40000386,NAR,1,gestation_type,us,LMP
@@ -220164,7 +219918,6 @@ Age units"
 40,40000387,ITF,1,respiratory_rate,,
 40,40000387,ITF,1,rhesus,positive,Positive
 40,40000387,ITF,1,sex,,
-40,40000387,ITF,1,temparature,3@.,3.0
 40,40000387,ITF,1,was_resuscitated,FALSE,False
 40,40000387,ITF,1,weight,3100,3100
 63,63000241,ITF,1,anc_visits,7,7
@@ -221262,7 +221015,6 @@ C: Infant Details"
 40,40000394,ITF,1,birth_weight,3100,3100
 40,40000394,ITF,1,blood_group,,
 40,40000394,ITF,1,chest_compressions,FALSE,False
-40,40000394,ITF,1,date_estimated_delivery_date,17-03-25@,2025-03-17
 40,40000394,ITF,1,date_last_menstrual_period,11-06-2024,2024-06-11
 40,40000394,ITF,1,delivery_type,cs,
 40,40000394,ITF,1,fetal_distress,,
@@ -221802,7 +221554,6 @@ Age units"
 40,40000398,NAR,1,apgar_1m,5,5
 40,40000398,NAR,1,apgar_5m,6,6
 40,40000398,NAR,1,baby_age_in_days,,
-40,40000398,NAR,1,birth_date,12-03-@@,
 40,40000398,NAR,1,birth_weight,2800,2800
 40,40000398,NAR,1,blood_group,b,B
 40,40000398,NAR,1,born_before_arrival,FALSE,False
@@ -221988,7 +221739,6 @@ Age units"
 63,63000242,NAR,1,birth_weight,600,600
 63,63000242,NAR,1,blood_group,a,A
 63,63000242,NAR,1,born_where,facility,Other facility
-63,63000242,NAR,1,date,20-1@-2025,2025-01-20
 63,63000242,NAR,1,date_estimated_delivery_date,14-04-2025,2025-04-14
 63,63000242,NAR,1,delivery_type,svd,SVD
 63,63000242,NAR,1,gestation_in_weeks,28,28
@@ -222137,7 +221887,6 @@ Age units"
 40,40000399,ITF,1,birth_weight,1000,1000
 40,40000399,ITF,1,blood_group,ab,AB
 40,40000399,ITF,1,chest_compressions,FALSE,False
-40,40000399,ITF,1,date_estimated_delivery_date,25-@5-2025,2025-05-25
 40,40000399,ITF,1,date_last_menstrual_period,25-05-2025,2025-05-25
 40,40000399,ITF,1,delivery_type,svd,SVD
 40,40000399,ITF,1,fetal_distress,FALSE,False
@@ -224019,7 +223768,6 @@ Age units"
 72,72000342,ITF,1,blood_group,o,A
 72,72000342,ITF,1,chest_compressions,FALSE,False
 72,72000342,ITF,1,date_estimated_delivery_date,24-04-2024,2024-04-04
-72,72000342,ITF,1,date_last_menstrual_period,24-4@-2024,2024-04-24
 72,72000342,ITF,1,delivery_type,svd,SVD
 72,72000342,ITF,1,fetal_distress,TRUE,False
 72,72000342,ITF,1,gestation_in_weeks,32,32
@@ -224403,7 +224151,6 @@ Age units"
 72,72000343,ITF,1,sex,female,Female
 72,72000343,ITF,1,temparature,36.1,36.1
 72,72000343,ITF,1,was_resuscitated,FALSE,False
-72,72000343,ITF,1,weight,15@,15
 72,72000343,NAR,2,appearance,well,Well
 72,72000343,NAR,2,capillary_refill_in_seconds,,N/A seconds
 72,72000343,NAR,2,cry,normal,Normal
@@ -225827,7 +225574,6 @@ C: Infant Details"
 72,72000347,NAR,1,blood_group,a,A
 72,72000347,NAR,1,born_before_arrival,FALSE,False
 72,72000347,NAR,1,born_where,,
-72,72000347,NAR,1,date,12-1@-2024,2024-01-12
 72,72000347,NAR,1,date_estimated_delivery_date,21-01-2020,2025-02-20
 72,72000347,NAR,1,delivery_type,svd,
 72,72000347,NAR,1,gestation_in_weeks,29,29
@@ -226060,7 +225806,6 @@ C: Infant Details"
 72,72000348,NAR,1,blood_group,a,A
 72,72000348,NAR,1,born_before_arrival,FALSE,False
 72,72000348,NAR,1,born_where,,
-72,72000348,NAR,1,date,12-1@-2024,2024-01-12
 72,72000348,NAR,1,date_estimated_delivery_date,21-01-2020,2025-02-20
 72,72000348,NAR,1,delivery_type,svd,
 72,72000348,NAR,1,gestation_in_weeks,29,29
@@ -226601,7 +226346,6 @@ C: Infant Details"
 76,76000324,ITF,1,attended_anc,TRUE,True
 76,76000324,ITF,1,baby_age,01,0
 76,76000324,ITF,1,baby_from,referral,
-76,76000324,ITF,1,birth_date,0@-05-2025,2025-05-02
 76,76000324,ITF,1,birth_weight,3000,3000
 76,76000324,ITF,1,blood_group,o,O
 76,76000324,ITF,1,chest_compressions,,
@@ -226695,7 +226439,6 @@ C: Infant Details"
 76,76000324,NAR,1,born_before_arrival,TRUE,False
 76,76000324,NAR,1,born_where,facility,
 76,76000324,NAR,1,date,03-05-2025,2025-04-03
-76,76000324,NAR,1,date_estimated_delivery_date,09-05-25@,2025-05-09
 76,76000324,NAR,1,gestation_in_weeks,38,38
 76,76000324,NAR,1,gestation_type,lmp,U/S
 76,76000324,NAR,1,given_anti_D_medication,,False
@@ -227752,7 +227495,6 @@ Age units"
 63,63000253,NAR,1,rhesus,positive,Positive
 63,63000253,NAR,1,sex,male,Male
 63,63000253,NAR,1,temparature,34.0,34.0
-63,63000253,NAR,1,time_birth,0@:@,
 63,63000253,NAR,1,time_seen,21:30,21:30
 63,63000253,NAR,1,was_resuscitated,FALSE,False
 63,63000253,NAR,1,weight,1400,1400
@@ -228941,7 +228683,6 @@ C: Infant Details"
 52,52000514,ITF,1,birth_weight,3300,3300
 52,52000514,ITF,1,blood_group,ab,O
 52,52000514,ITF,1,chest_compressions,TRUE,False
-52,52000514,ITF,1,date_estimated_delivery_date,3@-3@-2025,
 52,52000514,ITF,1,date_last_menstrual_period,26-05-2024,2024-05-26
 52,52000514,ITF,1,delivery_type,svd,SVD
 52,52000514,ITF,1,fetal_distress,TRUE,True
@@ -230020,7 +229761,6 @@ Age units"
 63,63000255,ITF,1,blood_group,a,A
 63,63000255,ITF,1,chest_compressions,TRUE,True
 63,63000255,ITF,1,date_estimated_delivery_date,12-02-2025,2025-02-02
-63,63000255,ITF,1,date_last_menstrual_period,5@-05-2025,2024-05-05
 63,63000255,ITF,1,delivery_type,svd,SVD
 63,63000255,ITF,1,fetal_distress,,False
 63,63000255,ITF,1,gestation_in_weeks,40,40
@@ -230597,8 +230337,6 @@ Age units"
 76,76000335,ITF,1,birth_weight,,
 76,76000335,ITF,1,blood_group,o,O
 76,76000335,ITF,1,chest_compressions,TRUE,True
-76,76000335,ITF,1,date_estimated_delivery_date,77-@@-@@@,
-76,76000335,ITF,1,date_last_menstrual_period,77-@@-@@@,
 76,76000335,ITF,1,delivery_type,cs,CS
 76,76000335,ITF,1,fetal_distress,,False
 76,76000335,ITF,1,gestation_in_weeks,35,35
@@ -231489,13 +231227,10 @@ Age units"
 53,53000109,NAR,1,apgar_1m,,
 53,53000109,NAR,1,apgar_5m,,
 53,53000109,NAR,1,baby_age_in_days,,
-53,53000109,NAR,1,birth_date,0@-@@-2222,
 53,53000109,NAR,1,birth_weight,,
 53,53000109,NAR,1,blood_group,,[unclear]
 53,53000109,NAR,1,born_before_arrival,,
 53,53000109,NAR,1,born_where,,[unclear]
-53,53000109,NAR,1,date,@-@@-222,
-53,53000109,NAR,1,date_estimated_delivery_date,@-@@-@22,
 53,53000109,NAR,1,delivery_type,,
 53,53000109,NAR,1,gestation_in_weeks,,
 53,53000109,NAR,1,gestation_type,,U/S
@@ -231552,7 +231287,6 @@ Age units"
 53,53000109,ITF,1,blood_group,,
 53,53000109,ITF,1,chest_compressions,FALSE,False
 53,53000109,ITF,1,date_estimated_delivery_date,15-03-2025,2025-08-15
-53,53000109,ITF,1,date_last_menstrual_period,@-@@-222,
 53,53000109,ITF,1,delivery_type,svd,SVD
 53,53000109,ITF,1,fetal_distress,FALSE,False
 53,53000109,ITF,1,gestation_in_weeks,25,25
@@ -232701,7 +232435,6 @@ C: Infant Details"
 72,72000357,NAR,1,born_before_arrival,FALSE,False
 72,72000357,NAR,1,born_where,,Home/roadside
 72,72000357,NAR,1,date,11-10-2024,2024-10-11
-72,72000357,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000357,NAR,1,delivery_type,svd,
 72,72000357,NAR,1,gestation_in_weeks,39,30
 72,72000357,NAR,1,gestation_type,,U/S
@@ -232900,7 +232633,6 @@ C:Infant Details"
 72,72000358,NAR,1,born_before_arrival,FALSE,False
 72,72000358,NAR,1,born_where,,
 72,72000358,NAR,1,date,31-10-2024,2014-10-08
-72,72000358,NAR,1,date_estimated_delivery_date,26-@0-2024,2014-08-26
 72,72000358,NAR,1,delivery_type,svd,SVD
 72,72000358,NAR,1,gestation_in_weeks,,38
 72,72000358,NAR,1,gestation_type,lmp,LMP
@@ -234374,7 +234106,6 @@ Age units"
 72,72000360,ITF,1,baby_age,,0
 72,72000360,ITF,1,baby_from,theatre,Labour ward
 72,72000360,ITF,1,birth_date,26-10-2024,2024-10-26
-72,72000360,ITF,1,birth_weight,2@39,2
 72,72000360,ITF,1,blood_group,a,A
 72,72000360,ITF,1,chest_compressions,FALSE,False
 72,72000360,ITF,1,date_estimated_delivery_date,12-11-2024,2024-11-12
@@ -234703,7 +234434,6 @@ C: Infant Details"
 63,63000261,NAR,1,sex,female,Female
 63,63000261,NAR,1,temparature,37.3,37.8
 63,63000261,NAR,1,time_birth,02:25,02:05
-63,63000261,NAR,1,time_seen,0@:@,02:05
 63,63000261,NAR,1,was_resuscitated,FALSE,False
 63,63000261,NAR,1,weight,2740,2740
 63,63000261,ITF,1,abnormal_placenta,FALSE,False
@@ -236993,7 +236723,6 @@ C: Infant Details"
 52,52000723,NAR,1,apgar_1m,,9
 52,52000723,NAR,1,apgar_5m,,9
 52,52000723,NAR,1,baby_age_in_days,,1
-52,52000723,NAR,1,birth_date,07-03-2@25,2025-08-07
 52,52000723,NAR,1,birth_weight,,
 52,52000723,NAR,1,blood_group,,O
 52,52000723,NAR,1,born_before_arrival,,False
@@ -238334,7 +238063,6 @@ Age units"
 76,76000347,ITF,1,prescribed_opv,FALSE,False
 76,76000347,ITF,1,prescribed_oxygen,FALSE,False
 76,76000347,ITF,1,pulse_oximetry,,
-76,76000347,ITF,1,pulse_rate,7@,
 76,76000347,ITF,1,rapture_of_membrane,lt18,<18 hrs
 76,76000347,ITF,1,respiratory_rate,80,80
 76,76000347,ITF,1,rhesus,positive,
@@ -243291,8 +243019,6 @@ C: Infant Details"
 63,63000285,ITF,1,birth_weight,2640,2640
 63,63000285,ITF,1,blood_group,unknown,Unknown
 63,63000285,ITF,1,chest_compressions,FALSE,False
-63,63000285,ITF,1,date_estimated_delivery_date,@-04-2025,2025-04-04
-63,63000285,ITF,1,date_last_menstrual_period,@-06-2024,2025-02-08
 63,63000285,ITF,1,delivery_type,cs,CS
 63,63000285,ITF,1,fetal_distress,FALSE,False
 63,63000285,ITF,1,gestation_in_weeks,37,37
@@ -243380,7 +243106,6 @@ C: Infant Details"
 63,63000285,NAR,1,born_before_arrival,FALSE,False
 63,63000285,NAR,1,born_where,,Home/roadside
 63,63000285,NAR,1,date,16-03-2025,2025-03-16
-63,63000285,NAR,1,date_estimated_delivery_date,@-04-2025,2025-02-04
 63,63000285,NAR,1,gestation_in_weeks,37,37
 63,63000285,NAR,1,gestation_type,,U/S
 63,63000285,NAR,1,given_anti_D_medication,FALSE,False
@@ -244425,12 +244150,9 @@ Age units"
 52,52000544,ITF,1,attended_anc,TRUE,True
 52,52000544,ITF,1,baby_age,,
 52,52000544,ITF,1,baby_from,postnatal,
-52,52000544,ITF,1,birth_date,17-@3-2055,
 52,52000544,ITF,1,birth_weight,3400,3400
 52,52000544,ITF,1,blood_group,a,A
 52,52000544,ITF,1,chest_compressions,FALSE,False
-52,52000544,ITF,1,date_estimated_delivery_date,3-@3-2025,
-52,52000544,ITF,1,date_last_menstrual_period,27-@5-2024,
 52,52000544,ITF,1,delivery_type,cs,
 52,52000544,ITF,1,fetal_distress,FALSE,False
 52,52000544,ITF,1,gestation_in_weeks,42,42
@@ -245190,7 +244912,6 @@ Age units"
 40,40000423,NAR,1,blood_group,b,B
 40,40000423,NAR,1,born_before_arrival,FALSE,False
 40,40000423,NAR,1,born_where,,Home/roadside
-40,40000423,NAR,1,date,08-02-@@,
 40,40000423,NAR,1,date_estimated_delivery_date,13-05-2225,2025-05-13
 40,40000423,NAR,1,delivery_type,svd,SVD
 40,40000423,NAR,1,gestation_in_weeks,30,30
@@ -245356,7 +245077,6 @@ Age units"
 40,40000424,NAR,1,sex,male,Male
 40,40000424,NAR,1,temparature,38.1,38.1
 40,40000424,NAR,1,time_birth,08:29,08:29
-40,40000424,NAR,1,time_seen,8@:29,08:29
 40,40000424,NAR,1,was_resuscitated,FALSE,False
 40,40000424,NAR,1,weight,,
 40,40000424,ITF,1,abnormal_placenta,FALSE,False
@@ -249098,7 +248818,6 @@ C: Infant Details"
 52,52000557,ITF,1,sex,male,Male
 52,52000557,ITF,1,temparature,36.7,36.7
 52,52000557,ITF,1,was_resuscitated,TRUE,True
-52,52000557,ITF,1,weight,9@@,
 52,52000695,NAR,2,appearance,sick,Sick
 52,52000695,NAR,2,capillary_refill_in_seconds,2,
 52,52000695,NAR,2,chest_indrawing,TRUE,False
@@ -250405,7 +250124,6 @@ C: Infant Details"
 72,72000418,ITF,1,birth_weight,3000,3000
 72,72000418,ITF,1,blood_group,a,A
 72,72000418,ITF,1,chest_compressions,FALSE,False
-72,72000418,ITF,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000418,ITF,1,date_last_menstrual_period,,
 72,72000418,ITF,1,delivery_type,svd,SVD
 72,72000418,ITF,1,fetal_distress,TRUE,False
@@ -250877,7 +250595,6 @@ C: Infant Details"
 72,72000583,ITF,1,birth_weight,3660,3660
 72,72000583,ITF,1,blood_group,b,AB
 72,72000583,ITF,1,chest_compressions,FALSE,False
-72,72000583,ITF,1,date_estimated_delivery_date,2@-11-2024,2024-01-01
 72,72000583,ITF,1,delivery_type,cs,CS
 72,72000583,ITF,1,fetal_distress,TRUE,False
 72,72000583,ITF,1,gestation_in_weeks,36,36
@@ -254893,7 +254610,6 @@ C: Infant Details"
 72,72000602,NAR,1,blood_group,o,O
 72,72000602,NAR,1,born_before_arrival,FALSE,False
 72,72000602,NAR,1,born_where,,Home/roadside
-72,72000602,NAR,1,date,14-1@-2024,2024-11-14
 72,72000602,NAR,1,date_estimated_delivery_date,,
 72,72000602,NAR,1,delivery_type,svd,
 72,72000602,NAR,1,gestation_in_weeks,30,30
@@ -255184,7 +254900,6 @@ C: Infant Details"
 40,40000432,NAR,1,born_before_arrival,FALSE,False
 40,40000432,NAR,1,born_where,,[unclear]
 40,40000432,NAR,1,date,24-03-2024,2024-03-24
-40,40000432,NAR,1,date_estimated_delivery_date,12-2@-2025,2025-02-02
 40,40000432,NAR,1,delivery_type,svd,SVD
 40,40000432,NAR,1,gestation_in_weeks,,
 40,40000432,NAR,1,gestation_type,,U/S
@@ -255577,7 +255292,6 @@ C: Infant Details"
 40,40000435,ITF,1,apgar_5m,10,
 40,40000435,ITF,1,attended_anc,TRUE,True
 40,40000435,ITF,1,baby_from,postnatal,Postnatal ward
-40,40000435,ITF,1,birth_date,21-32-02@,2025-03-21
 40,40000435,ITF,1,birth_weight,2860,2860
 40,40000435,ITF,1,blood_group,unknown,Unknown
 40,40000435,ITF,1,chest_compressions,,False
@@ -258105,7 +257819,6 @@ C: Infant Details"
 72,72000604,NAR,1,apgar_1m,9,9
 72,72000604,NAR,1,apgar_5m,10,10
 72,72000604,NAR,1,baby_age_in_days,,
-72,72000604,NAR,1,birth_date,04-01-@@@,
 72,72000604,NAR,1,birth_weight,4125,4125
 72,72000604,NAR,1,blood_group,a,A
 72,72000604,NAR,1,born_before_arrival,FALSE,False
@@ -258150,7 +257863,6 @@ C: Infant Details"
 72,72000604,NAR,1,sex,female,Female
 72,72000604,NAR,1,temparature,,
 72,72000604,NAR,1,time_birth,,11:00
-72,72000604,NAR,1,time_seen,@:@4,11:00
 72,72000604,NAR,1,was_resuscitated,FALSE,False
 72,72000604,NAR,1,weight,,
 40,40000450,NAR,2,appearance,well,Well
@@ -258869,7 +258581,6 @@ C: Infant Details"
 72,72000605,ITF,1,birth_weight,3400,3400
 72,72000605,ITF,1,blood_group,o,O
 72,72000605,ITF,1,chest_compressions,FALSE,False
-72,72000605,ITF,1,date_estimated_delivery_date,63-20-24@,2024-08-03
 72,72000605,ITF,1,date_last_menstrual_period,13-12-2024,2024-01-13
 72,72000605,ITF,1,delivery_type,cs,CS
 72,72000605,ITF,1,fetal_distress,,False
@@ -261339,13 +261050,10 @@ Baby Juan Balonao Twin A"
 53,53000120,NAR,1,apgar_1m,,
 53,53000120,NAR,1,apgar_5m,,
 53,53000120,NAR,1,baby_age_in_days,,
-53,53000120,NAR,1,birth_date,@-@@-222,
 53,53000120,NAR,1,birth_weight,,
 53,53000120,NAR,1,blood_group,,[unclear]
 53,53000120,NAR,1,born_before_arrival,,
 53,53000120,NAR,1,born_where,,[unclear]
-53,53000120,NAR,1,date,@-@@-222,
-53,53000120,NAR,1,date_estimated_delivery_date,@-@@-222,
 53,53000120,NAR,1,delivery_type,,[unclear]
 53,53000120,NAR,1,gestation_in_weeks,,
 53,53000120,NAR,1,gestation_type,,[unclear]
@@ -263170,7 +262878,6 @@ Age units"
 40,40000647,ITF,1,sex,female,Female
 40,40000647,ITF,1,temparature,37.4,37.4
 40,40000647,ITF,1,was_resuscitated,TRUE,True
-40,40000647,ITF,1,weight,3@@,3
 52,52000579,NAR,2,appearance,well,Well
 52,52000579,NAR,2,capillary_refill_in_seconds,2,
 52,52000579,NAR,2,chest_indrawing,FALSE,False
@@ -265090,8 +264797,6 @@ C: Infant Details"
 72,72000627,NAR,1,apgar_1m,3,3
 72,72000627,NAR,1,apgar_5m,4,4
 72,72000627,NAR,1,baby_age_in_days,01,0
-72,72000627,NAR,1,birth_date,21-@@-2024,2024-11-20
-72,72000627,NAR,1,birth_weight,2@00,2700
 72,72000627,NAR,1,blood_group,o,O
 72,72000627,NAR,1,born_before_arrival,FALSE,False
 72,72000627,NAR,1,born_where,,
@@ -267016,7 +266721,6 @@ Age units"
 76,76000385,NAR,1,rhesus,positive,Positive
 76,76000385,NAR,1,sex,female,Female
 76,76000385,NAR,1,temparature,36.1,36.1
-76,76000385,NAR,1,time_birth,0@:@,
 76,76000385,NAR,1,time_seen,03:23,03:23
 76,76000385,NAR,1,was_resuscitated,FALSE,False
 76,76000385,NAR,1,weight,2500,2500
@@ -267068,7 +266772,6 @@ Age units"
 72,72000629,ITF,1,prescribed_opv,FALSE,False
 72,72000629,ITF,1,prescribed_oxygen,TRUE,True
 72,72000629,ITF,1,pulse_oximetry,,
-72,72000629,ITF,1,pulse_rate,@1,
 72,72000629,ITF,1,rapture_of_membrane,,
 72,72000629,ITF,1,respiratory_rate,,
 72,72000629,ITF,1,rhesus,positive,Positive
@@ -269283,8 +268986,6 @@ Age units"
 72,72000660,NAR,1,blood_group,b,B
 72,72000660,NAR,1,born_before_arrival,,False
 72,72000660,NAR,1,born_where,,[blank]
-72,72000660,NAR,1,date,@-@@-@2@,
-72,72000660,NAR,1,date_estimated_delivery_date,0-@@-@@@,
 72,72000660,NAR,1,delivery_type,cs,
 72,72000660,NAR,1,gestation_in_weeks,,
 72,72000660,NAR,1,gestation_type,,LMP
@@ -269962,7 +269663,6 @@ Age units"
 52,52000594,NAR,1,sex,female,Female
 52,52000594,NAR,1,temparature,36.7,36.7
 52,52000594,NAR,1,time_birth,,
-52,52000594,NAR,1,time_seen,5@:30,
 52,52000594,NAR,1,was_resuscitated,FALSE,False
 52,52000594,NAR,1,weight,1775,1175
 52,52000595,NAR,2,appearance,sick,Sick
@@ -271864,7 +271564,6 @@ C: Infant Details"
 76,76000398,NAR,1,rhesus,positive,Positive
 76,76000398,NAR,1,sex,male,Female
 76,76000398,NAR,1,temparature,37.4,37.4
-76,76000398,NAR,1,time_birth,@:38,03:08
 76,76000398,NAR,1,time_seen,23:50,03:50
 76,76000398,NAR,1,was_resuscitated,FALSE,False
 76,76000398,NAR,1,weight,,
@@ -272522,7 +272221,6 @@ C: Infant Details"
 52,52000600,NAR,1,apgar_1m,6,6
 52,52000600,NAR,1,apgar_5m,6,6
 52,52000600,NAR,1,baby_age_in_days,01,1
-52,52000600,NAR,1,birth_date,24-03-20@,2020-03-24
 52,52000600,NAR,1,birth_weight,2395,2395
 52,52000600,NAR,1,blood_group,o,O
 52,52000600,NAR,1,born_before_arrival,FALSE,False
@@ -272670,7 +272368,6 @@ C: Infant Details"
 52,52000601,NAR,1,born_before_arrival,FALSE,False
 52,52000601,NAR,1,born_where,,Home/roadside
 52,52000601,NAR,1,date,24-03-2025,2025-03-24
-52,52000601,NAR,1,date_estimated_delivery_date,@-06-2@@,
 52,52000601,NAR,1,delivery_type,svd,SVD
 52,52000601,NAR,1,gestation_in_weeks,39,39
 52,52000601,NAR,1,gestation_type,,U/S
@@ -273926,7 +273623,6 @@ Age units"
 76,76000401,ITF,1,blood_group,a,A
 76,76000401,ITF,1,chest_compressions,,False
 76,76000401,ITF,1,date_estimated_delivery_date,23-05-2025,2025-05-23
-76,76000401,ITF,1,date_last_menstrual_period,6@-08-2024,2024-08-16
 76,76000401,ITF,1,delivery_type,cs,
 76,76000401,ITF,1,fetal_distress,,False
 76,76000401,ITF,1,gestation_in_weeks,39,39
@@ -275347,7 +275043,6 @@ Age units"
 40,40000467,ITF,1,blood_group,a,A
 40,40000467,ITF,1,chest_compressions,FALSE,False
 40,40000467,ITF,1,date_estimated_delivery_date,11-03-2025,2025-03-11
-40,40000467,ITF,1,date_last_menstrual_period,4@-06-2024,2024-06-04
 40,40000467,ITF,1,delivery_type,svd,SVD
 40,40000467,ITF,1,fetal_distress,,False
 40,40000467,ITF,1,gestation_in_weeks,,
@@ -276915,7 +276610,6 @@ C: Infant Details"
 40,40000476,NAR,1,sex,male,Male
 40,40000476,NAR,1,temparature,35.6,35.6
 40,40000476,NAR,1,time_birth,06:30,06:30
-40,40000476,NAR,1,time_seen,9@:00,
 40,40000476,NAR,1,was_resuscitated,,
 40,40000476,NAR,1,weight,2215,2215
 40,40000476,NAR,2,appearance,,
@@ -280557,7 +280251,6 @@ Age units"
 52,52000617,NAR,1,respiratory_rate,65,65
 52,52000617,NAR,1,rhesus,positive,True
 52,52000617,NAR,1,sex,female,Female
-52,52000617,NAR,1,temparature,6@.8,36.8
 52,52000617,NAR,1,time_birth,07:45,07:45
 52,52000617,NAR,1,time_seen,23:02,01:01
 52,52000617,NAR,1,was_resuscitated,FALSE,True
@@ -280645,7 +280338,6 @@ Age units"
 52,52000618,NAR,1,born_before_arrival,FALSE,False
 52,52000618,NAR,1,born_where,,Home/roadside
 52,52000618,NAR,1,date,03-04-2025,2025-04-03
-52,52000618,NAR,1,date_estimated_delivery_date,11-02-2@@,2025-04-18
 52,52000618,NAR,1,delivery_type,cs,Breech
 52,52000618,NAR,1,gestation_in_weeks,37,37
 52,52000618,NAR,1,gestation_type,,U/S
@@ -282554,7 +282246,6 @@ C: Infant Details"
 72,72000666,NAR,1,blood_group,,
 72,72000666,NAR,1,born_before_arrival,,False
 72,72000666,NAR,1,born_where,,
-72,72000666,NAR,1,date,@-@@-2@@,
 72,72000666,NAR,1,date_estimated_delivery_date,,
 72,72000666,NAR,1,delivery_type,,
 72,72000666,NAR,1,gestation_in_weeks,,
@@ -282645,7 +282336,6 @@ C: Infant Details"
 72,72000666,ITF,1,prescribed_opv,FALSE,False
 72,72000666,ITF,1,prescribed_oxygen,FALSE,False
 72,72000666,ITF,1,pulse_oximetry,,
-72,72000666,ITF,1,pulse_rate,1@,1
 72,72000666,ITF,1,rapture_of_membrane,lt18,<18 hrs
 72,72000666,ITF,1,respiratory_rate,47,47
 72,72000666,ITF,1,rhesus,positive,Positive
@@ -283092,11 +282782,9 @@ C: Infant Details"
 72,72000670,ITF,1,attended_anc,TRUE,False
 72,72000670,ITF,1,baby_age,,
 72,72000670,ITF,1,baby_from,theatre,
-72,72000670,ITF,1,birth_date,9-@1-2025,
 72,72000670,ITF,1,birth_weight,2900,2900
 72,72000670,ITF,1,blood_group,o,O
 72,72000670,ITF,1,chest_compressions,FALSE,False
-72,72000670,ITF,1,date_estimated_delivery_date,2-@1-2025,
 72,72000670,ITF,1,delivery_type,cs,
 72,72000670,ITF,1,fetal_distress,,
 72,72000670,ITF,1,gestation_in_weeks,39,39
@@ -283147,12 +282835,9 @@ C: Infant Details"
 72,72000671,ITF,1,attended_anc,TRUE,False
 72,72000671,ITF,1,baby_age,,
 72,72000671,ITF,1,baby_from,theatre,
-72,72000671,ITF,1,birth_date,9-@1-2025,
 72,72000671,ITF,1,birth_weight,2900,2900
 72,72000671,ITF,1,blood_group,o,O
 72,72000671,ITF,1,chest_compressions,FALSE,False
-72,72000671,ITF,1,date_estimated_delivery_date,2-@1-2025,
-72,72000671,ITF,1,date_last_menstrual_period,25-@3-2024,
 72,72000671,ITF,1,delivery_type,cs,
 72,72000671,ITF,1,fetal_distress,,
 72,72000671,ITF,1,gestation_in_weeks,39,39
@@ -283847,7 +283532,6 @@ C: Infant Details"
 72,72000677,NAR,1,time_birth,,
 72,72000677,NAR,1,time_seen,,
 72,72000677,NAR,1,was_resuscitated,FALSE,False
-72,72000677,NAR,1,weight,@@7,
 72,72000677,NAR,2,appearance,well,Well
 72,72000677,NAR,2,cry,normal,Normal
 72,72000677,NAR,2,given_bcg,,
@@ -284700,8 +284384,6 @@ C: Infant Details"
 72,72000681,NAR,1,blood_group,o,
 72,72000681,NAR,1,born_before_arrival,FALSE,False
 72,72000681,NAR,1,born_where,,
-72,72000681,NAR,1,date,0-@@-222,
-72,72000681,NAR,1,date_estimated_delivery_date,2@-@@-@@@,
 72,72000681,NAR,1,delivery_type,svd,SVD
 72,72000681,NAR,1,gestation_in_weeks,34,34
 72,72000681,NAR,1,gestation_type,us,U/S
@@ -285575,7 +285257,6 @@ C: Infant Details"
 52,52000743,NAR,1,sex,female,Female
 52,52000743,NAR,1,temparature,37.4,37.4
 52,52000743,NAR,1,time_birth,11:00,11:00
-52,52000743,NAR,1,time_seen,04:@0,04:10
 52,52000743,NAR,1,was_resuscitated,TRUE,True
 52,52000743,NAR,1,weight,4200,4200
 53,53000099,NAR,2,appearance,well,Well
@@ -285618,7 +285299,6 @@ C: Infant Details"
 53,53000099,NAR,1,apgar_1m,8,8
 53,53000099,NAR,1,apgar_5m,9,9
 53,53000099,NAR,1,baby_age_in_days,,
-53,53000099,NAR,1,birth_date,28-1@-2024,2024-11-28
 53,53000099,NAR,1,birth_weight,3300,3300
 53,53000099,NAR,1,blood_group,a,A
 53,53000099,NAR,1,born_before_arrival,,False
@@ -286114,7 +285794,6 @@ C: Infant Details"
 40,40000485,ITF,1,blood_group,a,A
 40,40000485,ITF,1,chest_compressions,FALSE,False
 40,40000485,ITF,1,date_estimated_delivery_date,06-06-2025,2024-06-06
-40,40000485,ITF,1,date_last_menstrual_period,2@-08-2025,2024-08-08
 40,40000485,ITF,1,fetal_distress,FALSE,True
 40,40000485,ITF,1,gestation_in_weeks,32,32
 40,40000485,ITF,1,given_bcg,FALSE,False
@@ -289108,7 +288787,6 @@ C: Infant Details"
 72,72000711,ITF,1,birth_weight,1800,1800
 72,72000711,ITF,1,blood_group,a,A
 72,72000711,ITF,1,chest_compressions,FALSE,False
-72,72000711,ITF,1,date_estimated_delivery_date,18-05-24@,2014-05-18
 72,72000711,ITF,1,date_last_menstrual_period,25-02-2024,2014-08-05
 72,72000711,ITF,1,delivery_type,cs,CS
 72,72000711,ITF,1,fetal_distress,FALSE,False
@@ -291293,7 +290971,6 @@ Age units"
 72,72000829,NAR,1,blood_group,unknown,Unknown
 72,72000829,NAR,1,born_before_arrival,,False
 72,72000829,NAR,1,born_where,,
-72,72000829,NAR,1,date,11-01-20@5,2023-04-10
 72,72000829,NAR,1,date_estimated_delivery_date,,
 72,72000829,NAR,1,delivery_type,svd,SVD
 72,72000829,NAR,1,gestation_in_weeks,,38
@@ -291689,7 +291366,6 @@ Age units"
 52,52000762,ITF,1,blood_group,unknown,Unknown
 52,52000762,ITF,1,chest_compressions,FALSE,False
 52,52000762,ITF,1,date_estimated_delivery_date,14-04-2225,2025-04-14
-52,52000762,ITF,1,date_last_menstrual_period,07-0@-2024,2024-10-07
 52,52000762,ITF,1,delivery_type,svd,SVD
 52,52000762,ITF,1,fetal_distress,TRUE,True
 52,52000762,ITF,1,gestation_in_weeks,41,41
@@ -292942,7 +292618,6 @@ C: Infant Details"
 40,40000499,NAR,1,rhesus,positive,Positive
 40,40000499,NAR,1,sex,male,Male
 40,40000499,NAR,1,temparature,36.5,36.5
-40,40000499,NAR,1,time_birth,1@:13,11:13
 40,40000499,NAR,1,time_seen,,
 40,40000499,NAR,1,was_resuscitated,,False
 40,40000499,NAR,1,weight,,
@@ -294468,12 +294143,10 @@ C: Infant Details"
 40,40000510,NAR,1,apgar_1m,8,8
 40,40000510,NAR,1,apgar_5m,9,8
 40,40000510,NAR,1,baby_age_in_days,,
-40,40000510,NAR,1,birth_date,09-05-25@,2022-05-09
 40,40000510,NAR,1,birth_weight,1400,1400
 40,40000510,NAR,1,blood_group,o,O
 40,40000510,NAR,1,born_before_arrival,FALSE,False
 40,40000510,NAR,1,born_where,,Home/roadside
-40,40000510,NAR,1,date_estimated_delivery_date,10-06-25@,
 40,40000510,NAR,1,delivery_type,cs,
 40,40000510,NAR,1,gestation_in_weeks,29,27
 40,40000510,NAR,1,gestation_type,us,U/S
@@ -294525,12 +294198,9 @@ C: Infant Details"
 40,40000510,ITF,1,attended_anc,TRUE,True
 40,40000510,ITF,1,baby_age,1,1
 40,40000510,ITF,1,baby_from,theatre,Labour ward
-40,40000510,ITF,1,birth_date,09-03-24@,
 40,40000510,ITF,1,birth_weight,1400,1400
 40,40000510,ITF,1,blood_group,o,O
 40,40000510,ITF,1,chest_compressions,FALSE,False
-40,40000510,ITF,1,date_estimated_delivery_date,10-00-25@,
-40,40000510,ITF,1,date_last_menstrual_period,02-09-24@,
 40,40000510,ITF,1,delivery_type,cs,CS
 40,40000510,ITF,1,fetal_distress,FALSE,True
 40,40000510,ITF,1,gestation_in_weeks,29,29
@@ -294858,7 +294528,6 @@ C:Infant Details"
 53,53000125,NAR,1,born_before_arrival,FALSE,False
 53,53000125,NAR,1,born_where,,
 53,53000125,NAR,1,date,05-12-2024,2024-12-05
-53,53000125,NAR,1,date_estimated_delivery_date,@-@@-222,
 53,53000125,NAR,1,delivery_type,svd,SVD
 53,53000125,NAR,1,gestation_in_weeks,,
 53,53000125,NAR,1,gestation_type,,U/S
@@ -295508,7 +295177,6 @@ C:Infant Details"
 53,53000134,NAR,1,sex,male,Female
 53,53000134,NAR,1,temparature,36.8,36.8
 53,53000134,NAR,1,time_birth,03:00,03:00
-53,53000134,NAR,1,time_seen,0@:@,
 53,53000134,NAR,1,was_resuscitated,FALSE,False
 53,53000134,NAR,1,weight,,
 53,53000134,ITF,1,abnormal_placenta,FALSE,False
@@ -295810,7 +295478,6 @@ C:Infant Details"
 53,53000137,NAR,1,born_before_arrival,FALSE,False
 53,53000137,NAR,1,born_where,,
 53,53000137,NAR,1,date,01-12-2024,2024-12-01
-53,53000137,NAR,1,date_estimated_delivery_date,8@-12-2024,
 53,53000137,NAR,1,delivery_type,cs,
 53,53000137,NAR,1,gestation_in_weeks,39,39
 53,53000137,NAR,1,gestation_type,,
@@ -296642,7 +296309,6 @@ C: Infant Details"
 72,72000736,NAR,1,passed_urine,FALSE,False
 72,72000736,NAR,1,prolonged_labour,FALSE,
 72,72000736,NAR,1,pulse_oximetry,98,98
-72,72000736,NAR,1,pulse_rate,1@4,144
 72,72000736,NAR,1,rapture_of_membrane,,≥18 hrs
 72,72000736,NAR,1,respiratory_rate,64,64
 72,72000736,NAR,1,rhesus,,
@@ -301507,7 +301173,6 @@ C: Infant Details"
 72,72000752,ITF,1,birth_weight,3200,3200
 72,72000752,ITF,1,blood_group,b,AB
 72,72000752,ITF,1,chest_compressions,FALSE,False
-72,72000752,ITF,1,date_estimated_delivery_date,23-12-5@@,
 72,72000752,ITF,1,delivery_type,svd,SVD
 72,72000752,ITF,1,fetal_distress,FALSE,False
 72,72000752,ITF,1,gestation_in_weeks,40,40
@@ -302068,7 +301733,6 @@ C: Infant Details"
 72,72000759,NAR,1,apgar_1m,8,8
 72,72000759,NAR,1,apgar_5m,9,9
 72,72000759,NAR,1,baby_age_in_days,01,1
-72,72000759,NAR,1,birth_date,08-0@-2025,2025-01-02
 72,72000759,NAR,1,birth_weight,4295,4295
 72,72000759,NAR,1,blood_group,o,O
 72,72000759,NAR,1,born_before_arrival,FALSE,False
@@ -303711,7 +303375,6 @@ C: Infant Details"
 52,52000624,NAR,1,apgar_5m,6,6
 52,52000624,NAR,1,baby_age_in_days,01,1
 52,52000624,NAR,1,birth_date,29-03-2025,2025-03-29
-52,52000624,NAR,1,birth_weight,@01,
 52,52000624,NAR,1,blood_group,o,O
 52,52000624,NAR,1,born_before_arrival,FALSE,False
 52,52000624,NAR,1,born_where,,Home/roadside
@@ -304938,7 +304601,6 @@ C: Infant Details"
 40,40000533,NAR,1,born_before_arrival,FALSE,False
 40,40000533,NAR,1,born_where,,Home/roadside
 40,40000533,NAR,1,date,,
-40,40000533,NAR,1,date_estimated_delivery_date,23-04-25@,
 40,40000533,NAR,1,delivery_type,cs,CS
 40,40000533,NAR,1,gestation_in_weeks,37,37
 40,40000533,NAR,1,gestation_type,lmp,LMP
@@ -305075,7 +304737,6 @@ C: Infant Details"
 40,40000534,NAR,1,apgar_1m,4,4
 40,40000534,NAR,1,apgar_5m,5,5
 40,40000534,NAR,1,baby_age_in_days,00,4
-40,40000534,NAR,1,birth_date,26-@0-@@@,
 40,40000534,NAR,1,birth_weight,3700,3700
 40,40000534,NAR,1,blood_group,b,B
 40,40000534,NAR,1,born_before_arrival,FALSE,False
@@ -305266,7 +304927,6 @@ C: Infant Details"
 40,40000535,NAR,1,sex,male,Female
 40,40000535,NAR,1,temparature,,
 40,40000535,NAR,1,time_birth,08:25,08:25
-40,40000535,NAR,1,time_seen,0@:@,10:00
 40,40000535,NAR,1,was_resuscitated,FALSE,False
 40,40000535,NAR,1,weight,3705,3705
 40,40000535,ITF,1,abnormal_placenta,FALSE,False
@@ -306440,8 +306100,6 @@ C: Infant Details"
 40,40000540,ITF,1,birth_weight,5441,3441
 40,40000540,ITF,1,blood_group,a,A
 40,40000540,ITF,1,chest_compressions,FALSE,False
-40,40000540,ITF,1,date_estimated_delivery_date,03-0@-025,2025-01-03
-40,40000540,ITF,1,date_last_menstrual_period,03-05-20@,2024-05-03
 40,40000540,ITF,1,delivery_type,svd,SVD
 40,40000540,ITF,1,fetal_distress,FALSE,False
 40,40000540,ITF,1,gestation_in_weeks,34,34
@@ -306482,9 +306140,7 @@ C: Infant Details"
 40,40000540,ITF,1,rhesus,positive,Positive
 40,40000540,ITF,1,sex,male,"F
 Age units"
-40,40000540,ITF,1,temparature,4@.,36.1
 40,40000540,ITF,1,was_resuscitated,FALSE,False
-40,40000540,ITF,1,weight,0@@,
 52,52000633,ITF,1,abnormal_placenta,FALSE,False
 52,52000633,ITF,1,anc_visits,,
 52,52000633,ITF,1,antenatal_steroids,FALSE,False
@@ -306883,7 +306539,6 @@ Age units"
 52,52000634,ITF,1,birth_weight,3405,3405
 52,52000634,ITF,1,blood_group,b,B
 52,52000634,ITF,1,chest_compressions,FALSE,False
-52,52000634,ITF,1,date_estimated_delivery_date,3@-04-2025,2025-04-04
 52,52000634,ITF,1,date_last_menstrual_period,27-06-2024,2024-06-27
 52,52000634,ITF,1,delivery_type,cs,CS
 52,52000634,ITF,1,fetal_distress,,False
@@ -306995,7 +306650,6 @@ Age units"
 52,52000635,ITF,1,birth_weight,3405,3405
 52,52000635,ITF,1,blood_group,b,B
 52,52000635,ITF,1,chest_compressions,FALSE,False
-52,52000635,ITF,1,date_estimated_delivery_date,3@-04-2025,2025-04-04
 52,52000635,ITF,1,date_last_menstrual_period,27-06-2024,2024-06-27
 52,52000635,ITF,1,delivery_type,cs,CS
 52,52000635,ITF,1,fetal_distress,,False
@@ -308813,7 +308467,6 @@ Age units"
 63,63000484,ITF,1,birth_weight,3100,3100
 63,63000484,ITF,1,blood_group,a,A
 63,63000484,ITF,1,chest_compressions,TRUE,True
-63,63000484,ITF,1,date_estimated_delivery_date,22-4@-2025,2025-04-22
 63,63000484,ITF,1,date_last_menstrual_period,16-07-2024,2024-07-16
 63,63000484,ITF,1,delivery_type,cs,CS
 63,63000484,ITF,1,fetal_distress,TRUE,True
@@ -309833,7 +309486,6 @@ Age units"
 72,72000766,ITF,1,attended_anc,,False
 72,72000766,ITF,1,baby_age,,
 72,72000766,ITF,1,baby_from,labour,Labour ward
-72,72000766,ITF,1,birth_date,13-0@-2025,
 72,72000766,ITF,1,birth_weight,3200,3200
 72,72000766,ITF,1,blood_group,b,AB
 72,72000766,ITF,1,chest_compressions,FALSE,False
@@ -310231,7 +309883,6 @@ Age units"
 63,63000516,ITF,1,birth_weight,1900,1900
 63,63000516,ITF,1,blood_group,a,A
 63,63000516,ITF,1,chest_compressions,FALSE,False
-63,63000516,ITF,1,date_estimated_delivery_date,@-04-2025,2025-04-04
 63,63000516,ITF,1,date_last_menstrual_period,,
 63,63000516,ITF,1,delivery_type,svd,SVD
 63,63000516,ITF,1,fetal_distress,FALSE,False
@@ -311455,7 +311106,6 @@ Age units"
 52,52000740,ITF,1,birth_weight,4000,4000
 52,52000740,ITF,1,blood_group,o,O
 52,52000740,ITF,1,date_estimated_delivery_date,17-04-2025,2025-04-07
-52,52000740,ITF,1,date_last_menstrual_period,0@-@@-@@@,
 52,52000740,ITF,1,delivery_type,cs,CS
 52,52000740,ITF,1,fetal_distress,TRUE,True
 52,52000740,ITF,1,gestation_in_weeks,38,38
@@ -313111,7 +312761,6 @@ Age units"
 52,52000648,ITF,1,blood_group,,A
 52,52000648,ITF,1,chest_compressions,FALSE,False
 52,52000648,ITF,1,date_estimated_delivery_date,01-05-2025,2025-05-01
-52,52000648,ITF,1,date_last_menstrual_period,2@-@7-2024,2024-08-04
 52,52000648,ITF,1,delivery_type,cs,CS
 52,52000648,ITF,1,fetal_distress,FALSE,False
 52,52000648,ITF,1,gestation_in_weeks,36,36
@@ -315228,7 +314877,6 @@ C: Infant Details"
 40,40000558,NAR,1,sex,male,Male
 40,40000558,NAR,1,temparature,36.9,36.9
 40,40000558,NAR,1,time_birth,02:30,02:30
-40,40000558,NAR,1,time_seen,2@:30,09:30
 40,40000558,NAR,1,was_resuscitated,FALSE,False
 40,40000558,NAR,1,weight,,
 72,72000772,NAR,1,anc_visits,,
@@ -317723,7 +317371,6 @@ C: Infant Details"
 72,72000789,NAR,1,passed_urine,,
 72,72000789,NAR,1,prolonged_labour,,
 72,72000789,NAR,1,pulse_oximetry,98,98
-72,72000789,NAR,1,pulse_rate,@6,146
 72,72000789,NAR,1,rapture_of_membrane,,
 72,72000789,NAR,1,respiratory_rate,54,54
 72,72000789,NAR,1,rhesus,positive,Negative
@@ -319504,7 +319151,6 @@ Age units"
 72,72000807,ITF,1,attended_anc,TRUE,True
 72,72000807,ITF,1,baby_age,0,0
 72,72000807,ITF,1,baby_from,referral,Referral in
-72,72000807,ITF,1,birth_date,22-@2-2024,2024-12-22
 72,72000807,ITF,1,birth_weight,3470,3470
 72,72000807,ITF,1,blood_group,a,A
 72,72000807,ITF,1,chest_compressions,TRUE,True
@@ -319942,7 +319588,6 @@ Age units"
 53,53000002,ITF,1,birth_weight,3100,3100
 53,53000002,ITF,1,blood_group,unknown,Unknown
 53,53000002,ITF,1,chest_compressions,FALSE,False
-53,53000002,ITF,1,date_estimated_delivery_date,7@-07-2025,2025-01-07
 53,53000002,ITF,1,date_last_menstrual_period,02-04-2024,2024-04-02
 53,53000002,ITF,1,delivery_type,cs,CS
 53,53000002,ITF,1,fetal_distress,,False
@@ -320460,7 +320105,6 @@ Age units"
 53,53000015,NAR,1,born_before_arrival,TRUE,False
 53,53000015,NAR,1,born_where,facility,Other facility
 53,53000015,NAR,1,date,25-11-2024,2025-11-25
-53,53000015,NAR,1,date_estimated_delivery_date,@-@@-222,
 53,53000015,NAR,1,delivery_type,svd,SVD
 53,53000015,NAR,1,gestation_in_weeks,,
 53,53000015,NAR,1,gestation_type,,LMP
@@ -322669,7 +322313,6 @@ C: Infant Details"
 53,53000140,NAR,1,born_before_arrival,,False
 53,53000140,NAR,1,born_where,,
 53,53000140,NAR,1,date,12-12-2024,2024-12-12
-53,53000140,NAR,1,date_estimated_delivery_date,@-@@-222,
 53,53000140,NAR,1,delivery_type,svd,
 53,53000140,NAR,1,gestation_in_weeks,39,39
 53,53000140,NAR,1,gestation_type,,U/S
@@ -324170,7 +323813,6 @@ Age units"
 52,52000766,ITF,1,birth_weight,445,3445
 52,52000766,ITF,1,blood_group,ab,A
 52,52000766,ITF,1,chest_compressions,FALSE,False
-52,52000766,ITF,1,date_estimated_delivery_date,4-04-@@@,2025-05-01
 52,52000766,ITF,1,delivery_type,cs,CS
 52,52000766,ITF,1,gestation_in_weeks,,40
 52,52000766,ITF,1,given_bcg,FALSE,False
@@ -325023,7 +324665,6 @@ Age units"
 72,72000840,NAR,1,blood_group,,[blank]
 72,72000840,NAR,1,born_before_arrival,,
 72,72000840,NAR,1,born_where,,[blank]
-72,72000840,NAR,1,date,@-@@-222,
 72,72000840,NAR,1,date_estimated_delivery_date,,
 72,72000840,NAR,1,delivery_type,,[blank]
 72,72000840,NAR,1,gestation_in_weeks,,
@@ -325075,12 +324716,9 @@ Age units"
 72,72000845,ITF,1,attended_anc,TRUE,True
 72,72000845,ITF,1,baby_age,,
 72,72000845,ITF,1,baby_from,theatre,Labour ward
-72,72000845,ITF,1,birth_date,20-@1-2025,2025-01-20
 72,72000845,ITF,1,birth_weight,4500,4500
 72,72000845,ITF,1,blood_group,o,O
 72,72000845,ITF,1,chest_compressions,FALSE,False
-72,72000845,ITF,1,date_estimated_delivery_date,29-@1-2025,2025-01-29
-72,72000845,ITF,1,date_last_menstrual_period,22-@4-2024,2024-04-22
 72,72000845,ITF,1,delivery_type,cs,CS
 72,72000845,ITF,1,fetal_distress,,False
 72,72000845,ITF,1,gestation_in_weeks,38,38
@@ -325590,7 +325228,6 @@ Age units"
 72,72000853,ITF,1,attended_anc,,True
 72,72000853,ITF,1,baby_age,,
 72,72000853,ITF,1,baby_from,theatre,Labour ward
-72,72000853,ITF,1,birth_date,03-@1-2025,
 72,72000853,ITF,1,birth_weight,1900,1900
 72,72000853,ITF,1,blood_group,o,O
 72,72000853,ITF,1,chest_compressions,FALSE,False
@@ -330337,7 +329974,6 @@ Age units"
 40,40000574,NAR,1,blood_group,o,O
 40,40000574,NAR,1,born_before_arrival,FALSE,False
 40,40000574,NAR,1,born_where,,Home/roadside
-40,40000574,NAR,1,date,24-04-20@,
 40,40000574,NAR,1,date_estimated_delivery_date,12-04-2025,2025-04-12
 40,40000574,NAR,1,delivery_type,svd,SVD
 40,40000574,NAR,1,gestation_in_weeks,41,38
@@ -331489,7 +331125,6 @@ Age units"
 40,40000581,NAR,1,rhesus,positive,Positive
 40,40000581,NAR,1,sex,male,Male
 40,40000581,NAR,1,temparature,36.9,36.9
-40,40000581,NAR,1,time_birth,09:@,
 40,40000581,NAR,1,time_seen,,
 40,40000581,NAR,1,was_resuscitated,FALSE,False
 40,40000581,NAR,1,weight,,
@@ -331974,8 +331609,6 @@ Age units"
 40,40000585,ITF,1,birth_weight,2800,2800
 40,40000585,ITF,1,blood_group,a,A
 40,40000585,ITF,1,chest_compressions,,False
-40,40000585,ITF,1,date_estimated_delivery_date,@-06-2025,
-40,40000585,ITF,1,date_last_menstrual_period,@-09-2025,
 40,40000585,ITF,1,delivery_type,svd,
 40,40000585,ITF,1,fetal_distress,,False
 40,40000585,ITF,1,gestation_in_weeks,32,32
@@ -332522,7 +332155,6 @@ Age units"
 40,40000589,ITF,1,birth_weight,1800,1800
 40,40000589,ITF,1,blood_group,b,B
 40,40000589,ITF,1,chest_compressions,FALSE,False
-40,40000589,ITF,1,date_estimated_delivery_date,27-10-24@,2024-01-08
 40,40000589,ITF,1,date_last_menstrual_period,04-08-2025,2023-08-04
 40,40000589,ITF,1,delivery_type,svd,SVD
 40,40000589,ITF,1,fetal_distress,FALSE,False
@@ -336467,7 +336099,6 @@ Age units"
 53,53000076,NAR,1,born_before_arrival,FALSE,False
 53,53000076,NAR,1,born_where,,
 53,53000076,NAR,1,date,24-11-2024,2024-11-24
-53,53000076,NAR,1,date_estimated_delivery_date,@-@@-@@2,
 53,53000076,NAR,1,delivery_type,cs,CS
 53,53000076,NAR,1,gestation_in_weeks,37,37
 53,53000076,NAR,1,gestation_type,lmp,LMP
@@ -339579,7 +339210,6 @@ C: Infant Details"
 53,53000131,NAR,1,blood_group,a,A
 53,53000131,NAR,1,born_before_arrival,,False
 53,53000131,NAR,1,born_where,,
-53,53000131,NAR,1,date,@-@@-@222,
 53,53000131,NAR,1,date_estimated_delivery_date,05-12-2024,2024-12-05
 53,53000131,NAR,1,delivery_type,svd,SVD
 53,53000131,NAR,1,gestation_in_weeks,38,38
@@ -339984,7 +339614,6 @@ Age units"
 53,53000089,NAR,1,born_before_arrival,FALSE,False
 53,53000089,NAR,1,born_where,,
 53,53000089,NAR,1,date,27-11-2024,2024-11-27
-53,53000089,NAR,1,date_estimated_delivery_date,@-@@-222,
 53,53000089,NAR,1,delivery_type,cs,Breech
 53,53000089,NAR,1,gestation_in_weeks,,
 53,53000089,NAR,1,gestation_type,lmp,LMP
@@ -340187,7 +339816,6 @@ Age units"
 53,53000092,ITF,1,birth_weight,3400,3400
 53,53000092,ITF,1,blood_group,o,O
 53,53000092,ITF,1,chest_compressions,FALSE,False
-53,53000092,ITF,1,date_estimated_delivery_date,27-12-24@,2024-02-27
 53,53000092,ITF,1,date_last_menstrual_period,22-03-2024,2024-03-22
 53,53000092,ITF,1,delivery_type,cs,CS
 53,53000092,ITF,1,fetal_distress,,False
@@ -340279,7 +339907,6 @@ Age units"
 53,53000093,NAR,1,born_before_arrival,TRUE,True
 53,53000093,NAR,1,born_where,facility,Nlenga
 53,53000093,NAR,1,date,05-12-2024,2024-12-05
-53,53000093,NAR,1,date_estimated_delivery_date,@-@@-2222,
 53,53000093,NAR,1,delivery_type,svd,Yes
 53,53000093,NAR,1,gestation_in_weeks,,
 53,53000093,NAR,1,gestation_type,,U/S
@@ -340336,8 +339963,6 @@ Age units"
 53,53000093,ITF,1,birth_weight,1110,1110
 53,53000093,ITF,1,blood_group,,
 53,53000093,ITF,1,chest_compressions,FALSE,False
-53,53000093,ITF,1,date_estimated_delivery_date,@-@@-@2@,
-53,53000093,ITF,1,date_last_menstrual_period,@-@@-@22,
 53,53000093,ITF,1,delivery_type,svd,SVD
 53,53000093,ITF,1,fetal_distress,FALSE,False
 53,53000093,ITF,1,gestation_in_weeks,,
@@ -341066,7 +340691,6 @@ C: Infant Details"
 40,40000606,ITF,1,blood_group,a,A
 40,40000606,ITF,1,chest_compressions,FALSE,False
 40,40000606,ITF,1,date_estimated_delivery_date,15-04-2025,2025-04-15
-40,40000606,ITF,1,date_last_menstrual_period,1@-@@-@@@,
 40,40000606,ITF,1,delivery_type,svd,SVD
 40,40000606,ITF,1,fetal_distress,,False
 40,40000606,ITF,1,gestation_in_weeks,39,39
@@ -341670,7 +341294,6 @@ C: Infant Details"
 40,40000646,NAR,1,apgar_10m,10,10
 40,40000646,NAR,1,apgar_1m,8,8
 40,40000646,NAR,1,apgar_5m,9,9
-40,40000646,NAR,1,birth_date,07-05-@@,
 40,40000646,NAR,1,birth_weight,4000,4000
 40,40000646,NAR,1,blood_group,a,A
 40,40000646,NAR,1,born_before_arrival,FALSE,False
@@ -342019,7 +341642,6 @@ C: Infant Details"
 72,72000825,NAR,1,born_before_arrival,FALSE,False
 72,72000825,NAR,1,born_where,,Home/roadside
 72,72000825,NAR,1,date,17-01-2025,2025-01-07
-72,72000825,NAR,1,date_estimated_delivery_date,@-@@-@2@,
 72,72000825,NAR,1,delivery_type,svd,
 72,72000825,NAR,1,gestation_in_weeks,36,36
 72,72000825,NAR,1,gestation_type,,U/S
@@ -344572,7 +344194,6 @@ C: Infant Details"
 72,72000852,NAR,1,born_before_arrival,,False
 72,72000852,NAR,1,born_where,,
 72,72000852,NAR,1,date,21-01-2025,2025-01-01
-72,72000852,NAR,1,date_estimated_delivery_date,@-@@-22@,
 72,72000852,NAR,1,delivery_type,svd,
 72,72000852,NAR,1,gestation_in_weeks,33,33
 72,72000852,NAR,1,gestation_type,,LMP
@@ -344823,7 +344444,6 @@ C: Infant Details"
 72,72000858,NAR,1,born_before_arrival,,False
 72,72000858,NAR,1,born_where,,[unclear]
 72,72000858,NAR,1,date,19-01-2025,2025-01-19
-72,72000858,NAR,1,date_estimated_delivery_date,@-@@-2@@,
 72,72000858,NAR,1,delivery_type,cs,Breech
 72,72000858,NAR,1,gestation_in_weeks,,
 72,72000858,NAR,1,gestation_type,,U/S
@@ -346425,7 +346045,6 @@ C: Infant Details"
 72,72000877,NAR,1,passed_urine,,True
 72,72000877,NAR,1,prolonged_labour,FALSE,
 72,72000877,NAR,1,pulse_oximetry,92,92
-72,72000877,NAR,1,pulse_rate,1@8,148
 72,72000877,NAR,1,rapture_of_membrane,unknown,Unknown
 72,72000877,NAR,1,respiratory_rate,45,45
 72,72000877,NAR,1,rhesus,positive,Positive
@@ -346964,7 +346583,6 @@ C: Infant Details"
 72,72000883,ITF,1,prescribed_opv,FALSE,False
 72,72000883,ITF,1,prescribed_oxygen,TRUE,False
 72,72000883,ITF,1,pulse_oximetry,,
-72,72000883,ITF,1,pulse_rate,0@,
 72,72000883,ITF,1,rapture_of_membrane,lt18,<18 hrs
 72,72000883,ITF,1,respiratory_rate,68,68
 72,72000883,ITF,1,rhesus,positive,Positive

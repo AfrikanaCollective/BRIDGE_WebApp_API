@@ -11,12 +11,12 @@ class ProcessingTimeStats(BaseModel):
         description="Average processing time in seconds",
         serialization_alias="average"
     )
-    max: int = Field(
+    max: float = Field(
         ...,
         description="Maximum processing time in seconds",
         serialization_alias="max"
     )
-    min: int = Field(
+    min: float = Field(
         ...,
         description="Minimum processing time in seconds",
         serialization_alias="min"
