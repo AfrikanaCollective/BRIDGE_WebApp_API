@@ -66,9 +66,14 @@ def main():
     )
 
     # --- Filter out unwanted rows ---
-    # 1. Exclude rows where field == 'hospital'
+    # 1.1. Exclude rows where field == 'hospital'
     gold_standard_dataset = gold_standard_dataset[
         gold_standard_dataset["field"] != "hospital"
+    ]
+
+    # 1.2. Exclude rows where field == 'record_type'
+    gold_standard_dataset = gold_standard_dataset[
+        gold_standard_dataset["field"] != "record_type"
     ]
 
     # 2. Exclude rows where value contains '?' or '!'
@@ -81,19 +86,35 @@ def main():
 
     value_no_spaces = gold_standard_dataset["value"].str.replace(r"\s+", "", regex=True)
 
-    # Pattern A — "@" combined ONLY with letters and/or digits (ignoring spaces) -> remove
+    # Existing filter: values containing "?" or "!"
+    contains_symbol = gold_standard_dataset["value"].str.contains(
+        r"\?|\!", regex=True, na=False
+    )
+
+    # Temp series with all whitespace stripped out, used only for pattern matching
+    value_no_spaces = gold_standard_dataset["value"].str.replace(r"\s+", "", regex=True)
+
+    # Pattern A — "@" combined ONLY with letters and/or digits -> remove
     contains_at_alnum = value_no_spaces.str.match(
         r"^(?=.*@)[A-Za-z0-9@]+$", na=False
     )
 
-    # Pattern B — "@" alone, or "@" combined ONLY with ".", "/", ":" (ignoring spaces) -> recode to NaN
+    # Pattern B — "@" alone, or "@" combined ONLY with ".", "/", ":" (no digits/letters) -> recode to NaN
     contains_at_special_only = value_no_spaces.str.match(
         r"^(?=.*@)[@./:]+$", na=False
     )
 
+    # Pattern C — "@" combined with digits AND special chars ".", "/", ":", "-" (no letters) -> remove
+    # e.g. "2@-@@-@@@", "0:@2", "1@", "6@.", "@.5"
+    contains_at_digit_special = value_no_spaces.str.match(
+        r"^(?=.*@)(?=.*[0-9])[0-9@./:\-]+$", na=False
+    )
+
+    # 1. Recode pure "@ + special chars only" junk to NaN
     gold_standard_dataset.loc[contains_at_special_only, "value"] = np.nan
 
-    rows_to_remove = contains_symbol | contains_at_alnum
+    # 2. Drop rows matching ?/! filter, "@ + alnum" pattern, or "@ + digit + special" pattern
+    rows_to_remove = contains_symbol | contains_at_alnum | contains_at_digit_special
     gold_standard_dataset = gold_standard_dataset[~rows_to_remove]
 
     # --- Write to CSV ---
