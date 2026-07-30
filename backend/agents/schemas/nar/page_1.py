@@ -445,7 +445,7 @@ NAR_PAGE_1_SCHEMA = {
 
     "HTN in pregnancy": {
         "field_name": "HTN in pregnancy",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -474,7 +474,7 @@ NAR_PAGE_1_SCHEMA = {
         "is_clinical_concept": False,
         "description": "Mother given HBIG treatment",
         "enum_mapping": ENUM_MAPPINGS,
-        "risk_flag": True
+        "risk_flag": False
     },
 
     "Mother on ARVs": {
@@ -504,7 +504,7 @@ NAR_PAGE_1_SCHEMA = {
 
     "Diabetes": {
         "field_name": "Diabetes",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.HIGH,

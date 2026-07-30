@@ -24,14 +24,13 @@ NAR_PAGE_2_SCHEMA = {
     "Jaundice": {
         "field_name": "Jaundice",
         "type": FieldType.ENUM,
-        "values": ["None", "Mild", "Severe", "Y", "N"],
         "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,
         "clinical_category": ClinicalCategory.HIGH,
         "is_clinical_concept": True,
         "description": "Level of jaundice",
-        "risk_flag_values": ["Severe", "Y", "Yes"]
+        "risk_flag_values": ["Severe", "Y", "Yes", "+++"]
     },
 
     "Appearance": {
@@ -150,7 +149,6 @@ NAR_PAGE_2_SCHEMA = {
     "Pallor/Anaemia": {
         "field_name": "Pallor/Anaemia",
         "type": FieldType.ENUM,
-        "values": ["None", "+", "+++", "Y", "N"],
         "enum_mapping": ENUM_MAPPINGS,
         "required": True,
         "section": SectionType.GENERAL_EXAMINATION,

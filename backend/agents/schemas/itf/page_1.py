@@ -206,7 +206,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "Treated for TB": {
         "field_name": "Treated for TB",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -230,7 +230,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "Diabetes": {
         "field_name": "Diabetes",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -278,7 +278,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "Antibiotics": {
         "field_name": "Antibiotics",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.MODERATE,
@@ -313,7 +313,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "HTN in pregnancy": {
         "field_name": "HTN in pregnancy",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.HIGH,
@@ -833,7 +833,7 @@ ITF_PAGE_1_SCHEMA = {
 
     "Baby from?": {
         "field_name": "Baby from?",
-        "type": FieldType.STRING,
+        "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.INFANT_DETAILS,
         "clinical_category": ClinicalCategory.ADMINISTRATIVE,
