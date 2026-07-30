@@ -517,7 +517,7 @@ async def upload_file(
                     processed_file_path = preprocessor.preprocess(
                         image=str(png_path),
                         current_dpi=300,
-                        resize_to_width=1200,
+                        resize_to_width=1500,
                         save_to_temp=True,
                         simple_resize_only=True,
                         #scale_factor=0.8, #
