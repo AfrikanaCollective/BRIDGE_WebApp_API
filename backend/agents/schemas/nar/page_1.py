@@ -361,13 +361,13 @@ NAR_PAGE_1_SCHEMA = {
 
     "ANC U/S": {
         "field_name": "ANC U/S",
-        "type": FieldType.BOOLEAN,
+        "type": FieldType.ENUM,
         "required": False,
         "section": SectionType.MOTHER_DETAILS,
         "clinical_category": ClinicalCategory.MODERATE,
         "is_clinical_concept": False,
         "description": "Antenatal ultrasound performed",
-        "enum_mapping": {"Y": True, "N": False}
+        "enum_mapping": ENUM_MAPPINGS,
     },
 
     "U/S findings": {
@@ -440,11 +440,23 @@ NAR_PAGE_1_SCHEMA = {
         "is_clinical_concept": False,
         "enum_mapping": ENUM_MAPPINGS,
         "description": "HIV status (Prevention of Mother-to-Child Transmission)",
-        "risk_flag_value": "Pos"
+        "risk_flag_value": ["Pos"]
     },
 
     "HTN in pregnancy": {
         "field_name": "HTN in pregnancy",
+        "type": FieldType.ENUM,
+        "required": True,
+        "section": SectionType.MOTHER_DETAILS,
+        "clinical_category": ClinicalCategory.HIGH,
+        "is_clinical_concept": True,
+        "description": "Hypertension in pregnancy",
+        "enum_mapping": ENUM_MAPPINGS,
+        "risk_flag": True
+    },
+
+    "HTN in pregnancy?": {
+        "field_name": "HTN in pregnancy?",
         "type": FieldType.ENUM,
         "required": True,
         "section": SectionType.MOTHER_DETAILS,
