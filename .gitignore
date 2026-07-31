@@ -1,6 +1,7 @@
 .env
 .idea/
 *.pyc
+eval_dataset.csv
 llm_dataset.json
 mongodb_key_structure.json
 gold_standard_dataset.csv

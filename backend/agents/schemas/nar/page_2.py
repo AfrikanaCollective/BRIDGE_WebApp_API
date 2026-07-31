@@ -157,6 +157,19 @@ NAR_PAGE_2_SCHEMA = {
         "risk_flag_values": ["+++", "Y", "Yes", "Severe"]
     },
 
+    # Qwen VLM commonly emits this misspelling ("Palor") for the field above;
+    # same description so it collapses to the same canonical field.
+    "Palor/Anaemia": {
+        "field_name": "Palor/Anaemia",
+        "type": FieldType.ENUM,
+        "enum_mapping": ENUM_MAPPINGS,
+        "required": True,
+        "section": SectionType.GENERAL_EXAMINATION,
+        "clinical_category": ClinicalCategory.HIGH,
+        "description": "Pallor or anaemia present in baby",
+        "risk_flag_values": ["+++", "Y", "Yes", "Severe"]
+    },
+
     "Murmur": {
         "field_name": "Murmur",
         "type": FieldType.BOOLEAN,
