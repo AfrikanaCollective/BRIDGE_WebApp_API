@@ -52,6 +52,18 @@ class Settings(BaseSettings):
         default="webui_form_processor_stats",
         env="MONGODB_DB_COLLECTION"
     )
+    MONGODB_PATIENT_SUMMARY_COLLECTION: str = Field(
+        default="patient_summary",
+        env="MONGODB_PATIENT_SUMMARY_COLLECTION"
+    )
+    MONGODB_CHANGE_STREAM_STATE_COLLECTION: str = Field(
+        default="change_stream_state",
+        env="MONGODB_CHANGE_STREAM_STATE_COLLECTION"
+    )
+    ENABLE_CHANGE_STREAM_WATCHER: bool = Field(
+        default=True,
+        env="ENABLE_CHANGE_STREAM_WATCHER"
+    )
     MONGODB_POOL_SIZE: int = Field(default=10, env="MONGODB_POOL_SIZE")
     MONGODB_MAX_IDLE_TIME: int = Field(default=45000, env="MONGODB_MAX_IDLE_TIME")
     MONGODB_TIMEOUT: int = Field(default=5000)  # milliseconds
@@ -522,6 +534,8 @@ class Settings(BaseSettings):
         logger.info(f"   Host: {self.MONGODB_HOST}:{self.MONGODB_PORT}")
         logger.info(f"   Database: {self.MONGODB_DB_NAME}")
         logger.info(f"   Collection: {self.MONGODB_DB_COLLECTION}")
+        logger.info(f"   Patient Summary Collection: {self.MONGODB_PATIENT_SUMMARY_COLLECTION}")
+        logger.info(f"   Change Stream Watcher: {'Enabled' if self.ENABLE_CHANGE_STREAM_WATCHER else 'Disabled'}")
         logger.info(f"   Auth Source: {self.MONGODB_AUTH_SOURCE}")
         logger.info(f"   Pool Size: {self.MONGODB_POOL_SIZE}")
         logger.info(f"   Max Idle Time: {self.MONGODB_MAX_IDLE_TIME}ms")

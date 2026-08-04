@@ -5,6 +5,7 @@ Properly initializes MongoDB with authentication.
 
 """
 
+import asyncio
 import logging
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -21,6 +22,8 @@ from clients.minio_client import MinIOClient
 from services.form_processor import FormProcessor
 from services.storage_service import StorageService
 from services.session_service import SessionService
+from services.patient_summary_service import PatientSummaryService
+from services.change_stream_service import ChangeStreamWatcher
 
 
 logger = logging.getLogger(__name__)
@@ -37,12 +40,14 @@ class Services:
             storage: StorageService,
             form_processor: FormProcessor,
             session: SessionService,
+            patient_summary: PatientSummaryService,
     ):
         self.mongo = mongo
         self.minio = minio
         self.storage = storage
         self.form_processor = form_processor
         self.session = session
+        self.patient_summary = patient_summary
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,6 +61,9 @@ async def lifespan(app: FastAPI):
     storage_service: Optional[StorageService] = None
     form_processor: Optional[FormProcessor] = None
     session_service: Optional[SessionService] = None
+    patient_summary_service: Optional[PatientSummaryService] = None
+    change_stream_watcher: Optional[ChangeStreamWatcher] = None
+    change_stream_task: Optional[asyncio.Task] = None
 
     try:
         # Log configuration (with masked secrets)
@@ -95,6 +103,14 @@ async def lifespan(app: FastAPI):
             await mongo_client.create_indexes(
                 settings.MONGODB_DB_COLLECTION,
                 indexes
+            )
+
+            # Ensure patient_summary + change stream state collections exist
+            await mongo_client.create_collection_if_not_exists(
+                settings.MONGODB_PATIENT_SUMMARY_COLLECTION
+            )
+            await mongo_client.create_collection_if_not_exists(
+                settings.MONGODB_CHANGE_STREAM_STATE_COLLECTION
             )
 
         except Exception as e:
@@ -146,11 +162,41 @@ async def lifespan(app: FastAPI):
                 mongo_client=mongo_client,
             )
 
+            patient_summary_service = PatientSummaryService(
+                mongo_client=mongo_client,
+                db_name=settings.MONGODB_DB_NAME,
+                collection_name=settings.MONGODB_PATIENT_SUMMARY_COLLECTION,
+            )
+
             logger.info("✅ Services initialized successfully")
 
         except Exception as e:
             logger.error(f"❌ Service initialization failed: {e}")
             raise
+
+        # ==================== CHANGE STREAM WATCHER ====================
+        if settings.ENABLE_CHANGE_STREAM_WATCHER:
+            logger.info("👁️  Starting patient_summary change stream watcher...")
+            try:
+                change_stream_watcher = ChangeStreamWatcher(
+                    mongo_client=mongo_client,
+                    patient_summary_service=patient_summary_service,
+                    db_name=settings.MONGODB_DB_NAME,
+                    source_collection_name=settings.MONGODB_DB_COLLECTION,
+                    state_collection_name=settings.MONGODB_CHANGE_STREAM_STATE_COLLECTION,
+                )
+                change_stream_task = asyncio.create_task(change_stream_watcher.run())
+                logger.info("✅ Change stream watcher started")
+            except Exception as e:
+                # Non-fatal: the API should still serve requests even if live
+                # sync can't start (e.g. MongoDB isn't a replica set yet).
+                logger.error(
+                    f"❌ Failed to start change stream watcher (patient_summary will not "
+                    f"stay in sync automatically): {e}",
+                    exc_info=True,
+                )
+        else:
+            logger.info("ℹ️  Change stream watcher disabled (ENABLE_CHANGE_STREAM_WATCHER=false)")
 
         # ==================== SESSION SERVICE INITIALIZATION ====================
         logger.info("📋 Initializing SessionService...")
@@ -174,6 +220,7 @@ async def lifespan(app: FastAPI):
             storage=storage_service,
             form_processor=form_processor,
             session=session_service,
+            patient_summary=patient_summary_service,
         )
 
         app.state.services = services
@@ -182,6 +229,8 @@ async def lifespan(app: FastAPI):
         app.state.mongo = mongo_client
         app.state.minio = minio_client
         app.state.session_service = session_service
+        app.state.patient_summary_service = patient_summary_service
+        app.state.change_stream_task = change_stream_task
 
         # ✅ CHANGE 3: Update route injection to use app.state
         # (Routes will access services via request.app.state)
@@ -198,6 +247,15 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down application...")
 
     try:
+        # Stop the change stream watcher before closing MongoDB
+        if change_stream_task is not None:
+            change_stream_task.cancel()
+            try:
+                await change_stream_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("✅ Change stream watcher stopped")
+
         # ✅ CHANGE 4: Improved shutdown with proper null checks
         if mongo_client is not None:
             await mongo_client.close()
