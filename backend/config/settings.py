@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     MONGODB_POOL_SIZE: int = Field(default=10, env="MONGODB_POOL_SIZE")
     MONGODB_MAX_IDLE_TIME: int = Field(default=45000, env="MONGODB_MAX_IDLE_TIME")
     MONGODB_TIMEOUT: int = Field(default=5000)  # milliseconds
+    MONGODB_REPLICA_SET: str = Field(default="bridge_repl", env="MONGODB_REPLICA_SET")
 
     # ==================== MinIO S3 ====================
     MINIO_ENDPOINT: str = Field(default="localhost:9000")
@@ -386,6 +387,9 @@ class Settings(BaseSettings):
             f"&maxPoolSize={self.MONGODB_POOL_SIZE}"
             f"&maxIdleTimeMS={self.MONGODB_MAX_IDLE_TIME}"
         )
+
+        if self.MONGODB_REPLICA_SET:
+            uri += f"&replicaSet={self.MONGODB_REPLICA_SET}"
 
         return uri
 
