@@ -76,6 +76,9 @@ services:
       - backend-logs:/app/logs
       - backend-uploads:/app/tmp/uploads
 
+    extra_hosts:
+      - "kenbo-brg01:${MONGODB_HOST}"
+
     networks:
       - bridge-api
 
