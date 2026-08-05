@@ -6,7 +6,9 @@ VIZ_KEY_MAP maps  viz_short_key → original_patient_summary_key  per form type.
 INVERTED_VIZ_KEY_MAP (pre-computed at import time) maps the reverse direction
 and is what VizSyncService uses at runtime to rename fields efficiently.
 
-Fields not present in the map are passed through unchanged.
+Merge order when flattening ITF + NAR into a single document:
+  ITF fields are written first; NAR fields overwrite any shared key.
+  Fields not present in the map are passed through under their original name.
 """
 
 VIZ_KEY_MAP: dict[str, dict[str, str]] = {

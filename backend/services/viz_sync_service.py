@@ -57,21 +57,26 @@ class VizSyncService:
 
     def remap_document(self, patient_doc: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Return a new document with ITF/NAR field names replaced by their
-        short visualisation equivalents.  Fields not present in the map are
-        passed through unchanged.  Metadata fields (created_at, updated_at)
-        and _id are copied verbatim.
-        """
-        viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}
+        Return a flat document with all ITF/NAR leaf fields merged and renamed.
 
-        for form_type, inv_map in INVERTED_VIZ_KEY_MAP.items():
+        ITF fields are written first; NAR fields overwrite any shared key so
+        that the more-detailed admission record wins on collision.  Fields not
+        present in the key map are kept under their original name.  Metadata
+        fields (created_at, updated_at) and _id are copied verbatim and are
+        never overwritten by form data.
+        """
+        flat: Dict[str, Any] = {}
+
+        for form_type in ("ITF", "NAR"):
+            inv_map = INVERTED_VIZ_KEY_MAP.get(form_type, {})
             form_data = patient_doc.get(form_type)
             if not isinstance(form_data, dict):
                 continue
-            viz_doc[form_type] = {
-                inv_map.get(field, field): value
-                for field, value in form_data.items()
-            }
+            for field, value in form_data.items():
+                flat[inv_map.get(field, field)] = value
+
+        viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}
+        viz_doc.update(flat)
 
         for field in _METADATA_FIELDS:
             if field in patient_doc:
@@ -109,11 +114,9 @@ class VizSyncService:
             upsert=True,
         )
 
-        itf_count = len(viz_doc.get("ITF") or {})
-        nar_count = len(viz_doc.get("NAR") or {})
+        field_count = len(viz_doc) - len(_METADATA_FIELDS & viz_doc.keys()) - 1  # exclude _id
         logger.info(
-            f"✅ Viz upsert: patient_id={patient_id!r}  "
-            f"ITF={itf_count} field(s)  NAR={nar_count} field(s)"
+            f"✅ Viz upsert: patient_id={patient_id!r}  {field_count} flat field(s)"
         )
         return str(patient_id)
 
