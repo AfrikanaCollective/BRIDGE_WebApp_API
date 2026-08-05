@@ -165,4 +165,5 @@ BOOLEAN_VIZ_KEYS: frozenset[str] = frozenset({
     "chest_indrawing",
     "mother_on_antibiotics",
     "mother_on_tb_treatment",
+    "pallor_or_anaemia_present_in_baby"
 })
