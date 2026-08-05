@@ -156,3 +156,13 @@ NUMERIC_VIZ_KEYS: frozenset[str] = frozenset({
     "temparature",
     "respiratory_rate",
 })
+
+# Viz keys whose string values 'True'/'False' must be coerced to bool.
+# Only the exact strings 'True' and 'False' are converted; other values
+# (e.g. 'Unknown') are left unchanged.
+BOOLEAN_VIZ_KEYS: frozenset[str] = frozenset({
+    "mum_given_HBIG_treatment",
+    "chest_indrawing",
+    "mother_on_antibiotics",
+    "mother_on_tb_treatment",
+})

@@ -20,7 +20,7 @@ from pymongo.errors import PyMongoError
 
 from clients.mongo_client import MongoClient
 from config.settings import settings
-from utils.viz_key_map import INVERTED_VIZ_KEY_MAP, NUMERIC_VIZ_KEYS
+from utils.viz_key_map import INVERTED_VIZ_KEY_MAP, NUMERIC_VIZ_KEYS, BOOLEAN_VIZ_KEYS
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,18 @@ _INITIAL_RECONNECT_BACKOFF_SECONDS = 5
 _MAX_RECONNECT_BACKOFF_SECONDS = 60
 
 _METADATA_FIELDS = {"created_at", "updated_at"}
+
+
+def _to_bool(value):
+    """
+    Coerce the exact strings 'True' and 'False' to bool.
+    All other values (including 'Unknown', None, actual bools) are unchanged.
+    """
+    if value == "True":
+        return True
+    if value == "False":
+        return False
+    return value
 
 
 def _to_numeric(value):
@@ -95,6 +107,8 @@ class VizSyncService:
                 viz_key = inv_map.get(field, field)
                 if viz_key in NUMERIC_VIZ_KEYS:
                     value = _to_numeric(value)
+                elif viz_key in BOOLEAN_VIZ_KEYS:
+                    value = _to_bool(value)
                 flat[viz_key] = value
 
         viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}
