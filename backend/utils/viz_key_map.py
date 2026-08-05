@@ -147,3 +147,12 @@ INVERTED_VIZ_KEY_MAP: dict[str, dict[str, str]] = {
     form_type: {original: viz for viz, original in form_map.items()}
     for form_type, form_map in VIZ_KEY_MAP.items()
 }
+
+# Viz keys whose values must be coerced to int or float after renaming.
+# Whole-number values are stored as int; values with a decimal part as float.
+NUMERIC_VIZ_KEYS: frozenset[str] = frozenset({
+    "pulse_rate",
+    "pulse_oximetry",
+    "temparature",
+    "respiratory_rate",
+})

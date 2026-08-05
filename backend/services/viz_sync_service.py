@@ -20,7 +20,7 @@ from pymongo.errors import PyMongoError
 
 from clients.mongo_client import MongoClient
 from config.settings import settings
-from utils.viz_key_map import INVERTED_VIZ_KEY_MAP
+from utils.viz_key_map import INVERTED_VIZ_KEY_MAP, NUMERIC_VIZ_KEYS
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,25 @@ _INITIAL_RECONNECT_BACKOFF_SECONDS = 5
 _MAX_RECONNECT_BACKOFF_SECONDS = 60
 
 _METADATA_FIELDS = {"created_at", "updated_at"}
+
+
+def _to_numeric(value):
+    """
+    Coerce a value to int or float.
+    Whole-number results (e.g. 36.0, '150') are returned as int.
+    Values that cannot be converted are returned unchanged.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value == int(value) else value
+    try:
+        f = float(value)
+        return int(f) if f == int(f) else f
+    except (ValueError, TypeError):
+        return value
 
 
 class VizSyncService:
@@ -73,7 +92,10 @@ class VizSyncService:
             if not isinstance(form_data, dict):
                 continue
             for field, value in form_data.items():
-                flat[inv_map.get(field, field)] = value
+                viz_key = inv_map.get(field, field)
+                if viz_key in NUMERIC_VIZ_KEYS:
+                    value = _to_numeric(value)
+                flat[viz_key] = value
 
         viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}
         viz_doc.update(flat)
