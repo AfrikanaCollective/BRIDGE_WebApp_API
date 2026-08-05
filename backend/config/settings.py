@@ -64,6 +64,18 @@ class Settings(BaseSettings):
         default=True,
         env="ENABLE_CHANGE_STREAM_WATCHER"
     )
+    MONGODB_VIZ_COLLECTION: str = Field(
+        default="patient_summary_viz",
+        env="MONGODB_VIZ_COLLECTION"
+    )
+    MONGODB_VIZ_STREAM_STATE_COLLECTION: str = Field(
+        default="viz_stream_state",
+        env="MONGODB_VIZ_STREAM_STATE_COLLECTION"
+    )
+    ENABLE_VIZ_STREAM_WATCHER: bool = Field(
+        default=True,
+        env="ENABLE_VIZ_STREAM_WATCHER"
+    )
     MONGODB_POOL_SIZE: int = Field(default=10, env="MONGODB_POOL_SIZE")
     MONGODB_MAX_IDLE_TIME: int = Field(default=45000, env="MONGODB_MAX_IDLE_TIME")
     MONGODB_TIMEOUT: int = Field(default=5000)  # milliseconds

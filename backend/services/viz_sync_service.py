@@ -1,0 +1,273 @@
+# backend/services/viz_sync_service.py
+"""
+Watches `patient_summary` via a MongoDB change stream and keeps
+`patient_summary_viz` in sync with visualisation-friendly short key names.
+
+VizSyncService handles the document transformation.
+VizStreamWatcher runs the change stream loop and calls VizSyncService on
+each event.  The resume token is persisted after every processed event so a
+restart resumes without replaying or dropping events.
+
+Requires MongoDB to run as a replica set (change streams are not available
+against a standalone mongod).
+"""
+
+import asyncio
+import logging
+from typing import Any, Dict, Optional
+
+from pymongo.errors import PyMongoError
+
+from clients.mongo_client import MongoClient
+from config.settings import settings
+from utils.viz_key_map import INVERTED_VIZ_KEY_MAP
+
+logger = logging.getLogger(__name__)
+
+_VIZ_STATE_DOC_ID = "patient_summary_viz_sync"
+_INITIAL_RECONNECT_BACKOFF_SECONDS = 5
+_MAX_RECONNECT_BACKOFF_SECONDS = 60
+
+_METADATA_FIELDS = {"created_at", "updated_at"}
+
+
+class VizSyncService:
+    """
+    Transforms a patient_summary document into its visualisation form
+    (short key names) and writes it to patient_summary_viz.
+    """
+
+    def __init__(
+            self,
+            mongo_client: MongoClient,
+            db_name: str = settings.MONGODB_DB_NAME,
+            collection_name: str = settings.MONGODB_VIZ_COLLECTION,
+    ):
+        self.mongo = mongo_client
+        self.db_name = db_name
+        self.collection_name = collection_name
+
+        logger.info(
+            f"📊 VizSyncService initialized: MongoDB({db_name}.{collection_name})"
+        )
+
+    @property
+    def collection(self):
+        return self.mongo.client[self.db_name][self.collection_name]
+
+    def remap_document(self, patient_doc: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Return a new document with ITF/NAR field names replaced by their
+        short visualisation equivalents.  Fields not present in the map are
+        passed through unchanged.  Metadata fields (created_at, updated_at)
+        and _id are copied verbatim.
+        """
+        viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}
+
+        for form_type, inv_map in INVERTED_VIZ_KEY_MAP.items():
+            form_data = patient_doc.get(form_type)
+            if not isinstance(form_data, dict):
+                continue
+            viz_doc[form_type] = {
+                inv_map.get(field, field): value
+                for field, value in form_data.items()
+            }
+
+        for field in _METADATA_FIELDS:
+            if field in patient_doc:
+                viz_doc[field] = patient_doc[field]
+
+        return viz_doc
+
+    async def upsert_from_patient_summary(
+            self, patient_doc: Dict[str, Any]
+    ) -> Optional[str]:
+        """
+        Remap a patient_summary document and upsert it into patient_summary_viz.
+        Returns the patient _id on success, None if the document was skipped.
+        """
+        patient_id = patient_doc.get("_id")
+        if not patient_id:
+            logger.debug("⏭️  Skipping viz upsert: document has no _id")
+            return None
+
+        has_form_data = any(
+            isinstance(patient_doc.get(ft), dict)
+            for ft in INVERTED_VIZ_KEY_MAP
+        )
+        if not has_form_data:
+            logger.debug(
+                f"⏭️  Skipping viz upsert for {patient_id!r}: no ITF/NAR data"
+            )
+            return None
+
+        viz_doc = self.remap_document(patient_doc)
+
+        await self.collection.replace_one(
+            {"_id": patient_id},
+            viz_doc,
+            upsert=True,
+        )
+
+        itf_count = len(viz_doc.get("ITF") or {})
+        nar_count = len(viz_doc.get("NAR") or {})
+        logger.info(
+            f"✅ Viz upsert: patient_id={patient_id!r}  "
+            f"ITF={itf_count} field(s)  NAR={nar_count} field(s)"
+        )
+        return str(patient_id)
+
+    async def backfill_all(
+            self,
+            source_collection_name: str = settings.MONGODB_PATIENT_SUMMARY_COLLECTION,
+            batch_size: int = 100,
+    ) -> Dict[str, int]:
+        """
+        Process all existing patient_summary documents into patient_summary_viz.
+        Useful after first deployment or after a resume-token gap.
+        """
+        source = self.mongo.client[self.db_name][source_collection_name]
+        total = await source.count_documents({})
+        logger.info(f"📦 Viz backfill: processing {total} patient_summary document(s)...")
+
+        processed = merged = skipped = 0
+        async for doc in source.find({}).sort("_id", 1).batch_size(batch_size):
+            processed += 1
+            patient_id = await self.upsert_from_patient_summary(doc)
+            if patient_id:
+                merged += 1
+            else:
+                skipped += 1
+            if processed % batch_size == 0:
+                logger.info(
+                    f"   ...{processed}/{total} processed "
+                    f"({merged} merged, {skipped} skipped)"
+                )
+
+        logger.info(
+            f"✅ Viz backfill complete: {processed} processed, "
+            f"{merged} merged, {skipped} skipped"
+        )
+        return {"processed": processed, "merged": merged, "skipped": skipped}
+
+
+class VizStreamWatcher:
+    """
+    Streams insert/update/replace events from `patient_summary` and keeps
+    `patient_summary_viz` in sync via VizSyncService.  The resume token is
+    persisted after every processed event.
+    """
+
+    def __init__(
+            self,
+            mongo_client: MongoClient,
+            viz_sync_service: VizSyncService,
+            db_name: str = settings.MONGODB_DB_NAME,
+            source_collection_name: str = settings.MONGODB_PATIENT_SUMMARY_COLLECTION,
+            state_collection_name: str = settings.MONGODB_VIZ_STREAM_STATE_COLLECTION,
+    ):
+        self.mongo = mongo_client
+        self.viz_sync_service = viz_sync_service
+        self.db_name = db_name
+        self.source_collection_name = source_collection_name
+        self.state_collection_name = state_collection_name
+        self._stopped = asyncio.Event()
+
+        logger.info(
+            f"📊 VizStreamWatcher initialized: watching "
+            f"{db_name}.{source_collection_name} → "
+            f"{settings.MONGODB_VIZ_COLLECTION}"
+        )
+
+    @property
+    def source_collection(self):
+        return self.mongo.client[self.db_name][self.source_collection_name]
+
+    @property
+    def state_collection(self):
+        return self.mongo.client[self.db_name][self.state_collection_name]
+
+    async def _get_resume_token(self) -> Optional[dict]:
+        state_doc = await self.state_collection.find_one({"_id": _VIZ_STATE_DOC_ID})
+        return state_doc.get("resume_token") if state_doc else None
+
+    async def _save_resume_token(self, resume_token: dict) -> None:
+        await self.state_collection.update_one(
+            {"_id": _VIZ_STATE_DOC_ID},
+            {"$set": {"resume_token": resume_token}},
+            upsert=True,
+        )
+
+    def stop(self) -> None:
+        self._stopped.set()
+
+    async def run(self) -> None:
+        """
+        Main watch loop.  Reconnects with exponential backoff on transient
+        errors.  Drops stale resume tokens rather than crashing.
+        """
+        logger.info(
+            f"📊 Starting viz change stream watcher on "
+            f"{self.db_name}.{self.source_collection_name}"
+        )
+        backoff = _INITIAL_RECONNECT_BACKOFF_SECONDS
+
+        while not self._stopped.is_set():
+            resume_token = await self._get_resume_token()
+            pipeline = [
+                {"$match": {"operationType": {"$in": ["insert", "update", "replace"]}}}
+            ]
+            try:
+                stream = await self.source_collection.watch(
+                    pipeline=pipeline,
+                    full_document="updateLookup",
+                    resume_after=resume_token,
+                )
+                async with stream:
+                    backoff = _INITIAL_RECONNECT_BACKOFF_SECONDS
+                    async for change in stream:
+                        if self._stopped.is_set():
+                            break
+
+                        full_document = change.get("fullDocument")
+                        if full_document:
+                            try:
+                                await self.viz_sync_service.upsert_from_patient_summary(
+                                    full_document
+                                )
+                            except Exception as e:
+                                logger.error(
+                                    f"❌ Failed to sync viz document: {e}",
+                                    exc_info=True,
+                                )
+
+                        await self._save_resume_token(change["_id"])
+
+            except asyncio.CancelledError:
+                logger.info("🛑 Viz stream watcher cancelled")
+                raise
+
+            except PyMongoError as e:
+                error_text = str(e)
+                if "ChangeStreamHistoryLost" in error_text or "resume point" in error_text.lower():
+                    logger.warning(
+                        f"⚠️  Viz stream resume token invalid, restarting from now "
+                        f"(run VizSyncService.backfill_all() to repair any gap): {e}"
+                    )
+                    await self.state_collection.delete_one({"_id": _VIZ_STATE_DOC_ID})
+                else:
+                    logger.error(
+                        f"❌ Viz stream error, reconnecting: {e}", exc_info=True
+                    )
+
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, _MAX_RECONNECT_BACKOFF_SECONDS)
+
+            except Exception as e:
+                logger.error(
+                    f"❌ Unexpected viz stream error, reconnecting: {e}", exc_info=True
+                )
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, _MAX_RECONNECT_BACKOFF_SECONDS)
+
+        logger.info("🛑 Viz stream watcher stopped")

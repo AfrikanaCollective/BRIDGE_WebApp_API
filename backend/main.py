@@ -24,6 +24,7 @@ from services.storage_service import StorageService
 from services.session_service import SessionService
 from services.patient_summary_service import PatientSummaryService
 from services.change_stream_service import ChangeStreamWatcher
+from services.viz_sync_service import VizSyncService, VizStreamWatcher
 
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class Services:
             form_processor: FormProcessor,
             session: SessionService,
             patient_summary: PatientSummaryService,
+            viz_sync: VizSyncService,
     ):
         self.mongo = mongo
         self.minio = minio
@@ -48,6 +50,7 @@ class Services:
         self.form_processor = form_processor
         self.session = session
         self.patient_summary = patient_summary
+        self.viz_sync = viz_sync
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,8 +65,11 @@ async def lifespan(app: FastAPI):
     form_processor: Optional[FormProcessor] = None
     session_service: Optional[SessionService] = None
     patient_summary_service: Optional[PatientSummaryService] = None
+    viz_sync_service: Optional[VizSyncService] = None
     change_stream_watcher: Optional[ChangeStreamWatcher] = None
     change_stream_task: Optional[asyncio.Task] = None
+    viz_stream_watcher: Optional[VizStreamWatcher] = None
+    viz_stream_task: Optional[asyncio.Task] = None
 
     try:
         # Log configuration (with masked secrets)
@@ -111,6 +117,14 @@ async def lifespan(app: FastAPI):
             )
             await mongo_client.create_collection_if_not_exists(
                 settings.MONGODB_CHANGE_STREAM_STATE_COLLECTION
+            )
+
+            # Ensure viz collections exist
+            await mongo_client.create_collection_if_not_exists(
+                settings.MONGODB_VIZ_COLLECTION
+            )
+            await mongo_client.create_collection_if_not_exists(
+                settings.MONGODB_VIZ_STREAM_STATE_COLLECTION
             )
 
         except Exception as e:
@@ -168,6 +182,12 @@ async def lifespan(app: FastAPI):
                 collection_name=settings.MONGODB_PATIENT_SUMMARY_COLLECTION,
             )
 
+            viz_sync_service = VizSyncService(
+                mongo_client=mongo_client,
+                db_name=settings.MONGODB_DB_NAME,
+                collection_name=settings.MONGODB_VIZ_COLLECTION,
+            )
+
             logger.info("✅ Services initialized successfully")
 
         except Exception as e:
@@ -198,6 +218,28 @@ async def lifespan(app: FastAPI):
         else:
             logger.info("ℹ️  Change stream watcher disabled (ENABLE_CHANGE_STREAM_WATCHER=false)")
 
+        # ==================== VIZ STREAM WATCHER ====================
+        if settings.ENABLE_VIZ_STREAM_WATCHER:
+            logger.info("📊 Starting patient_summary_viz change stream watcher...")
+            try:
+                viz_stream_watcher = VizStreamWatcher(
+                    mongo_client=mongo_client,
+                    viz_sync_service=viz_sync_service,
+                    db_name=settings.MONGODB_DB_NAME,
+                    source_collection_name=settings.MONGODB_PATIENT_SUMMARY_COLLECTION,
+                    state_collection_name=settings.MONGODB_VIZ_STREAM_STATE_COLLECTION,
+                )
+                viz_stream_task = asyncio.create_task(viz_stream_watcher.run())
+                logger.info("✅ Viz stream watcher started")
+            except Exception as e:
+                logger.error(
+                    f"❌ Failed to start viz stream watcher (patient_summary_viz will not "
+                    f"stay in sync automatically): {e}",
+                    exc_info=True,
+                )
+        else:
+            logger.info("ℹ️  Viz stream watcher disabled (ENABLE_VIZ_STREAM_WATCHER=false)")
+
         # ==================== SESSION SERVICE INITIALIZATION ====================
         logger.info("📋 Initializing SessionService...")
         try:
@@ -221,6 +263,7 @@ async def lifespan(app: FastAPI):
             form_processor=form_processor,
             session=session_service,
             patient_summary=patient_summary_service,
+            viz_sync=viz_sync_service,
         )
 
         app.state.services = services
@@ -230,7 +273,9 @@ async def lifespan(app: FastAPI):
         app.state.minio = minio_client
         app.state.session_service = session_service
         app.state.patient_summary_service = patient_summary_service
+        app.state.viz_sync_service = viz_sync_service
         app.state.change_stream_task = change_stream_task
+        app.state.viz_stream_task = viz_stream_task
 
         # ✅ CHANGE 3: Update route injection to use app.state
         # (Routes will access services via request.app.state)
@@ -255,6 +300,14 @@ async def lifespan(app: FastAPI):
             except asyncio.CancelledError:
                 pass
             logger.info("✅ Change stream watcher stopped")
+
+        if viz_stream_task is not None:
+            viz_stream_task.cancel()
+            try:
+                await viz_stream_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("✅ Viz stream watcher stopped")
 
         # ✅ CHANGE 4: Improved shutdown with proper null checks
         if mongo_client is not None:
