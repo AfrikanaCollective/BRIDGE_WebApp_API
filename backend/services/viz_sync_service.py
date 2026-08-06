@@ -24,6 +24,7 @@ from utils.viz_key_map import (
     INVERTED_VIZ_KEY_MAP,
     NUMERIC_VIZ_KEYS,
     BOOLEAN_VIZ_KEYS,
+    DIAGNOSIS_VIZ_KEYS,
     ANTIBIOTICS_SCAN_EXCLUDE_KEYS,
 )
 
@@ -36,16 +37,33 @@ _MAX_RECONNECT_BACKOFF_SECONDS = 60
 _METADATA_FIELDS = {"created_at", "updated_at"}
 
 
+_TRUTHY_STRINGS: frozenset[str] = frozenset({"Positive", "Y", "Yes", "True"})
+_FALSY_STRINGS: frozenset[str] = frozenset({"Negative", "N", "No", "False"})
+
+
 def _to_bool(value):
     """
-    Coerce the exact strings 'True' and 'False' to bool.
-    All other values (including 'Unknown', None, actual bools) are unchanged.
+    Recode clinical boolean-like strings to Python bool.
+    'Positive'/'Y'/'Yes'/'True' → True
+    'Negative'/'N'/'No'/'False' → False
+    Any other value (e.g. 'Unknown', None, actual bool) passes through unchanged.
     """
-    if value == "True":
+    if value in _TRUTHY_STRINGS:
         return True
-    if value == "False":
+    if value in _FALSY_STRINGS:
         return False
     return value
+
+
+def _to_diagnosis_bool(value):
+    """
+    Recode diagnosis field values to bool.
+    Any non-null value other than 'N' → True.
+    'N' and None pass through unchanged.
+    """
+    if value is None or value == "N":
+        return value
+    return True
 
 
 def _to_numeric(value):
@@ -152,6 +170,8 @@ class VizSyncService:
                     value = _to_numeric(value)
                 elif viz_key in BOOLEAN_VIZ_KEYS:
                     value = _to_bool(value)
+                elif viz_key in DIAGNOSIS_VIZ_KEYS:
+                    value = _to_diagnosis_bool(value)
                 flat[viz_key] = value
 
         viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}

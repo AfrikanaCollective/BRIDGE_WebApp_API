@@ -157,15 +157,86 @@ NUMERIC_VIZ_KEYS: frozenset[str] = frozenset({
     "respiratory_rate",
 })
 
-# Viz keys whose string values 'True'/'False' must be coerced to bool.
-# Only the exact strings 'True' and 'False' are converted; other values
-# (e.g. 'Unknown') are left unchanged.
+# Viz keys whose values are recoded to bool.
+# 'Positive'/'Y'/'Yes'/'True' → True; 'Negative'/'N'/'No'/'False' → False.
+# Any other value passes through unchanged.
 BOOLEAN_VIZ_KEYS: frozenset[str] = frozenset({
-    "mum_given_HBIG_treatment",
-    "chest_indrawing",
+    # maternal history
+    "mum_on_arvs",
+    "mum_had_vdrl",
+    "mum_had_hep_b",
+    "mum_had_antepartum_haemorrhage",
+    "hypertension_in_pregnancy",
+    "mum_had_eclampsia",
     "mother_on_antibiotics",
+    "mother_has_diabetes",
+    "mum_had_pre_eclampsia",
     "mother_on_tb_treatment",
-    "pallor_or_anaemia_present_in_baby"
+    "mother_had_hepatitis_b",
+    "mum_given_HBIG_treatment",
+    # neonatal signs
+    "is_floppy",
+    "has_fever",
+    "has_apnoea",
+    "has_murmur",
+    "has_crackles",
+    "has_diarhoea",
+    "is_irritable",
+    "is_distended",
+    "has_vomiting",
+    "has_grunting",
+    "has_convulsions",
+    "chest_indrawing",
+    "given_vitamin_k",
+    "has_central_cyanosis",
+    "has_bulging_fontanelle",
+    "has_difficulty_feeding",
+    "has_difficulty_breathing",
+    "pallor_or_anaemia_present_in_baby",
+    # examination findings
+    "umbilicus",
+    "tone",
+    "skin",
+    "cry",
+    "has_good_air_entry",
+    "appearance",
+    # delivery / perinatal
+    "delivery_type",
+    "was_resuscitated",
+    "antenatal_steroids",
+    "has_birth_defects",
+    "had_cs",
+    "chest_compressions",
+    # treatments
+    "prescribed_opv",
+    "prescribed_feeds",
+    "prescribed_cpap",
+    "prescribed_oxygen",
+    "prescribed_kmc",
+    "prescribed_incubator",
+    "prescribed_iv_fluids",
+    "prescribed_surfactant",
+    "prescribed_phototherapy",
+    "prescribed_caffeine_citrate",
+    "given_chlorhexidine",
+    "prescribed_transfusion",
+    "prescribed_antibiotics",
+    "given_bcg",
+    "given_teo",
+    "given_prophylaxis_pmtct",
+})
+
+# Diagnosis viz keys — recoded independently of BOOLEAN_VIZ_KEYS.
+# Any non-null value other than 'N' → True; 'N' and None pass through unchanged.
+DIAGNOSIS_VIZ_KEYS: frozenset[str] = frozenset({
+    "meningitis_diagnosis",
+    "prematurity_diagnosis",
+    "birth_asphyxia_diagnosis",
+    "low_birth_weight_diagnosis",
+    "neonatal_sepsis_diagnosis",
+    "congenital_anomaly_diagnosis",
+    "meconium_aspiration_syndrome_diagnosis",
+    "respiratory_distress_syndrome_diagnosis",
 })
 
 # Viz keys that are computed by VizSyncService (not mapped from form fields).
