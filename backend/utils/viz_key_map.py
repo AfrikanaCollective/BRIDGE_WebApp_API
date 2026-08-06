@@ -157,6 +157,12 @@ NUMERIC_VIZ_KEYS: frozenset[str] = frozenset({
     "respiratory_rate",
 })
 
+# Capillary refill key — handled separately from NUMERIC_VIZ_KEYS because the
+# value may be an embedded string (e.g. "2 seconds"), and values > 7 are nulled.
+CAPILLARY_REFILL_VIZ_KEYS: frozenset[str] = frozenset({
+    "capillary_refill_in_seconds",
+})
+
 # Viz keys whose values are recoded to bool.
 # 'Positive'/'Y'/'Yes'/'True' → True; 'Negative'/'N'/'No'/'False' → False.
 # Any other value passes through unchanged.

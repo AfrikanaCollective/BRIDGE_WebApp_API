@@ -14,6 +14,7 @@ against a standalone mongod).
 
 import asyncio
 import logging
+import re
 from typing import Any, Dict, Optional
 
 from pymongo.errors import PyMongoError
@@ -25,6 +26,7 @@ from utils.viz_key_map import (
     NUMERIC_VIZ_KEYS,
     BOOLEAN_VIZ_KEYS,
     DIAGNOSIS_VIZ_KEYS,
+    CAPILLARY_REFILL_VIZ_KEYS,
     ANTIBIOTICS_SCAN_EXCLUDE_KEYS,
 )
 
@@ -64,6 +66,34 @@ def _to_diagnosis_bool(value):
     if value is None or value == "N":
         return value
     return True
+
+
+_CAPILLARY_REFILL_MAX = 7
+_CAPILLARY_REFILL_RE = re.compile(r"\d+(?:\.\d+)?")
+
+
+def _to_capillary_refill(value):
+    """
+    Extract the first number from a capillary refill value (which may be an
+    embedded string such as '2 seconds' or '3-4').  Whole-number results are
+    stored as int; values with a decimal part as float.
+    Returns None if no number can be parsed or the extracted value exceeds
+    _CAPILLARY_REFILL_MAX seconds.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        n = float(value)
+    else:
+        match = _CAPILLARY_REFILL_RE.search(str(value))
+        if not match:
+            return None
+        n = float(match.group())
+    if n > _CAPILLARY_REFILL_MAX:
+        return None
+    return int(n) if n == int(n) else n
 
 
 def _to_numeric(value):
@@ -168,6 +198,8 @@ class VizSyncService:
                 viz_key = inv_map.get(field, field)
                 if viz_key in NUMERIC_VIZ_KEYS:
                     value = _to_numeric(value)
+                elif viz_key in CAPILLARY_REFILL_VIZ_KEYS:
+                    value = _to_capillary_refill(value)
                 elif viz_key in BOOLEAN_VIZ_KEYS:
                     value = _to_bool(value)
                 elif viz_key in DIAGNOSIS_VIZ_KEYS:
