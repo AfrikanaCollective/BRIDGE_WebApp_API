@@ -75,7 +75,8 @@ class IndicatorsService:
             }
         ]
 
-        rows = await self.collection.aggregate(pipeline).to_list(1)
+        cursor = await self.collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=1)
         if not rows:
             return {"total": 0, "bars": []}
 
