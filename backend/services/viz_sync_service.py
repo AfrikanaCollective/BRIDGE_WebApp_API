@@ -62,7 +62,7 @@ def _to_numeric(value):
         return value
 
 
-_SKIP_SEPSIS_KEYS = {"_id"} | _METADATA_FIELDS
+_SKIP_SCAN_KEYS = {"_id"} | _METADATA_FIELDS
 
 
 def _has_sepsis(flat_doc: Dict[str, Any]) -> bool:
@@ -72,11 +72,27 @@ def _has_sepsis(flat_doc: Dict[str, Any]) -> bool:
     _id and metadata fields are excluded from the scan.
     """
     for key, value in flat_doc.items():
-        if key in _SKIP_SEPSIS_KEYS:
+        if key in _SKIP_SCAN_KEYS:
             continue
         if "sepsis" in key.lower():
             return True
         if isinstance(value, str) and "sepsis" in value.lower():
+            return True
+    return False
+
+
+def _has_antibiotics(flat_doc: Dict[str, Any]) -> bool:
+    """
+    Return True if any clinical key or string value in the flat viz document
+    contains the word 'antibiotics' (case-insensitive).
+    _id and metadata fields are excluded from the scan.
+    """
+    for key, value in flat_doc.items():
+        if key in _SKIP_SCAN_KEYS:
+            continue
+        if "antibiotics" in key.lower():
+            return True
+        if isinstance(value, str) and "antibiotics" in value.lower():
             return True
     return False
 
@@ -133,6 +149,7 @@ class VizSyncService:
         viz_doc: Dict[str, Any] = {"_id": patient_doc["_id"]}
         viz_doc.update(flat)
         viz_doc["has_sepsis"] = _has_sepsis(flat)
+        viz_doc["infection_antibiotics"] = _has_antibiotics(flat)
 
         for field in _METADATA_FIELDS:
             if field in patient_doc:

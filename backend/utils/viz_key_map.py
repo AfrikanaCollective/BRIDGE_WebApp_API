@@ -167,3 +167,10 @@ BOOLEAN_VIZ_KEYS: frozenset[str] = frozenset({
     "mother_on_tb_treatment",
     "pallor_or_anaemia_present_in_baby"
 })
+
+# Viz keys that are computed by VizSyncService (not mapped from form fields).
+# These are always native Python bools — no coercion needed.
+COMPUTED_BOOL_VIZ_KEYS: frozenset[str] = frozenset({
+    "has_sepsis",
+    "infection_antibiotics",
+})
