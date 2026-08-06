@@ -7,6 +7,7 @@ import {
     selectPrimaryStats,
     selectStatsLoadingState,
 } from '../store/statsSlice';
+import InfectionBarChart from '../components/charts/InfectionBarChart';
 import '../styles/HomePage.css';
 
 const HomePage = () => {
@@ -174,6 +175,11 @@ const HomePage = () => {
                         <div className="stat-label">Active Sessions</div>
                     </div>
                 </div>
+            </article>
+
+            {/* Infection Indicators Chart */}
+            <article className="statistics-card">
+                <InfectionBarChart />
             </article>
 
             {/* CTA */}
