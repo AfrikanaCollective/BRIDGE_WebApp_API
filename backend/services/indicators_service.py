@@ -89,17 +89,17 @@ class IndicatorsService:
             "bars": [
                 {
                     "key": "has_sepsis",
-                    "label": "Sepsis Prevalence",
+                    "label": "% of patients with sepsis admission diagnosis",
                     "value": self._pct(r["has_sepsis_n"], total),
                 },
                 {
                     "key": "infection_antibiotics",
-                    "label": "Antibiotic Treatment",
+                    "label": "% patients given antibiotics at admission",
                     "value": self._pct(r["antibiotics_n"], total),
                 },
                 {
                     "key": "sepsis_given_antibiotics",
-                    "label": "Sepsis of Antibiotic Patients",
+                    "label": "% of patients given antibiotics at admission having sepsis admission diagnosis",
                     "value": self._pct(r["sepsis_and_antibiotics_n"], antibiotics_n),
                 },
             ],
