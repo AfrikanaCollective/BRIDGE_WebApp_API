@@ -20,7 +20,12 @@ from pymongo.errors import PyMongoError
 
 from clients.mongo_client import MongoClient
 from config.settings import settings
-from utils.viz_key_map import INVERTED_VIZ_KEY_MAP, NUMERIC_VIZ_KEYS, BOOLEAN_VIZ_KEYS
+from utils.viz_key_map import (
+    INVERTED_VIZ_KEY_MAP,
+    NUMERIC_VIZ_KEYS,
+    BOOLEAN_VIZ_KEYS,
+    ANTIBIOTICS_SCAN_EXCLUDE_KEYS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,14 +86,17 @@ def _has_sepsis(flat_doc: Dict[str, Any]) -> bool:
     return False
 
 
+_SKIP_ANTIBIOTICS_KEYS = _SKIP_SCAN_KEYS | ANTIBIOTICS_SCAN_EXCLUDE_KEYS
+
+
 def _has_antibiotics(flat_doc: Dict[str, Any]) -> bool:
     """
     Return True if any clinical key or string value in the flat viz document
     contains the word 'antibiotics' (case-insensitive).
-    _id and metadata fields are excluded from the scan.
+    _id, metadata fields, and ANTIBIOTICS_SCAN_EXCLUDE_KEYS are excluded.
     """
     for key, value in flat_doc.items():
-        if key in _SKIP_SCAN_KEYS:
+        if key in _SKIP_ANTIBIOTICS_KEYS:
             continue
         if "antibiotics" in key.lower():
             return True

@@ -174,3 +174,9 @@ COMPUTED_BOOL_VIZ_KEYS: frozenset[str] = frozenset({
     "has_sepsis",
     "infection_antibiotics",
 })
+
+# Keys excluded from the infection_antibiotics scan.
+# mother_on_antibiotics tracks maternal prophylaxis, not infant infection treatment.
+ANTIBIOTICS_SCAN_EXCLUDE_KEYS: frozenset[str] = frozenset({
+    "mother_on_antibiotics",
+})
