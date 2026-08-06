@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from middleware.session_middleware import SessionTrackingMiddleware
 
 from config.settings import settings
-from routes import upload, history, health, stats
+from routes import upload, history, health, stats, indicators
 from clients.mongo_client import MongoClient
 from clients.minio_client import MinIOClient
 from services.form_processor import FormProcessor
@@ -25,6 +25,7 @@ from services.session_service import SessionService
 from services.patient_summary_service import PatientSummaryService
 from services.change_stream_service import ChangeStreamWatcher
 from services.viz_sync_service import VizSyncService, VizStreamWatcher
+from services.indicators_service import IndicatorsService
 
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ async def lifespan(app: FastAPI):
     session_service: Optional[SessionService] = None
     patient_summary_service: Optional[PatientSummaryService] = None
     viz_sync_service: Optional[VizSyncService] = None
+    indicators_service: Optional[IndicatorsService] = None
     change_stream_watcher: Optional[ChangeStreamWatcher] = None
     change_stream_task: Optional[asyncio.Task] = None
     viz_stream_watcher: Optional[VizStreamWatcher] = None
@@ -188,6 +190,12 @@ async def lifespan(app: FastAPI):
                 collection_name=settings.MONGODB_VIZ_COLLECTION,
             )
 
+            indicators_service = IndicatorsService(
+                mongo_client=mongo_client,
+                db_name=settings.MONGODB_DB_NAME,
+                viz_collection_name=settings.MONGODB_VIZ_COLLECTION,
+            )
+
             logger.info("✅ Services initialized successfully")
 
         except Exception as e:
@@ -274,6 +282,7 @@ async def lifespan(app: FastAPI):
         app.state.session_service = session_service
         app.state.patient_summary_service = patient_summary_service
         app.state.viz_sync_service = viz_sync_service
+        app.state.indicators_service = indicators_service
         app.state.change_stream_task = change_stream_task
         app.state.viz_stream_task = viz_stream_task
 
@@ -368,6 +377,7 @@ def create_app() -> FastAPI:
     app.include_router(history.router, prefix="/api/history", tags=["history"])
     app.include_router(health.router, prefix="/api/health", tags=["health"])
     app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
+    app.include_router(indicators.router, prefix="/api/indicators", tags=["indicators"])
 
     # ==================== ROOT ENDPOINT ====================
     @app.get("/")

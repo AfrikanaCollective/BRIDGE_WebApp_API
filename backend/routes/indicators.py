@@ -1,0 +1,53 @@
+# backend/routes/indicators.py
+"""
+Clinical indicator aggregation routes.
+All queries run against patient_summary_viz — read-only.
+"""
+
+import logging
+from fastapi import APIRouter, Request, HTTPException, status
+
+from services.indicators_service import IndicatorsService
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+
+def _get_indicators_service(request: Request) -> IndicatorsService:
+    svc = getattr(request.app.state, "indicators_service", None)
+    if not svc:
+        logger.error("❌ IndicatorsService not found in app.state")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="IndicatorsService not available.",
+        )
+    return svc
+
+
+@router.get(
+    "/infection",
+    summary="Infection overview indicators",
+    tags=["indicators"],
+    responses={
+        200: {"description": "Infection indicator percentages"},
+        503: {"description": "IndicatorsService unavailable"},
+    },
+)
+async def infection_indicators(request: Request):
+    """
+    Returns three bars (0–100 %):
+    - Sepsis Prevalence            — % of all patients with has_sepsis = true
+    - Antibiotic Treatment         — % of all patients with infection_antibiotics = true
+    - Sepsis of Antibiotic Patients — % of antibiotic patients also flagged for sepsis
+    """
+    try:
+        svc = _get_indicators_service(request)
+        return await svc.infection_overview()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to compute infection indicators: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute indicators: {e}",
+        )
