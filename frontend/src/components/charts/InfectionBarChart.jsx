@@ -11,7 +11,6 @@ import {
     Tooltip,
     Cell,
     ResponsiveContainer,
-    LabelList,
 } from 'recharts';
 import {
     fetchInfectionIndicators,
@@ -70,12 +69,13 @@ const WrappedYAxisTick = ({ x, y, payload }) => {
 };
 
 // ==================== BAR END LABEL (percentage + fraction) ====================
+// Uses Bar `label` prop (not LabelList) so Recharts spreads the full data
+// entry into props — numerator and denominator arrive as direct props.
 const BarLabel = (props) => {
-    const { x, y, width, height, value, entry } = props;
+    const { x, y, width, height, value, numerator, denominator } = props;
+    if (width <= 0) return null;
     const rightX = x + width + 8;
     const midY = y + height / 2;
-    const numerator = entry?.numerator ?? '';
-    const denominator = entry?.denominator ?? '';
     return (
         <g>
             <text
@@ -152,7 +152,7 @@ export default function InfectionBarChart() {
 
     if (error) {
         return (
-            <div style={{ padding: '12px 0', color: '#cf1322', fontSize: 13 }}>
+            <div style={{ padding: '14px 0', color: '#cf1322', fontSize: 13 }}>
                 {error}
             </div>
         );
@@ -160,7 +160,7 @@ export default function InfectionBarChart() {
 
     if (!bars.length) {
         return (
-            <div style={{ padding: '12px 0', color: '#888', fontSize: 13 }}>
+            <div style={{ padding: '14px 0', color: '#888', fontSize: 13 }}>
                 No data available yet.
             </div>
         );
@@ -227,8 +227,7 @@ export default function InfectionBarChart() {
                         content={<CustomTooltip />}
                         cursor={{ fill: '#fafafa' }}
                     />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        <LabelList dataKey="value" content={<BarLabel />} />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} label={<BarLabel />}>
                         {bars.map((_, i) => (
                             <Cell
                                 key={i}
