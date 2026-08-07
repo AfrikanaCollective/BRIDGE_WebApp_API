@@ -7,7 +7,7 @@ import {
     Bar,
     XAxis,
     YAxis,
-    CartesianGrid,
+    ReferenceLine,
     Tooltip,
     Cell,
     ResponsiveContainer,
@@ -158,6 +158,14 @@ export default function InfectionBarChart() {
     const maxValue = Math.max(...bars.map((b) => b.value));
     const xMax = Math.min(100, maxValue + 5);
 
+    // Grid lines: major every 10%, minor every 5% (non-major positions only)
+    const majorGridLines = [];
+    const minorGridLines = [];
+    for (let v = 0; v <= xMax; v += 5) {
+        if (v % 10 === 0) majorGridLines.push(v);
+        else minorGridLines.push(v);
+    }
+
     // Chart height scales with number of bars so wrapped labels have room
     const chartHeight = bars.length * (BAR_SIZE + 60) + 40;
 
@@ -190,14 +198,29 @@ export default function InfectionBarChart() {
                     barSize={BAR_SIZE}
                     barCategoryGap="30%"
                 >
-                    <CartesianGrid
-                        strokeDasharray="3 3"
-                        horizontal={false}
-                        stroke="#f0f0f0"
-                    />
+                    {/* Minor grid lines every 5% */}
+                    {minorGridLines.map((v) => (
+                        <ReferenceLine
+                            key={`minor-${v}`}
+                            x={v}
+                            stroke="#efefef"
+                            strokeWidth={1}
+                            strokeDasharray="4 3"
+                        />
+                    ))}
+                    {/* Major grid lines every 10% */}
+                    {majorGridLines.map((v) => (
+                        <ReferenceLine
+                            key={`major-${v}`}
+                            x={v}
+                            stroke="#d4d4d4"
+                            strokeWidth={1}
+                        />
+                    ))}
                     <XAxis
                         type="number"
                         domain={[0, xMax]}
+                        ticks={majorGridLines}
                         tickFormatter={(v) => `${v}%`}
                         tick={{ fontSize: 12, fill: '#999' }}
                         axisLine={false}
