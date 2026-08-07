@@ -68,39 +68,6 @@ const WrappedYAxisTick = ({ x, y, payload }) => {
     );
 };
 
-// ==================== BAR END LABEL (percentage + fraction) ====================
-// Uses Bar `label` prop (not LabelList) so Recharts spreads the full data
-// entry into props — numerator and denominator arrive as direct props.
-const BarLabel = (props) => {
-    const { x, y, width, height, value, numerator, denominator } = props;
-    if (width <= 0) return null;
-    const rightX = x + width + 8;
-    const midY = y + height / 2;
-    return (
-        <g>
-            <text
-                x={rightX}
-                y={midY - 7}
-                fontSize={12}
-                fontWeight={700}
-                fill="#333"
-                dominantBaseline="middle"
-            >
-                {value}%
-            </text>
-            <text
-                x={rightX}
-                y={midY + 7}
-                fontSize={11}
-                fill="#777"
-                dominantBaseline="middle"
-            >
-                {numerator}/{denominator}
-            </text>
-        </g>
-    );
-};
-
 // ==================== CUSTOM TOOLTIP ====================
 const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
@@ -135,6 +102,27 @@ export default function InfectionBarChart() {
     const triggerFetch = useCallback(() => {
         dispatch(fetchInfectionIndicators());
     }, [dispatch]);
+
+    // Recharts Bar `label` only receives x/y/width/height/value/index — not the
+    // full data entry. Close over `bars` and use `index` to look up the entry.
+    const renderBarLabel = useCallback(({ x, y, width, height, value, index }) => {
+        if (width <= 0) return null;
+        const bar = bars[index];
+        const rightX = x + width + 8;
+        const midY = y + height / 2;
+        return (
+            <g key={index}>
+                <text x={rightX} y={midY - 7} fontSize={12} fontWeight={700}
+                    fill="#333" dominantBaseline="middle">
+                    {value}%
+                </text>
+                <text x={rightX} y={midY + 7} fontSize={11}
+                    fill="#777" dominantBaseline="middle">
+                    {bar?.numerator}/{bar?.denominator}
+                </text>
+            </g>
+        );
+    }, [bars]);
 
     useEffect(() => {
         triggerFetch();
@@ -227,7 +215,7 @@ export default function InfectionBarChart() {
                         content={<CustomTooltip />}
                         cursor={{ fill: '#fafafa' }}
                     />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]} label={<BarLabel />}>
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} label={renderBarLabel}>
                         {bars.map((_, i) => (
                             <Cell
                                 key={i}
