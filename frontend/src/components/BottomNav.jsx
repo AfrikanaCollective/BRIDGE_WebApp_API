@@ -7,6 +7,7 @@ const NAV_ITEMS = [
     { path: '/', label: 'Home', icon: 'bi-house-fill', exact: true },
     { path: '/upload', label: 'Upload', icon: 'bi-cloud-upload' },
     { path: '/history', label: 'History', icon: 'bi-clock-history' },
+    { path: '/visualisations', label: 'Charts', icon: 'bi-bar-chart-fill' },
 ];
 
 const BottomNav = () => {

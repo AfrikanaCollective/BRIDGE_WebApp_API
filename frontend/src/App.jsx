@@ -11,6 +11,7 @@ import FaviconUpdater from './components/FaviconUpdater';
 import HomePage from './pages/HomePage';
 import UploadPage from './pages/UploadPage';
 import HistoryPage from './pages/HistoryPage';
+import VisualisationsPage from './pages/VisualisationsPage';
 import { fetchStats } from './store/statsSlice';
 import './styles/App.css';
 
@@ -42,6 +43,7 @@ const App = () => {
                                 <Route path="/upload" element={<UploadPage />} />
                                 <Route path="/history" element={<HistoryPage />} />
                                 <Route path="/history/:processingId" element={<HistoryPage />} />
+                                <Route path="/visualisations" element={<VisualisationsPage />} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>
                         </div>
