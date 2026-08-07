@@ -91,16 +91,22 @@ class IndicatorsService:
                     "key": "has_sepsis",
                     "label": "% of patients with sepsis admission diagnosis",
                     "value": self._pct(r["has_sepsis_n"], total),
+                    "numerator": r["has_sepsis_n"],
+                    "denominator": total,
                 },
                 {
                     "key": "infection_antibiotics",
                     "label": "% patients given antibiotics at admission",
                     "value": self._pct(r["antibiotics_n"], total),
+                    "numerator": r["antibiotics_n"],
+                    "denominator": total,
                 },
                 {
                     "key": "sepsis_given_antibiotics",
                     "label": "% of patients given antibiotics at admission having sepsis admission diagnosis",
                     "value": self._pct(r["sepsis_and_antibiotics_n"], antibiotics_n),
+                    "numerator": r["sepsis_and_antibiotics_n"],
+                    "denominator": antibiotics_n,
                 },
             ],
         }

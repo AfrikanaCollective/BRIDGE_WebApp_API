@@ -69,6 +69,38 @@ const WrappedYAxisTick = ({ x, y, payload }) => {
     );
 };
 
+// ==================== BAR END LABEL (percentage + fraction) ====================
+const BarLabel = (props) => {
+    const { x, y, width, height, value, entry } = props;
+    const rightX = x + width + 8;
+    const midY = y + height / 2;
+    const numerator = entry?.numerator ?? '';
+    const denominator = entry?.denominator ?? '';
+    return (
+        <g>
+            <text
+                x={rightX}
+                y={midY - 7}
+                fontSize={12}
+                fontWeight={700}
+                fill="#333"
+                dominantBaseline="middle"
+            >
+                {value}%
+            </text>
+            <text
+                x={rightX}
+                y={midY + 7}
+                fontSize={11}
+                fill="#777"
+                dominantBaseline="middle"
+            >
+                {numerator}/{denominator}
+            </text>
+        </g>
+    );
+};
+
 // ==================== CUSTOM TOOLTIP ====================
 const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
@@ -166,7 +198,7 @@ export default function InfectionBarChart() {
                 <BarChart
                     layout="vertical"
                     data={bars}
-                    margin={{ top: 8, right: 56, bottom: 8, left: 0 }}
+                    margin={{ top: 8, right: 96, bottom: 8, left: 0 }}
                     barSize={BAR_SIZE}
                     barCategoryGap="30%"
                 >
@@ -196,12 +228,7 @@ export default function InfectionBarChart() {
                         cursor={{ fill: '#fafafa' }}
                     />
                     <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        <LabelList
-                            dataKey="value"
-                            position="right"
-                            formatter={(v) => `${v}%`}
-                            style={{ fontSize: 12, fontWeight: 600, fill: '#444' }}
-                        />
+                        <LabelList dataKey="value" content={<BarLabel />} />
                         {bars.map((_, i) => (
                             <Cell
                                 key={i}
