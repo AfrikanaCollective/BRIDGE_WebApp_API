@@ -24,7 +24,7 @@ const BAR_COLORS = ['#1677ff', '#52c41a', '#fa8c16'];
 const POLL_INTERVAL_MS = 2 * 60 * 1000;
 
 // Characters per line before wrapping (≈ 6.5 px per char at 12 px font, Y-axis width 260 px)
-const CHARS_PER_LINE = 38;
+const CHARS_PER_LINE = 28;
 const LINE_HEIGHT = 16;
 const Y_AXIS_WIDTH = 270;
 const BAR_SIZE = 56;
