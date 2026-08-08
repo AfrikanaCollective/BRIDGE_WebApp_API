@@ -7,7 +7,7 @@ const NAV_ITEMS = [
     { path: '/', label: 'Home', icon: 'bi-house-fill', exact: true },
     { path: '/upload', label: 'Upload', icon: 'bi-cloud-upload' },
     { path: '/history', label: 'History', icon: 'bi-clock-history' },
-    { path: '/visualisations', label: 'Visualisations', icon: 'bi-bar-chart-fill' },
+    { path: '/visualisations', label: 'Dashboard', icon: 'bi-bar-chart-fill' },
 ];
 
 const Sidebar = ({ collapsed }) => {
