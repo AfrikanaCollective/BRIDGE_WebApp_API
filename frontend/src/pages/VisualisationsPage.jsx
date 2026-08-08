@@ -7,7 +7,7 @@ import '../styles/HomePage.css';
 const VisualisationsPage = () => (
     <div className="home-page">
         <article className="hero-card">
-            <h1>Dashboard</h1>
+            <h1>possible Serious Bacterial Infections (pSBI) dashboard</h1>
             <p>
                 Aggregated clinical indicators derived from processed patient records.
                 Charts update automatically every two minutes.
