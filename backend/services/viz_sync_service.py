@@ -27,6 +27,7 @@ from utils.viz_key_map import (
     BOOLEAN_VIZ_KEYS,
     DIAGNOSIS_VIZ_KEYS,
     CAPILLARY_REFILL_VIZ_KEYS,
+    CHEST_INDRAWING_VIZ_KEYS,
     ANTIBIOTICS_SCAN_EXCLUDE_KEYS,
 )
 
@@ -94,6 +95,17 @@ def _to_capillary_refill(value):
     if n > _CAPILLARY_REFILL_MAX:
         return None
     return int(n) if n == int(n) else n
+
+
+def _to_chest_indrawing_bool(value):
+    """
+    Recode chest_indrawing to bool.
+    True when the value is not null and is either 'Severe' or True.
+    Everything else ('Mild', 'mild', 'None', False, null) → False.
+    """
+    if value is None:
+        return False
+    return value == "Severe" or value is True
 
 
 def _to_numeric(value):
@@ -200,6 +212,8 @@ class VizSyncService:
                     value = _to_numeric(value)
                 elif viz_key in CAPILLARY_REFILL_VIZ_KEYS:
                     value = _to_capillary_refill(value)
+                elif viz_key in CHEST_INDRAWING_VIZ_KEYS:
+                    value = _to_chest_indrawing_bool(value)
                 elif viz_key in BOOLEAN_VIZ_KEYS:
                     value = _to_bool(value)
                 elif viz_key in DIAGNOSIS_VIZ_KEYS:

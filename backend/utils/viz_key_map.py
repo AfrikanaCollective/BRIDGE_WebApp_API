@@ -192,7 +192,6 @@ BOOLEAN_VIZ_KEYS: frozenset[str] = frozenset({
     "has_vomiting",
     "has_grunting",
     "has_convulsions",
-    "chest_indrawing",
     "given_vitamin_k",
     "has_central_cyanosis",
     "has_bulging_fontanelle",
@@ -230,6 +229,14 @@ BOOLEAN_VIZ_KEYS: frozenset[str] = frozenset({
     "given_bcg",
     "given_teo",
     "given_prophylaxis_pmtct",
+})
+
+# Chest indrawing — recoded independently of BOOLEAN_VIZ_KEYS because raw
+# values include severity strings ("Mild"/"Severe"/"None") as well as bools.
+# True only when the value is exactly "Severe" or True; everything else,
+# including a missing/null value, becomes False.
+CHEST_INDRAWING_VIZ_KEYS: frozenset[str] = frozenset({
+    "chest_indrawing",
 })
 
 # Diagnosis viz keys — recoded independently of BOOLEAN_VIZ_KEYS.
