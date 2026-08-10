@@ -20,9 +20,9 @@ import {
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000;
 
-const S_COLOR  = '#e6194b';  // Bacterial Sepsis    — vivid red
-const P_COLOR  = '#4363d8';  // Pneumonia           — royal blue
-const M_COLOR  = '#911eb4';  // Bacterial Meningitis — vivid purple
+const S_COLOR  = '#2563EB';  // Bacterial Sepsis    — primary blue
+const P_COLOR  = '#F59E0B';  // Pneumonia           — accent amber
+const M_COLOR  = '#0D9488';  // Bacterial Meningitis — success teal
 
 // Two-line text block centred on (x, y)
 const RegionLabel = ({ x, y, pct, count }) => (
