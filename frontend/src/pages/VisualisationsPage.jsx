@@ -18,6 +18,14 @@ const VisualisationsPage = () => (
         </article>
 
         <article className="statistics-card">
+            <PsbiSignCountChart />
+        </article>
+
+        <article className="statistics-card">
+            <InfectionBarChart />
+        </article>
+
+        <article className="statistics-card">
             <SuspectedDiagnosesChart />
         </article>
 
@@ -25,13 +33,6 @@ const VisualisationsPage = () => (
             <DiagnosisVennChart />
         </article>
 
-        <article className="statistics-card">
-            <PsbiSignCountChart />
-        </article>
-
-        <article className="statistics-card">
-            <InfectionBarChart />
-        </article>
     </div>
 );
 
