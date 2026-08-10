@@ -195,7 +195,7 @@ export default function DiagnosisVennChart() {
                 fontSize: 12,
                 marginTop: 8,
             }}>
-                No suspected diagnosis:&nbsp;
+                Other diagnoses:&nbsp;
                 <strong style={{ color: '#555' }}>{s.none.pct}%</strong>
                 &nbsp;({s.none.count.toLocaleString()}&nbsp;/&nbsp;{total.toLocaleString()} patients)
             </div>
