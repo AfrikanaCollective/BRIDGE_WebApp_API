@@ -4,6 +4,7 @@ import React from 'react';
 import InfectionBarChart from '../components/charts/InfectionBarChart';
 import PsbiSignCountChart from '../components/charts/PsbiSignCountChart';
 import SuspectedDiagnosesChart from '../components/charts/SuspectedDiagnosesChart';
+import DiagnosisVennChart from '../components/charts/DiagnosisVennChart';
 import '../styles/HomePage.css';
 
 const VisualisationsPage = () => (
@@ -18,6 +19,10 @@ const VisualisationsPage = () => (
 
         <article className="statistics-card">
             <SuspectedDiagnosesChart />
+        </article>
+
+        <article className="statistics-card">
+            <DiagnosisVennChart />
         </article>
 
         <article className="statistics-card">

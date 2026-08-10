@@ -25,6 +25,34 @@ def _get_indicators_service(request: Request) -> IndicatorsService:
 
 
 @router.get(
+    "/diagnosis-overlap",
+    summary="Venn diagram counts for the three suspected pSBI diagnoses",
+    tags=["indicators"],
+    responses={
+        200: {"description": "Counts and percentages for all 8 combination regions"},
+        503: {"description": "IndicatorsService unavailable"},
+    },
+)
+async def diagnosis_overlap(request: Request):
+    """
+    Returns counts and % of patients in each of the 8 regions of the
+    three-set Venn diagram (sepsis / pneumonia / meningitis), including
+    patients who meet none of the three criteria.
+    """
+    try:
+        svc = _get_indicators_service(request)
+        return await svc.psbi_diagnosis_overlap()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to compute diagnosis overlap: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute diagnosis overlap: {e}",
+        )
+
+
+@router.get(
     "/suspected-diagnoses",
     summary="Prevalence of suspected pSBI diagnoses",
     tags=["indicators"],

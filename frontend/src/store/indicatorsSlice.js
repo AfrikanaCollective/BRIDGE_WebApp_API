@@ -9,6 +9,7 @@ const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes, matching statsSlice
 let lastInfectionFetch = 0;
 let lastPsbiSignCountFetch = 0;
 let lastSuspectedDiagnosesFetch = 0;
+let lastDiagnosisOverlapFetch = 0;
 
 // ==================== ASYNC THUNKS ====================
 export const fetchInfectionIndicators = createAsyncThunk(
@@ -110,17 +111,53 @@ export const fetchSuspectedDiagnoses = createAsyncThunk(
     }
 );
 
+export const fetchDiagnosisOverlap = createAsyncThunk(
+    'indicators/fetchDiagnosisOverlap',
+    async (_, { rejectWithValue }) => {
+        const now = Date.now();
+        const elapsed = now - lastDiagnosisOverlapFetch;
+
+        if (elapsed < COOLDOWN_MS) {
+            return rejectWithValue({
+                type: 'COOLDOWN',
+                remainingSeconds: Math.ceil((COOLDOWN_MS - elapsed) / 1000),
+            });
+        }
+
+        lastDiagnosisOverlapFetch = now;
+
+        try {
+            const { data } = await axios.get(
+                `${API_BASE_URL}/indicators/diagnosis-overlap`,
+                { timeout: 30000 }
+            );
+            return data;
+        } catch (error) {
+            return rejectWithValue({
+                type: 'API_ERROR',
+                message:
+                    error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    `Failed to fetch diagnosis overlap: ${error.message}`,
+            });
+        }
+    }
+);
+
 // ==================== INITIAL STATE ====================
 const initialState = {
     infection: { total: 0, bars: [] },
     psbiSignCount: { total: 0, bars: [] },
     suspectedDiagnoses: { total: 0, bars: [] },
+    diagnosisOverlap: { total: 0, sets: null },
     loading: false,
     error: null,
     psbiSignCountLoading: false,
     psbiSignCountError: null,
     suspectedDiagnosesLoading: false,
     suspectedDiagnosesError: null,
+    diagnosisOverlapLoading: false,
+    diagnosisOverlapError: null,
     lastUpdated: null,
 };
 
@@ -181,6 +218,22 @@ const indicatorsSlice = createSlice({
                 if (action.payload?.type !== 'COOLDOWN') {
                     state.suspectedDiagnosesError =
                         action.payload?.message || 'Failed to fetch suspected diagnoses';
+                }
+            })
+            .addCase(fetchDiagnosisOverlap.pending, (state) => {
+                state.diagnosisOverlapLoading = true;
+                state.diagnosisOverlapError = null;
+            })
+            .addCase(fetchDiagnosisOverlap.fulfilled, (state, action) => {
+                state.diagnosisOverlapLoading = false;
+                state.diagnosisOverlap = action.payload;
+                state.lastUpdated = new Date().toISOString();
+            })
+            .addCase(fetchDiagnosisOverlap.rejected, (state, action) => {
+                state.diagnosisOverlapLoading = false;
+                if (action.payload?.type !== 'COOLDOWN') {
+                    state.diagnosisOverlapError =
+                        action.payload?.message || 'Failed to fetch diagnosis overlap';
                 }
             });
     },
@@ -249,6 +302,26 @@ export const selectSuspectedDiagnosesLoading = createSelector(
 export const selectSuspectedDiagnosesError = createSelector(
     [selectIndicatorsState],
     (ind) => ind.suspectedDiagnosesError
+);
+
+export const selectDiagnosisOverlapSets = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.diagnosisOverlap.sets
+);
+
+export const selectDiagnosisOverlapTotal = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.diagnosisOverlap.total
+);
+
+export const selectDiagnosisOverlapLoading = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.diagnosisOverlapLoading
+);
+
+export const selectDiagnosisOverlapError = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.diagnosisOverlapError
 );
 
 export default indicatorsSlice.reducer;

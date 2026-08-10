@@ -39,6 +39,115 @@ class IndicatorsService:
     def _pct(numerator: int, denominator: int) -> float:
         return round(numerator / denominator * 100, 1) if denominator else 0.0
 
+    async def psbi_diagnosis_overlap(self) -> Dict[str, Any]:
+        """
+        Computes all 8 combinations of the three suspected diagnoses and returns
+        the count / % of patients in each region of the Venn diagram.
+
+        Uses identical thresholds to psbi_suspected_diagnoses:
+          Bacterial Sepsis     — sepsis_score  ≥ 3
+          Pneumonia            — pneumonia_score ≥ 2
+          Bacterial Meningitis — meningitis_score ≥ 2
+        """
+        def _bool(field: str) -> dict:
+            return {"$eq": [f"${field}", True]}
+
+        def _gt(field: str, v) -> dict:
+            return {"$gt": [f"${field}", v]}
+
+        def _lt(field: str, v) -> dict:
+            return {"$lt": [f"${field}", v]}
+
+        def _in(field: str, vals: list) -> dict:
+            return {"$in": [f"${field}", vals]}
+
+        def _or(*conds) -> dict:
+            return {"$or": list(conds)}
+
+        def _cond(condition: dict) -> dict:
+            return {"$cond": [condition, 1, 0]}
+
+        temp_abnormal = _or(
+            _gt("temperature", 38),
+            {"$and": [{"$ne": ["$temperature", None]}, _lt("temperature", 36)]},
+        )
+
+        pipeline = [
+            {
+                "$addFields": {
+                    "sepsis_score": {"$add": [
+                        _cond(temp_abnormal),
+                        _cond(_or(_bool("is_floppy"), _bool("is_irritable"))),
+                        _cond(_or(_bool("has_difficulty_feeding"), _in("cry", ["Weak/Absent", "Weak", "Absent"]))),
+                        _cond(_or(_bool("has_apnoea"), _gt("respiratory_rate", 59))),
+                        _cond(_or(_bool("has_central_cyanosis"), _gt("capillary_refill_in_seconds", 2), _in("skin", ["Mottling", "Pale"]))),
+                    ]},
+                    "pneumonia_score": {"$add": [
+                        _cond(_gt("respiratory_rate", 59)),
+                        _cond(_or(_bool("has_grunting"), _bool("chest_indrawing"))),
+                        _cond(_bool("has_crackles")),
+                        _cond(_or(_bool("has_central_cyanosis"), _lt("pulse_oximetry", 90))),
+                        _cond(temp_abnormal),
+                    ]},
+                    "meningitis_score": {"$add": [
+                        _cond(_bool("has_convulsions")),
+                        _cond(_or(_bool("is_floppy"), _bool("is_irritable"))),
+                        _cond(_bool("has_bulging_fontanelle")),
+                        _cond(_bool("has_apnoea")),
+                    ]},
+                }
+            },
+            {
+                "$addFields": {
+                    "dx_s": {"$gte": ["$sepsis_score", 3]},
+                    "dx_p": {"$gte": ["$pneumonia_score", 2]},
+                    "dx_m": {"$gte": ["$meningitis_score", 2]},
+                }
+            },
+            {
+                "$group": {
+                    "_id": {"s": "$dx_s", "p": "$dx_p", "m": "$dx_m"},
+                    "count": {"$sum": 1},
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": "$count"},
+                    "buckets": {"$push": {"combo": "$_id", "count": "$count"}},
+                }
+            },
+        ]
+
+        cursor = await self.collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=1)
+        if not rows:
+            return {"total": 0, "sets": {}}
+
+        total = rows[0]["total"]
+        bucket_map: Dict[tuple, int] = {}
+        for b in rows[0]["buckets"]:
+            c = b["combo"]
+            bucket_map[(c["s"], c["p"], c["m"])] = b["count"]
+
+        def region(s: bool, p: bool, m: bool) -> Dict[str, Any]:
+            n = bucket_map.get((s, p, m), 0)
+            return {"count": n, "pct": self._pct(n, total)}
+
+        return {
+            "total": total,
+            "sets": {
+                "sepsis_only":           region(True,  False, False),
+                "pneumonia_only":         region(False, True,  False),
+                "meningitis_only":        region(False, False, True),
+                "sepsis_pneumonia":       region(True,  True,  False),
+                "sepsis_meningitis":      region(True,  False, True),
+                "pneumonia_meningitis":   region(False, True,  True),
+                "all_three":              region(True,  True,  True),
+                "none":                   region(False, False, False),
+            },
+        }
+
     async def psbi_suspected_diagnoses(self) -> Dict[str, Any]:
         """
         Estimates the proportion of patients meeting clinical case definitions
