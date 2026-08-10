@@ -39,6 +39,124 @@ class IndicatorsService:
     def _pct(numerator: int, denominator: int) -> float:
         return round(numerator / denominator * 100, 1) if denominator else 0.0
 
+    async def psbi_suspected_diagnoses(self) -> Dict[str, Any]:
+        """
+        Estimates the proportion of patients meeting clinical case definitions
+        for three pSBI suspected diagnoses.
+
+        Bacterial Sepsis     — ≥ 3 of 5 criteria groups met
+        Pneumonia            — ≥ 2 of 5 criteria groups met
+        Bacterial Meningitis — ≥ 2 of 4 criteria groups met
+        """
+        def _bool(field: str) -> dict:
+            return {"$eq": [f"${field}", True]}
+
+        def _gt(field: str, v) -> dict:
+            return {"$gt": [f"${field}", v]}
+
+        def _lt(field: str, v) -> dict:
+            return {"$lt": [f"${field}", v]}
+
+        def _in(field: str, vals: list) -> dict:
+            return {"$in": [f"${field}", vals]}
+
+        def _or(*conds) -> dict:
+            return {"$or": list(conds)}
+
+        def _cond(condition: dict) -> dict:
+            return {"$cond": [condition, 1, 0]}
+
+        temp_abnormal = _or(
+            _gt("temperature", 38),
+            {"$and": [{"$ne": ["$temperature", None]}, _lt("temperature", 36)]},
+        )
+
+        sepsis_criteria = [
+            _cond(temp_abnormal),
+            _cond(_or(_bool("is_floppy"), _bool("is_irritable"))),
+            _cond(_or(_bool("has_difficulty_feeding"), _in("cry", ["Weak/Absent", "Weak", "Absent"]))),
+            _cond(_or(_bool("has_apnoea"), _gt("respiratory_rate", 59))),
+            _cond(_or(_bool("has_central_cyanosis"), _gt("capillary_refill_in_seconds", 2), _in("skin", ["Mottling", "Pale"]))),
+        ]
+
+        pneumonia_criteria = [
+            _cond(_gt("respiratory_rate", 59)),
+            _cond(_or(_bool("has_grunting"), _bool("chest_indrawing"))),
+            _cond(_bool("has_crackles")),
+            _cond(_or(_bool("has_central_cyanosis"), _lt("pulse_oximetry", 90))),
+            _cond(temp_abnormal),
+        ]
+
+        meningitis_criteria = [
+            _cond(_bool("has_convulsions")),
+            _cond(_or(_bool("is_floppy"), _bool("is_irritable"))),
+            _cond(_bool("has_bulging_fontanelle")),
+            _cond(_bool("has_apnoea")),
+        ]
+
+        pipeline = [
+            {
+                "$addFields": {
+                    "sepsis_score": {"$add": sepsis_criteria},
+                    "pneumonia_score": {"$add": pneumonia_criteria},
+                    "meningitis_score": {"$add": meningitis_criteria},
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total": {"$sum": 1},
+                    "sepsis_n": {
+                        "$sum": {"$cond": [{"$gte": ["$sepsis_score", 3]}, 1, 0]}
+                    },
+                    "pneumonia_n": {
+                        "$sum": {"$cond": [{"$gte": ["$pneumonia_score", 2]}, 1, 0]}
+                    },
+                    "meningitis_n": {
+                        "$sum": {"$cond": [{"$gte": ["$meningitis_score", 2]}, 1, 0]}
+                    },
+                }
+            },
+        ]
+
+        cursor = await self.collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=1)
+        if not rows:
+            return {"total": 0, "bars": []}
+
+        r = rows[0]
+        total = r["total"]
+
+        return {
+            "total": total,
+            "bars": [
+                {
+                    "key": "bacterial_sepsis",
+                    "label": "Suspected bacterial sepsis",
+                    "sublabel": "≥ 3 of 5 criteria groups met",
+                    "value": self._pct(r["sepsis_n"], total),
+                    "numerator": r["sepsis_n"],
+                    "denominator": total,
+                },
+                {
+                    "key": "pneumonia",
+                    "label": "Suspected pneumonia",
+                    "sublabel": "≥ 2 of 5 criteria groups met",
+                    "value": self._pct(r["pneumonia_n"], total),
+                    "numerator": r["pneumonia_n"],
+                    "denominator": total,
+                },
+                {
+                    "key": "bacterial_meningitis",
+                    "label": "Suspected bacterial meningitis",
+                    "sublabel": "≥ 2 of 4 criteria groups met",
+                    "value": self._pct(r["meningitis_n"], total),
+                    "numerator": r["meningitis_n"],
+                    "denominator": total,
+                },
+            ],
+        }
+
     async def psbi_sign_count_distribution(self) -> Dict[str, Any]:
         """
         For each patient, counts how many of the 16 unique pSBI signs/symptoms

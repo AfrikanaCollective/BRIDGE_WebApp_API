@@ -25,6 +25,35 @@ def _get_indicators_service(request: Request) -> IndicatorsService:
 
 
 @router.get(
+    "/suspected-diagnoses",
+    summary="Prevalence of suspected pSBI diagnoses",
+    tags=["indicators"],
+    responses={
+        200: {"description": "Suspected diagnosis percentages"},
+        503: {"description": "IndicatorsService unavailable"},
+    },
+)
+async def suspected_diagnoses(request: Request):
+    """
+    Returns three bars (0–100 %):
+    - Suspected bacterial sepsis    — % of patients meeting ≥ 3 of 5 criteria groups
+    - Suspected pneumonia           — % of patients meeting ≥ 2 of 5 criteria groups
+    - Suspected bacterial meningitis — % of patients meeting ≥ 2 of 4 criteria groups
+    """
+    try:
+        svc = _get_indicators_service(request)
+        return await svc.psbi_suspected_diagnoses()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to compute suspected diagnoses: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute suspected diagnoses: {e}",
+        )
+
+
+@router.get(
     "/psbi-sign-count",
     summary="Distribution of patients by number of pSBI signs/symptoms",
     tags=["indicators"],

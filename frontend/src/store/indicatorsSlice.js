@@ -8,6 +8,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL;
 const COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes, matching statsSlice
 let lastInfectionFetch = 0;
 let lastPsbiSignCountFetch = 0;
+let lastSuspectedDiagnosesFetch = 0;
 
 // ==================== ASYNC THUNKS ====================
 export const fetchInfectionIndicators = createAsyncThunk(
@@ -76,14 +77,50 @@ export const fetchPsbiSignCount = createAsyncThunk(
     }
 );
 
+export const fetchSuspectedDiagnoses = createAsyncThunk(
+    'indicators/fetchSuspectedDiagnoses',
+    async (_, { rejectWithValue }) => {
+        const now = Date.now();
+        const elapsed = now - lastSuspectedDiagnosesFetch;
+
+        if (elapsed < COOLDOWN_MS) {
+            return rejectWithValue({
+                type: 'COOLDOWN',
+                remainingSeconds: Math.ceil((COOLDOWN_MS - elapsed) / 1000),
+            });
+        }
+
+        lastSuspectedDiagnosesFetch = now;
+
+        try {
+            const { data } = await axios.get(
+                `${API_BASE_URL}/indicators/suspected-diagnoses`,
+                { timeout: 30000 }
+            );
+            return data;
+        } catch (error) {
+            return rejectWithValue({
+                type: 'API_ERROR',
+                message:
+                    error.response?.data?.detail ||
+                    error.response?.data?.message ||
+                    `Failed to fetch suspected diagnoses: ${error.message}`,
+            });
+        }
+    }
+);
+
 // ==================== INITIAL STATE ====================
 const initialState = {
     infection: { total: 0, bars: [] },
     psbiSignCount: { total: 0, bars: [] },
+    suspectedDiagnoses: { total: 0, bars: [] },
     loading: false,
     error: null,
     psbiSignCountLoading: false,
     psbiSignCountError: null,
+    suspectedDiagnosesLoading: false,
+    suspectedDiagnosesError: null,
     lastUpdated: null,
 };
 
@@ -128,6 +165,22 @@ const indicatorsSlice = createSlice({
                 if (action.payload?.type !== 'COOLDOWN') {
                     state.psbiSignCountError =
                         action.payload?.message || 'Failed to fetch pSBI sign-count';
+                }
+            })
+            .addCase(fetchSuspectedDiagnoses.pending, (state) => {
+                state.suspectedDiagnosesLoading = true;
+                state.suspectedDiagnosesError = null;
+            })
+            .addCase(fetchSuspectedDiagnoses.fulfilled, (state, action) => {
+                state.suspectedDiagnosesLoading = false;
+                state.suspectedDiagnoses = action.payload;
+                state.lastUpdated = new Date().toISOString();
+            })
+            .addCase(fetchSuspectedDiagnoses.rejected, (state, action) => {
+                state.suspectedDiagnosesLoading = false;
+                if (action.payload?.type !== 'COOLDOWN') {
+                    state.suspectedDiagnosesError =
+                        action.payload?.message || 'Failed to fetch suspected diagnoses';
                 }
             });
     },
@@ -176,6 +229,26 @@ export const selectPsbiSignCountLoading = createSelector(
 export const selectPsbiSignCountError = createSelector(
     [selectIndicatorsState],
     (ind) => ind.psbiSignCountError
+);
+
+export const selectSuspectedDiagnosesBars = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.suspectedDiagnoses.bars
+);
+
+export const selectSuspectedDiagnosesTotal = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.suspectedDiagnoses.total
+);
+
+export const selectSuspectedDiagnosesLoading = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.suspectedDiagnosesLoading
+);
+
+export const selectSuspectedDiagnosesError = createSelector(
+    [selectIndicatorsState],
+    (ind) => ind.suspectedDiagnosesError
 );
 
 export default indicatorsSlice.reducer;
