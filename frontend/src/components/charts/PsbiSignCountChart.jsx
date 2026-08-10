@@ -23,14 +23,26 @@ import {
 
 const POLL_INTERVAL_MS = 2 * 60 * 1000;
 
-// Gradient from light blue → deep blue as sign count increases
-const barColor = (index, total) => {
-    const ratio = total > 1 ? index / (total - 1) : 0;
-    const r = Math.round(22 + ratio * (9 - 22));
-    const g = Math.round(119 + ratio * (74 - 119));
-    const b = Math.round(255 + ratio * (140 - 255));
-    return `rgb(${r},${g},${b})`;
-};
+// Bold, maximally-distinct palette — adjacent bars look completely different
+const BOLD_COLORS = [
+    '#e6194b',  // vivid red
+    '#4363d8',  // royal blue
+    '#3cb44b',  // vivid green
+    '#f58231',  // vivid orange
+    '#911eb4',  // vivid purple
+    '#42d4f4',  // vivid cyan
+    '#f032e6',  // vivid magenta
+    '#469990',  // teal
+    '#9A6324',  // brown
+    '#800000',  // maroon
+    '#808000',  // olive
+    '#000075',  // navy
+    '#AD1457',  // deep pink
+    '#ffe119',  // yellow
+    '#bfef45',  // lime
+    '#6200EA',  // deep violet
+    '#E65100',  // deep orange
+];
 
 // ==================== CUSTOM TOOLTIP ====================
 const CustomTooltip = ({ active, payload }) => {
@@ -77,11 +89,11 @@ export default function PsbiSignCountChart() {
         const midX = x + width / 2;
         return (
             <g key={index}>
-                <text x={midX} y={y - 14} fontSize={12} fontWeight={700}
+                <text x={midX} y={y - 26} fontSize={12} fontWeight={700}
                     fill="#333" textAnchor="middle" dominantBaseline="middle">
                     {value}%
                 </text>
-                <text x={midX} y={y - 2} fontSize={11}
+                <text x={midX} y={y - 13} fontSize={11}
                     fill="#777" textAnchor="middle" dominantBaseline="middle">
                     {bar?.numerator}/{bar?.denominator}
                 </text>
@@ -218,7 +230,7 @@ export default function PsbiSignCountChart() {
                         {bars.map((_, i) => (
                             <Cell
                                 key={i}
-                                fill={barColor(i, bars.length)}
+                                fill={BOLD_COLORS[i % BOLD_COLORS.length]}
                             />
                         ))}
                     </Bar>
