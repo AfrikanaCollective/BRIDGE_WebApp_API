@@ -92,7 +92,7 @@ class ChangeStreamWatcher:
         while not self._stopped.is_set():
             resume_token = await self._get_resume_token()
             pipeline = [
-                {"$match": {"operationType": {"$in": ["insert", "update", "replace"]}}}
+                {"$match": {"operationType": {"$in": ["insert", "update", "replace", "delete"]}}}
             ]
             try:
                 stream = await self.source_collection.watch(
@@ -106,8 +106,18 @@ class ChangeStreamWatcher:
                         if self._stopped.is_set():
                             break
 
+                        op = change.get("operationType")
                         full_document = change.get("fullDocument")
-                        if full_document:
+                        if op == "delete":
+                            # fullDocument is unavailable for deletes; the history
+                            # route already cascaded the removal to patient_summary
+                            # synchronously before this event fires.
+                            logger.info(
+                                f"🗑️  form-results delete event received "
+                                f"(documentKey={change.get('documentKey')}); "
+                                f"patient_summary cascade handled by history route"
+                            )
+                        elif full_document:
                             try:
                                 await self.patient_summary_service.upsert_from_document(
                                     full_document

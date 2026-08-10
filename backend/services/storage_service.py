@@ -695,6 +695,7 @@ class StorageService:
                 "record_id": record_id,
                 "actual_id": str(actual_id),
                 "processing_id": processing_id,
+                "image_filename": image_filename,
                 "form_type": form_type,
                 "query_strategy": query_used,
                 "mongodb_deleted": True,

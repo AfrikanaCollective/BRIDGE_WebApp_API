@@ -11,6 +11,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Request, HTTPException, status, Path, Query
 
+from utils.patient_id import extract_patient_id
+
 from models.history import (
     FormRecord,
     HistoryResponse,
@@ -416,7 +418,37 @@ async def delete_record(
             )
 
         # ================================================================
-        # Deletion succeeded - build success message
+        # Cascade delete → patient_summary (patient_summary_viz is then
+        # handled automatically by VizStreamWatcher's delete event handler)
+        # ================================================================
+        image_filename = deletion_result.get("image_filename")
+            patient_id = extract_patient_id(image_filename) if image_filename else None
+            if patient_id:
+                patient_summary_svc = getattr(
+                    request.app.state, "patient_summary_service", None
+                )
+                if patient_summary_svc:
+                    try:
+                        await patient_summary_svc.delete_by_patient_id(patient_id)
+                    except Exception as e:
+                        logger.error(
+                            f"⚠️  patient_summary cascade delete failed for "
+                            f"patient_id={patient_id!r}: {e}",
+                            exc_info=True,
+                        )
+                else:
+                    logger.warning(
+                        "⚠️  patient_summary_service not in app.state — "
+                        "patient_summary row not removed"
+                    )
+            else:
+                logger.warning(
+                    f"⚠️  Could not extract patient_id from image_filename="
+                    f"{image_filename!r}; patient_summary row not removed"
+                )
+
+        # ================================================================
+        # Build success response
         # ================================================================
         cleanup_count = len(cleanup_results)
         cleanup_deleted = sum(1 for c in cleanup_results if c.get("deleted"))

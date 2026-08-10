@@ -267,6 +267,22 @@ class VizSyncService:
         )
         return str(patient_id)
 
+    async def delete_by_patient_id(self, patient_id: str) -> bool:
+        """
+        Remove the patient_summary_viz document for patient_id.
+        Returns True if a document was deleted, False if none was found.
+        """
+        if not patient_id:
+            return False
+        result = await self.collection.delete_one({"_id": patient_id})
+        if result.deleted_count:
+            logger.info(f"🗑️  Deleted patient_summary_viz: patient_id={patient_id!r}")
+            return True
+        logger.warning(
+            f"⚠️  patient_summary_viz not found for patient_id={patient_id!r} — nothing deleted"
+        )
+        return False
+
     async def backfill_all(
             self,
             source_collection_name: str = settings.MONGODB_PATIENT_SUMMARY_COLLECTION,
@@ -365,7 +381,7 @@ class VizStreamWatcher:
         while not self._stopped.is_set():
             resume_token = await self._get_resume_token()
             pipeline = [
-                {"$match": {"operationType": {"$in": ["insert", "update", "replace"]}}}
+                {"$match": {"operationType": {"$in": ["insert", "update", "replace", "delete"]}}}
             ]
             try:
                 stream = await self.source_collection.watch(
@@ -379,8 +395,24 @@ class VizStreamWatcher:
                         if self._stopped.is_set():
                             break
 
+                        op = change.get("operationType")
                         full_document = change.get("fullDocument")
-                        if full_document:
+                        if op == "delete":
+                            # documentKey._id is the patient_id (patient_summary uses
+                            # patient_id as its _id), so we can cascade directly.
+                            patient_id = change.get("documentKey", {}).get("_id")
+                            if patient_id:
+                                try:
+                                    await self.viz_sync_service.delete_by_patient_id(
+                                        str(patient_id)
+                                    )
+                                except Exception as e:
+                                    logger.error(
+                                        f"❌ Failed to delete from patient_summary_viz "
+                                        f"for patient_id={patient_id!r}: {e}",
+                                        exc_info=True,
+                                    )
+                        elif full_document:
                             try:
                                 await self.viz_sync_service.upsert_from_patient_summary(
                                     full_document

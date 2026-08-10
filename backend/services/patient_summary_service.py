@@ -129,3 +129,19 @@ class PatientSummaryService:
             f"patient_id={patient_id}, form_type={form_type}, source={case_id}"
         )
         return patient_id
+
+    async def delete_by_patient_id(self, patient_id: str) -> bool:
+        """
+        Remove the patient_summary document for patient_id.
+        Returns True if a document was deleted, False if none was found.
+        """
+        if not patient_id:
+            return False
+        result = await self.collection.delete_one({"_id": patient_id})
+        if result.deleted_count:
+            logger.info(f"🗑️  Deleted patient_summary: patient_id={patient_id!r}")
+            return True
+        logger.warning(
+            f"⚠️  patient_summary not found for patient_id={patient_id!r} — nothing deleted"
+        )
+        return False
