@@ -71,6 +71,24 @@ export default function PsbiSignCountChart() {
         dispatch(fetchPsbiSignCount());
     }, [dispatch]);
 
+    const renderBarLabel = useCallback(({ x, y, width, value, index }) => {
+        if (width <= 0) return null;
+        const bar = bars[index];
+        const midX = x + width / 2;
+        return (
+            <g key={index}>
+                <text x={midX} y={y - 14} fontSize={12} fontWeight={700}
+                    fill="#333" textAnchor="middle" dominantBaseline="middle">
+                    {value}%
+                </text>
+                <text x={midX} y={y - 2} fontSize={11}
+                    fill="#777" textAnchor="middle" dominantBaseline="middle">
+                    {bar?.numerator}/{bar?.denominator}
+                </text>
+            </g>
+        );
+    }, [bars]);
+
     useEffect(() => {
         triggerFetch();
         intervalRef.current = setInterval(triggerFetch, POLL_INTERVAL_MS);
@@ -102,10 +120,14 @@ export default function PsbiSignCountChart() {
     }
 
     const maxValue = Math.max(...bars.map((b) => b.value));
-    const yMax = Math.min(100, Math.ceil((maxValue + 5) / 10) * 10);
+    const yMax = (Math.floor(maxValue / 5) + 1) * 5;
 
-    const gridLines = [];
-    for (let v = 0; v <= yMax; v += 10) gridLines.push(v);
+    const majorGridLines = [];
+    const minorGridLines = [];
+    for (let v = 0; v <= yMax; v += 5) {
+        if (v % 10 === 0) majorGridLines.push(v);
+        else minorGridLines.push(v);
+    }
 
     return (
         <div>
@@ -131,16 +153,24 @@ export default function PsbiSignCountChart() {
             <ResponsiveContainer width="100%" height={340}>
                 <BarChart
                     data={bars}
-                    margin={{ top: 16, right: 24, bottom: 48, left: 48 }}
+                    margin={{ top: 40, right: 24, bottom: 48, left: 48 }}
                     barCategoryGap="20%"
                 >
-                    {gridLines.map((v) => (
+                    {minorGridLines.map((v) => (
                         <ReferenceLine
-                            key={v}
+                            key={`minor-${v}`}
                             y={v}
-                            stroke={v % 20 === 0 ? '#d4d4d4' : '#efefef'}
+                            stroke="#efefef"
                             strokeWidth={1}
-                            strokeDasharray={v % 20 === 0 ? undefined : '4 3'}
+                            strokeDasharray="4 3"
+                        />
+                    ))}
+                    {majorGridLines.map((v) => (
+                        <ReferenceLine
+                            key={`major-${v}`}
+                            y={v}
+                            stroke="#d4d4d4"
+                            strokeWidth={1}
                         />
                     ))}
 
@@ -164,7 +194,7 @@ export default function PsbiSignCountChart() {
 
                     <YAxis
                         domain={[0, yMax]}
-                        ticks={gridLines}
+                        ticks={[...minorGridLines, ...majorGridLines].sort((a, b) => a - b)}
                         tickFormatter={(v) => `${v}%`}
                         tick={{ fontSize: 12, fill: '#999' }}
                         axisLine={false}
@@ -184,7 +214,7 @@ export default function PsbiSignCountChart() {
                         cursor={{ fill: '#fafafa' }}
                     />
 
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]} label={renderBarLabel}>
                         {bars.map((_, i) => (
                             <Cell
                                 key={i}
