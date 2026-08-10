@@ -39,6 +39,110 @@ class IndicatorsService:
     def _pct(numerator: int, denominator: int) -> float:
         return round(numerator / denominator * 100, 1) if denominator else 0.0
 
+    async def psbi_sign_count_distribution(self) -> Dict[str, Any]:
+        """
+        For each patient, counts how many of the 16 unique pSBI signs/symptoms
+        are present, then returns the distribution as % of total patients.
+
+        Signs scored (deduplicated — has_apnoea listed twice in spec, counted once):
+          1.  temperature > 38 or < 36
+          2.  is_floppy = true
+          3.  is_irritable = true
+          4.  has_difficulty_feeding = true
+          5.  cry in ["Weak/Absent", "Weak", "Absent"]
+          6.  has_apnoea = true
+          7.  respiratory_rate > 59
+          8.  has_central_cyanosis = true
+          9.  capillary_refill_in_seconds > 2
+          10. skin in ["Mottling", "Pale"]
+          11. has_grunting = true
+          12. chest_indrawing = true
+          13. has_crackles = true
+          14. pulse_oximetry < 90
+          15. has_convulsions = true
+          16. has_bulging_fontanelle = true
+        """
+        def _bool_cond(field: str) -> dict:
+            return {"$cond": [{"$eq": [f"${field}", True]}, 1, 0]}
+
+        def _gt_cond(field: str, threshold) -> dict:
+            return {"$cond": [{"$gt": [f"${field}", threshold]}, 1, 0]}
+
+        def _lt_cond(field: str, threshold) -> dict:
+            return {"$cond": [{"$lt": [f"${field}", threshold]}, 1, 0]}
+
+        def _in_cond(field: str, values: list) -> dict:
+            return {"$cond": [{"$in": [f"${field}", values]}, 1, 0]}
+
+        pipeline = [
+            {
+                "$addFields": {
+                    "psbi_score": {
+                        "$add": [
+                            {"$cond": [
+                                {"$or": [
+                                    {"$gt": ["$temperature", 38]},
+                                    {"$and": [
+                                        {"$ne": ["$temperature", None]},
+                                        {"$lt": ["$temperature", 36]},
+                                    ]},
+                                ]},
+                                1, 0,
+                            ]},
+                            _bool_cond("is_floppy"),
+                            _bool_cond("is_irritable"),
+                            _bool_cond("has_difficulty_feeding"),
+                            _in_cond("cry", ["Weak/Absent", "Weak", "Absent"]),
+                            _bool_cond("has_apnoea"),
+                            _gt_cond("respiratory_rate", 59),
+                            _bool_cond("has_central_cyanosis"),
+                            _gt_cond("capillary_refill_in_seconds", 2),
+                            _in_cond("skin", ["Mottling", "Pale"]),
+                            _bool_cond("has_grunting"),
+                            _bool_cond("chest_indrawing"),
+                            _bool_cond("has_crackles"),
+                            _lt_cond("pulse_oximetry", 90),
+                            _bool_cond("has_convulsions"),
+                            _bool_cond("has_bulging_fontanelle"),
+                        ]
+                    }
+                }
+            },
+            {
+                "$facet": {
+                    "total": [{"$count": "n"}],
+                    "distribution": [
+                        {"$group": {"_id": "$psbi_score", "count": {"$sum": 1}}},
+                        {"$sort": {"_id": 1}},
+                    ],
+                }
+            },
+        ]
+
+        cursor = await self.collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=1)
+        if not rows or not rows[0]["total"]:
+            return {"total": 0, "bars": []}
+
+        total = rows[0]["total"][0]["n"]
+        distribution = rows[0]["distribution"]
+
+        # Fill gaps so every integer from 0 to max score has a bucket
+        dist_map = {d["_id"]: d["count"] for d in distribution}
+        max_score = max(dist_map.keys(), default=0)
+
+        bars = [
+            {
+                "count": i,
+                "value": self._pct(dist_map.get(i, 0), total),
+                "numerator": dist_map.get(i, 0),
+                "denominator": total,
+            }
+            for i in range(max_score + 1)
+        ]
+
+        return {"total": total, "bars": bars}
+
     async def infection_overview(self) -> Dict[str, Any]:
         """
         Returns three infection indicators as percentages:

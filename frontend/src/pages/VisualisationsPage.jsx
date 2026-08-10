@@ -2,6 +2,7 @@
 
 import React from 'react';
 import InfectionBarChart from '../components/charts/InfectionBarChart';
+import PsbiSignCountChart from '../components/charts/PsbiSignCountChart';
 import '../styles/HomePage.css';
 
 const VisualisationsPage = () => (
@@ -12,6 +13,10 @@ const VisualisationsPage = () => (
                 Aggregated clinical indicators derived from processed patient records.
                 Charts update automatically every two minutes.
             </p>
+        </article>
+
+        <article className="statistics-card">
+            <PsbiSignCountChart />
         </article>
 
         <article className="statistics-card">

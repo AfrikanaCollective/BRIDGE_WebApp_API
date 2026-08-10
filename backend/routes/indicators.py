@@ -25,6 +25,33 @@ def _get_indicators_service(request: Request) -> IndicatorsService:
 
 
 @router.get(
+    "/psbi-sign-count",
+    summary="Distribution of patients by number of pSBI signs/symptoms",
+    tags=["indicators"],
+    responses={
+        200: {"description": "pSBI sign-count distribution"},
+        503: {"description": "IndicatorsService unavailable"},
+    },
+)
+async def psbi_sign_count(request: Request):
+    """
+    Returns one bar per distinct pSBI sign count (0 … 16).
+    Each bar's `value` is the % of all patients with exactly that many signs.
+    """
+    try:
+        svc = _get_indicators_service(request)
+        return await svc.psbi_sign_count_distribution()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to compute pSBI sign-count distribution: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute pSBI sign-count distribution: {e}",
+        )
+
+
+@router.get(
     "/infection",
     summary="Infection overview indicators",
     tags=["indicators"],
