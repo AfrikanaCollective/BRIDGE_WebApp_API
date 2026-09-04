@@ -558,21 +558,39 @@ class FormProcessor:
         timeout: int = 900,
     ) -> Dict[str, Any]:
         """
-        Call Qwen API with image and prompt.
+        Call the LLM gateway with image and prompt.
 
         Args:
             image_path: Path to image file
             prompt: Text prompt
-            timeout: Request timeout in seconds
+            timeout: Request timeout in seconds. Keep this generous —
+                gateway failover to a secondary backend can trigger a cold
+                model load (tens of seconds); that's expected, not a fault.
 
         Returns:
-            dict: API response with keys:
-                - response: LLM response text
-                - error: Error message if failed
+            dict: On success, the gateway's legacy body
+                ``{response, model, timestamp, metrics}``.
+            On failure, an error dict with:
+                - error:       short label, e.g. "Gateway error 429"
+                - details:     human-readable message from the gateway
+                - status:      HTTP status code (int), or None for
+                               transport-level failures (timeout, conn reset)
+                - retryable:   bool — safe to retry with backoff
+                - retry_after: float seconds if the gateway sent Retry-After,
+                               else None (this endpoint usually doesn't —
+                               use your own backoff)
 
         Note:
             Uses SSL context from settings for self-signed certificate handling.
+            Requires a seeded gateway API key (settings.QWEN_SERVICE_API_KEY,
+            provisioned via `python -m gateway.admin.seed`); a missing or
+            revoked key returns a non-retryable 401.
         """
+        # 4xx = caller/config problem, don't retry; 5xx + 429 = transient.
+        RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+        headers = {"Authorization": f"Bearer {settings.QWEN_SERVICE_API_KEY}"}
+
         try:
             with open(image_path, "rb") as f:
                 data = aiohttp.FormData()
@@ -586,26 +604,67 @@ class FormProcessor:
                     async with session.post(
                         f"{settings.QWEN_SERVICE_URL}/generate-with-image",
                         data=data,
+                        headers=headers,
                         timeout=timeout_obj,
                     ) as response:
-                        if response.status != 200:
-                            error_text = await response.text()
-                            logger.error(f"❌ API error {response.status}: {error_text}")
-                            return {
-                                "error": f"API error {response.status}",
-                                "details": error_text,
-                            }
+                        if response.status == 200:
+                            result = await response.json()
+                            logger.info("✅ Received LLM response")
+                            return result
 
-                        result = await response.json()
-                        logger.info(f"✅ Received LLM response")
-                        return result
+                        # Gateway no longer returns 200-with-error-body.
+                        # Every failure is a real status code + a JSON
+                        # {"detail": "..."} body (falls back to text if the
+                        # body isn't JSON, e.g. a proxy 502).
+                        try:
+                            body = await response.json(content_type=None)
+                            detail = body.get("detail", body) if isinstance(body, dict) else body
+                        except (ValueError, aiohttp.ClientError):
+                            detail = await response.text()
+
+                        retry_after = response.headers.get("Retry-After")
+                        try:
+                            retry_after = float(retry_after) if retry_after else None
+                        except ValueError:
+                            retry_after = None
+
+                        retryable = response.status in RETRYABLE_STATUS
+                        logger.error(
+                            f"❌ Gateway error {response.status} "
+                            f"(retryable={retryable}): {detail}"
+                        )
+                        return {
+                            "error": f"Gateway error {response.status}",
+                            "details": detail,
+                            "status": response.status,
+                            "retryable": retryable,
+                            "retry_after": retry_after,
+                        }
 
         except asyncio.TimeoutError:
             logger.error(f"❌ Request timed out after {timeout}s")
-            return {"error": "Time-out error"}
+            return {
+                "error": "Time-out error",
+                "details": f"No response after {timeout}s",
+                "status": None,
+                "retryable": True,
+                "retry_after": None,
+            }
         except aiohttp.ClientError as e:
             logger.error(f"❌ Request failed: {e}")
-            return {"error": str(e)}
+            return {
+                "error": str(e),
+                "details": repr(e),
+                "status": None,
+                "retryable": True,
+                "retry_after": None,
+            }
         except Exception as e:
             logger.error(f"❌ Unexpected error: {e}", exc_info=True)
-            return {"error": str(e)}
+            return {
+                "error": str(e),
+                "details": repr(e),
+                "status": None,
+                "retryable": False,
+                "retry_after": None,
+            }

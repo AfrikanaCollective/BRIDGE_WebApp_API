@@ -94,6 +94,7 @@ class Settings(BaseSettings):
     QWEN_MODEL: str = Field(default="qwen-turbo")
     QWEN_REQUEST_TIMEOUT: int = Field(default=600)  # seconds
     QWEN_MAX_RETRIES: int = Field(default=3)
+    QWEN_SERVICE_API_KEY: str = Field(default="CHANGE_ME")
 
     # ==================== File Upload ====================
     MAX_FILE_SIZE: int = Field(default=15 * 1024 * 1024)  # 15MB
