@@ -183,10 +183,31 @@ class Settings(BaseSettings):
     @field_validator('PROMPTS_DIR', 'UPLOAD_TEMP_DIR', mode='before')
     @classmethod
     def resolve_dir_paths(cls, v: str) -> str:
-        """Resolve relative directory paths against the backend directory."""
+        """
+        Resolve directory paths so they work in both Docker and bare-metal.
+
+        Priority:
+        1. If the configured path exists as-is (absolute Docker path like /app/prompts,
+           or a correct absolute host path) — use it.
+        2. If it's a relative path — resolve against the backend directory.
+        3. If the configured absolute path doesn't exist (e.g. /app/prompts on bare-metal)
+           — fall back to the backend-relative equivalent of the final path component.
+        """
+        _backend_dir = Path(__file__).resolve().parent.parent
         p = Path(v)
+
+        if p.exists():
+            return str(p)
+
         if not p.is_absolute():
-            p = Path(__file__).resolve().parent.parent / p
+            return str(_backend_dir / p)
+
+        # Absolute path that doesn't exist (e.g. /app/prompts on bare-metal):
+        # resolve using just the last component against the backend directory.
+        fallback = _backend_dir / p.name
+        if fallback.exists():
+            return str(fallback)
+
         return str(p)
 
     @field_validator('CORS_ORIGINS', mode='before')
