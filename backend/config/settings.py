@@ -101,11 +101,15 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: List[str] = Field(
         default=["png"]
     )
-    UPLOAD_TEMP_DIR: str = Field(default="/app/tmp/uploads")
+    UPLOAD_TEMP_DIR: str = Field(
+        default=str(Path(__file__).resolve().parent.parent / "tmp" / "uploads")
+    )
     LOG_DIR: str = Field(default="/app/logs")
 
     # ==================== Prompts ====================
-    PROMPTS_DIR: str = Field(default="/app/prompts")
+    PROMPTS_DIR: str = Field(
+        default=str(Path(__file__).resolve().parent.parent / "prompts")
+    )
     DEFAULT_PROMPT_FILE: str = Field(default="DEFAULT.txt")
     DEFAULT_PROMPT_FALLBACK: bool = Field(default=True)
 
@@ -175,6 +179,15 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = True
         extra = "allow"  # Allow extra fields from .env
+
+    @field_validator('PROMPTS_DIR', 'UPLOAD_TEMP_DIR', mode='before')
+    @classmethod
+    def resolve_dir_paths(cls, v: str) -> str:
+        """Resolve relative directory paths against the backend directory."""
+        p = Path(v)
+        if not p.is_absolute():
+            p = Path(__file__).resolve().parent.parent / p
+        return str(p)
 
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
