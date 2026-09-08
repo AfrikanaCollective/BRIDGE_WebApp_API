@@ -266,176 +266,98 @@ async def get_stats_overview(
         from config.settings import settings
         collection_name = settings.MONGODB_DB_COLLECTION
 
-        # Calculate date range
-        end_date = datetime.now(UTC)
-        start_date = end_date - timedelta(days=days)
-
-        # Build filter with proper timestamp handling
-        filters = {
-            "timestamp": {"$gte": start_date.isoformat(), "$lte": end_date.isoformat()}
-        }
-        if form_type:
-            filters["form_type"] = form_type.upper()
-
-        logger.debug(f"📋 Filter: {filters}")
+        RECENT_SAMPLE = 1000
 
         # ==================== COUNT TOTAL PROCESSED (all-time) ====================
-        # No date filter — this is the headline "Forms Processed" count shown
-        # on the homepage. Time-windowed stats (success rate, timing) still
-        # use `filters` so they reflect the selected period.
+        type_filter = {"form_type": form_type.upper()} if form_type else {}
         try:
             total_processed = await mongo_client.count_documents(
-                collection_name,
-                {"form_type": form_type.upper()} if form_type else {}
+                collection_name, type_filter
             )
             logger.info(f"✅ Total processed (all-time): {total_processed}")
         except Exception as e:
             logger.error(f"❌ Error counting documents: {e}", exc_info=True)
             total_processed = 0
 
-        # ==================== COUNT BY STATUS ====================
-        status_counts = {}
+        # ==================== FETCH LAST 1000 DOCUMENTS ====================
+        # A single query drives status breakdown, form-type breakdown,
+        # timing stats, and success rate — no time window needed.
+        recent_docs: List[Dict[str, Any]] = []
         try:
-            status_pipeline = [
-                {"$match": filters},
-                {"$group": {
-                    "_id": "$status",
-                    "count": {"$sum": 1}
+            recent_pipeline = [
+                {"$match": type_filter},
+                {"$sort": {"timestamp": -1}},
+                {"$limit": RECENT_SAMPLE},
+                {"$project": {
+                    "_id": 1,
+                    "status": 1,
+                    "form_type": 1,
+                    "processing_time_llm_seconds": 1,
+                    "processing_time_agent_seconds": 1,
+                    "timestamp": 1,
                 }},
-                {"$sort": {"count": -1}}
             ]
-            status_results = await mongo_client.aggregate(
-                collection_name,
-                status_pipeline
-            )
-            status_counts = {item["_id"]: item["count"] for item in status_results}
-            logger.info(f"✅ Status breakdown: {status_counts}")
+            recent_docs = await mongo_client.aggregate(collection_name, recent_pipeline)
+            logger.info(f"📊 Fetched {len(recent_docs)} recent documents for stats")
         except Exception as e:
-            logger.error(f"❌ Error aggregating by status: {e}", exc_info=True)
+            logger.error(f"❌ Error fetching recent documents: {e}", exc_info=True)
 
-        # ==================== COUNT BY FORM TYPE ====================
-        form_type_counts = {}
-        try:
-            form_type_pipeline = [
-                {"$match": filters},
-                {"$group": {
-                    "_id": "$form_type",
-                    "count": {"$sum": 1}
-                }},
-                {"$sort": {"count": -1}}
-            ]
-            form_type_results = await mongo_client.aggregate(
-                collection_name,
-                form_type_pipeline
-            )
-            form_type_counts = {item["_id"]: item["count"] for item in form_type_results}
-            logger.info(f"✅ Form type breakdown: {form_type_counts}")
-        except Exception as e:
-            logger.error(f"❌ Error aggregating by form type: {e}", exc_info=True)
+        # ==================== STATUS + FORM-TYPE BREAKDOWN ====================
+        status_counts: Dict[str, int] = {}
+        form_type_counts: Dict[str, int] = {}
+        for doc in recent_docs:
+            s = doc.get("status")
+            if s:
+                status_counts[s] = status_counts.get(s, 0) + 1
+            ft = doc.get("form_type")
+            if ft:
+                form_type_counts[ft] = form_type_counts.get(ft, 0) + 1
+        logger.info(f"✅ Status breakdown (last {RECENT_SAMPLE}): {status_counts}")
+        logger.info(f"✅ Form type breakdown (last {RECENT_SAMPLE}): {form_type_counts}")
 
         # ==================== PROCESSING TIME STATS ====================
-        llm_stats = {
-            "average": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "total_samples": 0
-        }
-        agent_stats = {
-            "average": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "total_samples": 0
-        }
-        total_stats = {
-            "average": 0.0,
-            "median": 0.0,
-            "p25": 0.0,
-            "p75": 0.0,
-            "total_samples": 0
-        }
+        llm_stats = {"average": 0.0, "median": 0.0, "p25": 0.0, "p75": 0.0, "total_samples": 0}
+        agent_stats = {"average": 0.0, "median": 0.0, "p25": 0.0, "p75": 0.0, "total_samples": 0}
+        total_stats = {"average": 0.0, "median": 0.0, "p25": 0.0, "p75": 0.0, "total_samples": 0}
 
         try:
-            # ✅ FIXED: Fetch documents with TOP-LEVEL processing time fields
-            timing_pipeline = [
-                {"$match": filters},
-                {
-                    "$project": {
-                        "_id": 1,
-                        "processing_time_llm_seconds": 1,
-                        "processing_time_agent_seconds": 1,
-                        "timestamp": 1,
-                        "status": 1
-                    }
-                }
-            ]
+            llm_times = _extract_processing_times(recent_docs, "processing_time_llm_seconds")
+            agent_times = _extract_processing_times(recent_docs, "processing_time_agent_seconds")
+            total_times = []
+            for doc in recent_docs:
+                try:
+                    llm_val = float(doc.get("processing_time_llm_seconds") or 0)
+                    agent_val = float(doc.get("processing_time_agent_seconds") or 0)
+                except (ValueError, TypeError):
+                    continue
+                if llm_val > 0 and agent_val > 0:
+                    total_times.append(llm_val + agent_val)
 
-            timing_documents = await mongo_client.aggregate(
-                collection_name,
-                timing_pipeline
+            logger.info(
+                f"📊 Timing samples (last {RECENT_SAMPLE}): "
+                f"LLM={len(llm_times)}, Agent={len(agent_times)}, Total={len(total_times)}"
             )
-
-            logger.info(f"📊 Retrieved {len(timing_documents)} documents for timing analysis")
-
-            if timing_documents and len(timing_documents) > 0:
-                # ✅ FIXED: Extract from TOP-LEVEL fields
-                llm_times = _extract_processing_times(
-                    timing_documents,
-                    "processing_time_llm_seconds"
-                )
-                agent_times = _extract_processing_times(
-                    timing_documents,
-                    "processing_time_agent_seconds"
-                )
-
-                # Calculate total times (LLM + Agent)
-                total_times = []
-                for doc in timing_documents:
-                    llm_val = doc.get("processing_time_llm_seconds", 0)
-                    agent_val = doc.get("processing_time_agent_seconds", 0)
-
-                    # Convert to float if needed
-                    try:
-                        llm_val = float(llm_val) if llm_val else 0
-                        agent_val = float(agent_val) if agent_val else 0
-                    except (ValueError, TypeError):
-                        continue
-
-                    if llm_val > 0 and agent_val > 0:
-                        total_times.append(llm_val + agent_val)
-
-                logger.info(
-                    f"📊 Processing times extracted:\n"
-                    f"   LLM samples: {len(llm_times)}\n"
-                    f"   Agent samples: {len(agent_times)}\n"
-                    f"   Total samples: {len(total_times)}"
-                )
-
-                # Calculate statistics for each component
-                if llm_times:
-                    llm_stats = _calculate_time_stats(llm_times, "LLM Processing")
-                if agent_times:
-                    agent_stats = _calculate_time_stats(agent_times, "Agent Processing")
-                if total_times:
-                    total_stats = _calculate_time_stats(total_times, "Total Processing")
-
-            else:
-                logger.warning("⚠️  No timing data found in query results")
-
+            if llm_times:
+                llm_stats = _calculate_time_stats(llm_times, "LLM Processing")
+            if agent_times:
+                agent_stats = _calculate_time_stats(agent_times, "Agent Processing")
+            if total_times:
+                total_stats = _calculate_time_stats(total_times, "Total Processing")
         except Exception as e:
             logger.error(f"❌ Error calculating timing statistics: {e}", exc_info=True)
 
         # ==================== CALCULATE SUCCESS RATE ====================
-        # Use windowed count so the rate reflects the selected period,
-        # not the all-time total.
         completed_count = status_counts.get("success", 0)
-        windowed_count = sum(status_counts.values())
+        recent_count = sum(status_counts.values())
         success_rate = (
-            round(completed_count / windowed_count * 100, 2)
-            if windowed_count > 0
+            round(completed_count / recent_count * 100, 2)
+            if recent_count > 0
             else 0.0
         )
+
+        # Keep date_range in the response for informational purposes
+        end_date = datetime.now(UTC)
+        start_date = end_date - timedelta(days=days)
 
         logger.info(
             f"📈 Statistics Summary:\n"
