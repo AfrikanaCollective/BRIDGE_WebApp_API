@@ -169,7 +169,9 @@ class Settings(BaseSettings):
 
     class Config:
         """Pydantic settings configuration."""
-        env_file = ".env"
+        # Resolve .env relative to this file so settings load correctly
+        # regardless of the working directory (server, CLI, tests, etc.).
+        env_file = str(Path(__file__).resolve().parent.parent / ".env")
         env_file_encoding = "utf-8"
         case_sensitive = True
         extra = "allow"  # Allow extra fields from .env

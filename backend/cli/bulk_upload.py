@@ -8,7 +8,7 @@ Usage:
     python -m backend.cli.bulk_upload --directory ./bridge_images --skip-existing
     python -m backend.cli.bulk_upload --file ./bridge_images/form_001.png --form-type ITF
     python -m backend.cli.bulk_upload --directory ./bridge_images --concurrency 5 --max-retries 4
-    python -m backend.cli.bulk_upload --file ./bridge_images/NAR_72001218_page_1.png --form-type NAR --concurrency 3 --max-retries 3
+    python -m backend.cli.bulk_upload --file /opt/bridge_images/NAR_72001218_page_1.png --form-type NAR --max-retries 3
 """
 
 import sys
