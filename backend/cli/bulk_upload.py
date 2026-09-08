@@ -1,30 +1,37 @@
 # backend/cli/bulk_upload.py
 """
-CLI utility for bulk uploading and processing form images via HTTPS.
+CLI utility for bulk uploading and processing form images directly via the LLM gateway.
 
 Usage:
     python -m backend.cli.bulk_upload --directory ./bridge_images
     python -m backend.cli.bulk_upload --directory ./bridge_images --recursive
     python -m backend.cli.bulk_upload --directory ./bridge_images --skip-existing
     python -m backend.cli.bulk_upload --file ./bridge_images/form_001.png --form-type ITF
+    python -m backend.cli.bulk_upload --directory ./bridge_images --concurrency 5 --max-retries 4
 """
 
 import sys
-import json
-import click
-import random
 import asyncio
 import logging
-import subprocess
+import random
 from pathlib import Path
 from typing import Optional, List
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-ALLOWED_EXTENSIONS: List[str] = ["png", "pdf", "jpg", "jpeg"]
+import click
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+from config.settings import settings
+from clients.mongo_client import MongoClient
+from clients.minio_client import MinIOClient
+from services.storage_service import StorageService
+from services.form_processor import FormProcessor
+
+ALLOWED_EXTENSIONS = settings.ALLOWED_EXTENSIONS
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +43,8 @@ class UploadResult:
     processing_id: Optional[str] = None
     status: Optional[str] = None
     error: Optional[str] = None
+    form_type: Optional[str] = None
+    skipped: bool = False
 
 
 @dataclass
@@ -46,24 +55,178 @@ class BulkUploadSummary:
     failed_uploads: int
     skipped_files: int
     total_processing_time_seconds: float
-    errors: List[str]
+    errors: List[str] = field(default_factory=list)
 
 
 class BulkUploadCLI:
-    """CLI handler for bulk upload operations via HTTP."""
+    """
+    Bulk upload handler that calls FormProcessor directly,
+    bypassing the HTTP layer entirely.
+    """
 
-    def __init__(self, api_url):
-        """Initialize CLI with API endpoint."""
-        self.api_url = api_url
+    def __init__(self):
+        self.form_processor: Optional[FormProcessor] = None
+        self.mongo_client: Optional[MongoClient] = None
+        self.minio_client: Optional[MinIOClient] = None
         self.results: List[UploadResult] = []
 
+    # ==================== SERVICE LIFECYCLE ====================
+
+    async def _init_services(self) -> None:
+        """
+        Bootstrap MongoDB, MinIO, StorageService and FormProcessor
+        using the same configuration path as main.py lifespan.
+        """
+        logger.info("🔧 Initializing services...")
+
+        mongo_client = MongoClient(
+            uri=settings.get_mongodb_uri(),
+            db_name=settings.MONGODB_DB_NAME,
+        )
+        health = await mongo_client.health_check()
+        if not health["connected"]:
+            raise RuntimeError(f"MongoDB health check failed: {health.get('error')}")
+        logger.info(f"✅ MongoDB connected: {settings.MONGODB_DB_NAME}")
+
+        minio_cfg = settings.get_minio_config()
+        minio_client = MinIOClient(
+            endpoint=minio_cfg["endpoint"],
+            access_key=minio_cfg["access_key"],
+            secret_key=minio_cfg["secret_key"],
+            bucket_name=minio_cfg["bucket_name"],
+            secure=minio_cfg["secure"],
+            region=minio_cfg["region"],
+        )
+        await minio_client.ensure_bucket_exists()
+        logger.info(f"✅ MinIO connected: {minio_cfg['bucket_name']}")
+
+        storage_service = StorageService(
+            mongo_client=mongo_client,
+            minio_client=minio_client,
+            db_name=settings.MONGODB_DB_NAME,
+            collection_name=settings.MONGODB_DB_COLLECTION,
+        )
+
+        # Assign to instance only after all checks pass so fields are always
+        # either both-None (pre-init) or both-set (post-init).
+        self.mongo_client = mongo_client
+        self.minio_client = minio_client
+        self.form_processor = FormProcessor(
+            storage_service=storage_service,
+            mongo_client=self.mongo_client,
+        )
+        logger.info("✅ Services ready")
+
+    async def _close_services(self) -> None:
+        """Close all service connections gracefully."""
+        if self.mongo_client is not None:
+            await self.mongo_client.close()
+        if self.minio_client is not None:
+            await self.minio_client.close()
+
+    # ==================== SKIP-EXISTING CHECK ====================
+
+    async def _is_already_processed(self, file_path: Path) -> bool:
+        """Return True if the filename already exists in MongoDB."""
+        assert self.mongo_client is not None, "_init_services must be called first"
+        doc = await self.mongo_client.find_one(
+            settings.MONGODB_DB_COLLECTION,
+            {"filename": file_path.name},
+        )
+        return doc is not None
+
+    # ==================== CORE PROCESSING ====================
+
+    async def _process_file(
+        self,
+        file_path: Path,
+        skip_existing: bool = False,
+        form_type: Optional[str] = None,
+        max_retries: int = 3,
+    ) -> UploadResult:
+        """
+        Process a single file through FormProcessor.process().
+
+        Retries on transient gateway errors, respecting the retryable
+        and retry_after fields returned by _call_qwen_api.
+        """
+        resolved_form_type = form_type or FormProcessor.extract_form_type_from_filename(
+            file_path.name
+        )
+        if not resolved_form_type:
+            return UploadResult(
+                file_path=file_path,
+                success=False,
+                error="Cannot detect form type from filename and no --form-type supplied",
+            )
+
+        if skip_existing and await self._is_already_processed(file_path):
+            logger.info(f"⊘ Skipped: {file_path.name} (already in MongoDB)")
+            return UploadResult(
+                file_path=file_path,
+                success=True,
+                skipped=True,
+                form_type=resolved_form_type,
+            )
+
+        assert self.form_processor is not None, "_init_services must be called first"
+        last_error: Optional[str] = None
+
+        for attempt in range(max_retries):
+            try:
+                result = await self.form_processor.process(
+                    image_path=str(file_path),
+                    form_type=resolved_form_type,
+                    save_to_storage=True,
+                )
+            except Exception as e:
+                last_error = str(e)
+                logger.error(f"❌ Exception processing {file_path.name}: {e}", exc_info=True)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+                continue
+
+            if "error" not in result:
+                return UploadResult(
+                    file_path=file_path,
+                    success=True,
+                    processing_id=result.get("mongo_id"),
+                    status="completed",
+                    form_type=resolved_form_type,
+                )
+
+            last_error = result.get("error", "unknown error")
+            retryable = result.get("retryable", False)
+
+            if retryable and attempt < max_retries - 1:
+                # Honour gateway Retry-After if present, else exponential backoff
+                delay = result.get("retry_after") or (2 ** attempt)
+                logger.warning(
+                    f"⚠️  Retryable error for {file_path.name} "
+                    f"({last_error}), waiting {delay:.0f}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                await asyncio.sleep(delay)
+                continue
+
+            # Non-retryable or final attempt
+            break
+
+        return UploadResult(
+            file_path=file_path,
+            success=False,
+            error=last_error,
+            form_type=resolved_form_type,
+        )
+
+    # ==================== FILE DISCOVERY ====================
 
     def _find_image_files(
-            self,
-            directory: Path,
-            recursive: bool = False,
-            file_type: Optional[str] = None,
-            shuffle: bool = False,
+        self,
+        directory: Path,
+        recursive: bool = False,
+        file_type: Optional[str] = None,
+        shuffle: bool = False,
     ) -> List[Path]:
         """
         Find all image files in directory.
@@ -85,191 +248,61 @@ class BulkUploadCLI:
 
         """
         image_extensions = {
-        ext if ext.startswith(".") else f".{ext}"
+            ext if ext.startswith(".") else f".{ext}"
             for ext in ALLOWED_EXTENSIONS
         }
 
         if not directory.exists():
             raise ValueError(f"Directory not found: {directory}")
 
-        # ==================== HELPER: CHECK FILE TYPE IN NAME ====================
-        def matches_file_type(filename: str, file_type: str) -> bool:
-            """
-            Check if filename contains file_type with pattern:
-            - "ITF_" (file_type followed by underscore)
-            - "_ITF_" (underscore, file_type, underscore)
-            """
-            file_type_upper = file_type.upper()
+        def matches_file_type(filename: str, ft: str) -> bool:
+            ft_upper = ft.upper()
             return (
-                    f"{file_type_upper}_" in filename.upper() or
-                    f"_{file_type_upper}_" in filename.upper()
+                f"{ft_upper}_" in filename.upper()
+                or f"_{ft_upper}_" in filename.upper()
             )
 
-        # ==================== FILTER BY FILE TYPE IF PROVIDED ====================
         if file_type is not None:
-            if recursive:
-                files = [
-                    f for f in directory.rglob("*")
-                    if (f.is_file() and
-                        f.suffix.lower() in image_extensions and
-                        matches_file_type(f.name, file_type))
-                ]
-            else:
-                files = [
-                    f for f in directory.glob("*")
-                    if (f.is_file() and
-                        f.suffix.lower() in image_extensions and
-                        matches_file_type(f.name, file_type))
-                ]
+            candidates = directory.rglob("*") if recursive else directory.glob("*")
+            files = [
+                f for f in candidates
+                if f.is_file()
+                and f.suffix.lower() in image_extensions
+                and matches_file_type(f.name, file_type)
+            ]
         else:
             files = [
                 f for f in directory.glob("*")
-                if (f.is_file() and f.suffix.lower() in image_extensions)
+                if f.is_file() and f.suffix.lower() in image_extensions
             ]
 
-        # Return shuffled or sorted
         if shuffle:
             random.shuffle(files)
             return files
-        else:
-            return sorted(files)
+        return sorted(files)
 
-    def _upload_file(self,
-                     file_path: Path,
-                     skip_existing: bool = False,
-                     form_type: Optional[str] = None, ) -> UploadResult:
-        """
-        Upload single file via curl.
-
-        Args:
-            file_path: Path to image file
-            skip_existing: Skip if already uploaded
-            form_type: Optional form type override
-
-        Returns:
-            UploadResult with success status
-        """
-        try:
-            # Build curl command
-            curl_cmd = [
-                "curl", "-X", "POST",
-                f"https://{self.api_url}/api/upload",
-                "-F",
-                f"file=@{file_path}", "-s", "-w", "\n%{http_code}",
-            ]
-
-            # Add optional parameters
-            if skip_existing:
-                curl_cmd.extend(["-F", "skip_existing=true"])
-            if form_type:
-                curl_cmd.extend(["-F", f"form_type={form_type}"])
-
-            logger.debug(f"Running: {' '.join(curl_cmd)}")
-
-            # Execute curl
-            result = subprocess.run(
-                curl_cmd,
-                capture_output=True,
-                text=True,
-                timeout=300,  # 5 minute timeout per file
-            )
-
-            if result.returncode != 0:
-                return UploadResult(
-                    file_path=file_path,
-                    success=False,
-                    error=f"curl failed: {result.stderr}",
-                )
-
-            # Parse response (last line is HTTP status code)
-            lines = result.stdout.strip().split("\n")
-            if len(lines) < 2:
-                logger.info(f"⊘Empty response : {lines}\n\n")
-                return UploadResult(
-                    file_path=file_path,
-                    success=False,
-                    error="Empty response from server",
-                )
-
-            http_code = int(lines[-1])
-            response_body = "\n".join(lines[:-1])
-
-            # Handle skip_existing response
-            if http_code == 409:  # Conflict - already exists
-                logger.info(f"⊘ Skipped: {file_path.name} (already uploaded)")
-                return UploadResult(
-                    file_path=file_path,
-                    success=True,
-                    # Don't count as error
-                    error="File already exists",
-                )
-
-            # Handle success
-            if http_code in (200, 202):
-                try:
-                    response_json = json.loads(response_body)
-                    return UploadResult(
-                        file_path=file_path,
-                        success=True,
-                        processing_id=response_json.get("processing_id"),
-                        status=response_json.get("status", "processing"),
-                    )
-                except json.JSONDecodeError:
-                    return UploadResult(
-                        file_path=file_path,
-                        success=True,
-                        error="Could not parse response JSON",
-                    )
-
-            # Handle errors
-            return UploadResult(
-                file_path=file_path,
-                success=False,
-                error=f"HTTP {http_code}: {response_body[:200]}",
-            )
-
-        except subprocess.TimeoutExpired:
-            return UploadResult(
-                file_path=file_path,
-                success=False,
-                error="Upload timeout (5 minutes)",
-            )
-        except Exception as e:
-            return UploadResult(
-                file_path=file_path,
-                success=False,
-                error=str(e),
-            )
+    # ==================== BATCH PROCESSING ====================
 
     async def process_directory(
-            self,
-            directory: Path,
-            recursive: bool = False,
-            skip_existing: bool = False,
-            form_type: Optional[str] = None, ) -> BulkUploadSummary:
-        """
-        Process all images in a directory.
-
-        Args:
-            directory: Directory path
-            recursive: Whether to process subdirectories
-            skip_existing: Whether to skip existing files
-            form_type: Optional form type override
-
-        Returns:
-            BulkUploadSummary with results
-        """
+        self,
+        directory: Path,
+        recursive: bool = False,
+        skip_existing: bool = False,
+        form_type: Optional[str] = None,
+        concurrency: int = 3,
+        max_retries: int = 3,
+    ) -> BulkUploadSummary:
+        """Process all images in a directory with bounded concurrency."""
         logger.info(f"📁 Processing directory: {directory}")
-        logger.info(f"   Recursive: {recursive}")
-        logger.info(f"   Skip existing: {skip_existing}")
+        logger.info(f"   Recursive: {recursive} | Skip existing: {skip_existing} | "
+                    f"Concurrency: {concurrency} | Max retries: {max_retries}")
 
-        # Find all image files
-        if form_type:
-            logger.info(f"   Form type: {form_type}")
-            files = self._find_image_files(directory, recursive=recursive, file_type=form_type, shuffle=True)
-        else:
-            files = self._find_image_files(directory, recursive=recursive, shuffle=True)
-
+        files = self._find_image_files(
+            directory,
+            recursive=recursive,
+            file_type=form_type,
+            shuffle=True,
+        )
 
         if not files:
             logger.warning(f"⚠️  No image files found in {directory}")
@@ -279,96 +312,123 @@ class BulkUploadCLI:
                 failed_uploads=0,
                 skipped_files=0,
                 total_processing_time_seconds=0.0,
-                errors=[],
             )
 
         logger.info(f"Found {len(files)} image files to process")
 
-        # Upload each file
         import time
         start_time = time.time()
 
-        for idx, file_path in enumerate(files, 1):
-            logger.info(f"[{idx}/{len(files)}] Uploading: {file_path.name}")
-            result = self._upload_file(
-                file_path=file_path,
-                skip_existing=skip_existing,
-                form_type=form_type,
-            )
-            self.results.append(result)
+        semaphore = asyncio.Semaphore(concurrency)
+        completed = 0
 
-            if result.success:
-                if result.error and "already exists" in result.error:
-                    pass  # Already logged as skipped
-                else:
-                    logger.info(f"   ✅ Success (ID: {result.processing_id})")
+        async def bounded_process(fp: Path) -> UploadResult:
+            nonlocal completed
+            async with semaphore:
+                res = await self._process_file(
+                    fp,
+                    skip_existing=skip_existing,
+                    form_type=form_type,
+                    max_retries=max_retries,
+                )
+                completed += 1
+                _log_file_result(res, completed, len(files))
+                return res
+
+        raw = await asyncio.gather(
+            *[bounded_process(f) for f in files],
+            return_exceptions=True,
+        )
+
+        # Normalise any unexpected exceptions returned by gather
+        self.results = []
+        for item, orig_path in zip(raw, files):
+            if isinstance(item, BaseException):
+                self.results.append(
+                    UploadResult(file_path=orig_path, success=False, error=str(item))
+                )
             else:
-                logger.error(f"   ❌ Failed: {result.error}")
+                self.results.append(item)
 
         elapsed = time.time() - start_time
 
-        # Calculate summary
-        successful = sum(1 for r in self.results if r.success and not r.error)
-        failed = sum(1 for r in self.results if not r.success)
-        skipped = sum(
-            1 for r in self.results if r.error and "already exists" in r.error)
-
         summary = BulkUploadSummary(
             total_files=len(files),
-            successful_uploads=successful,
-            failed_uploads=failed,
-            skipped_files=skipped,
+            successful_uploads=sum(1 for r in self.results if r.success and not r.skipped),
+            failed_uploads=sum(1 for r in self.results if not r.success),
+            skipped_files=sum(1 for r in self.results if r.skipped),
             total_processing_time_seconds=elapsed,
-            errors=[r.error for r in self.results if
-                    r.error and "already exists" not in r.error], )
+            errors=[str(r.error) for r in self.results if r.error is not None and not r.skipped],
+        )
 
         self._display_summary(summary)
         return summary
 
-    async def process_single_file(self, file_path: Path,
-            form_type: Optional[str] = None, ) -> UploadResult:
-        """
-        Process a single image file.
-
-        Args:
-            file_path: File path
-            form_type: Optional form type override
-
-        Returns:
-            UploadResult
-        """
+    async def process_single_file(
+        self,
+        file_path: Path,
+        form_type: Optional[str] = None,
+        max_retries: int = 3,
+    ) -> UploadResult:
+        """Process a single image file."""
         logger.info(f"📄 Processing file: {file_path}")
-        if form_type:
-            logger.info(f"   Form type: {form_type}")
-
-        result = self._upload_file(file_path=file_path, form_type=form_type, )
-
+        result = await self._process_file(
+            file_path,
+            form_type=form_type,
+            max_retries=max_retries,
+        )
         if result.success:
-            logger.info(f"✅ File processed successfully")
-            logger.info(f"   Processing ID: {result.processing_id}")
-            logger.info(f"   Status: {result.status}")
+            logger.info(f"✅ File processed (ID: {result.processing_id})")
         else:
-            logger.error(f"❌ File processing failed: {result.error}")
-
+            logger.error(f"❌ File failed: {result.error}")
         return result
+
+    # ==================== ENTRY POINT ====================
+
+    async def run(
+        self,
+        directory: Optional[str],
+        file: Optional[str],
+        recursive: bool,
+        skip_existing: bool,
+        form_type: Optional[str],
+        concurrency: int,
+        max_retries: int,
+    ) -> None:
+        """Initialise services, run processing, and always close services."""
+        await self._init_services()
+        try:
+            if file:
+                await self.process_single_file(
+                    file_path=Path(file),
+                    form_type=form_type,
+                    max_retries=max_retries,
+                )
+            else:
+                assert directory is not None
+                await self.process_directory(
+                    directory=Path(directory),
+                    recursive=recursive,
+                    skip_existing=skip_existing,
+                    form_type=form_type,
+                    concurrency=concurrency,
+                    max_retries=max_retries,
+                )
+        finally:
+            await self._close_services()
+
+    # ==================== DISPLAY ====================
 
     @staticmethod
     def _display_summary(summary: BulkUploadSummary) -> None:
-        """
-        Display bulk upload summary.
-
-        Args:
-            summary: BulkUploadSummary object
-        """
         logger.info("=" * 80)
         logger.info("📊 BULK UPLOAD SUMMARY")
         logger.info("=" * 80)
-        logger.info(f"Total files processed: {summary.total_files}")
-        logger.info(f"Successful uploads: {summary.successful_uploads}")
-        logger.info(f"Failed uploads: {summary.failed_uploads}")
-        logger.info(f"Skipped files: {summary.skipped_files}")
-        logger.info(
-            f"Total processing time: {summary.total_processing_time_seconds:.2f}s")
+        logger.info(f"Total files processed:  {summary.total_files}")
+        logger.info(f"Successful uploads:     {summary.successful_uploads}")
+        logger.info(f"Failed uploads:         {summary.failed_uploads}")
+        logger.info(f"Skipped files:          {summary.skipped_files}")
+        logger.info(f"Total processing time:  {summary.total_processing_time_seconds:.2f}s")
 
         if summary.failed_uploads > 0:
             logger.warning("⚠️  Failed files:")
@@ -376,53 +436,82 @@ class BulkUploadCLI:
                 logger.warning(f"   - {error}")
 
         if summary.skipped_files > 0:
-            logger.info(f"ℹ️  Skipped {summary.skipped_files} existing files")
+            logger.info(f"ℹ️  Skipped {summary.skipped_files} already-processed files")
 
         logger.info("=" * 80)
 
 
+# ==================== HELPERS ====================
+
+def _log_file_result(result: UploadResult, idx: int, total: int) -> None:
+    prefix = f"[{idx}/{total}] {result.file_path.name}"
+    if result.skipped:
+        logger.info(f"⊘ {prefix} — skipped")
+    elif result.success:
+        logger.info(f"✅ {prefix} — ok (ID: {result.processing_id})")
+    else:
+        logger.error(f"❌ {prefix} — {result.error}")
+
+
+# ==================== CLI ====================
+
 @click.command()
-@click.option("--directory",
+@click.option(
+    "--directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Directory containing images to process", default=None, )
-@click.option("--file",
+    help="Directory containing images to process",
+    default=None,
+)
+@click.option(
+    "--file",
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
-    help="Single file to process", default=None, )
-@click.option("--recursive", is_flag=True,
-    help="Process subdirectories recursively", default=False, )
-@click.option("--skip-existing", is_flag=True,
-    help="Skip files that already exist", default=False, )
-@click.option("--form-type", type=str,
-    help="Override form type detection (ITF, NAR, etc.)", default=None, )
-@click.option("--api-url", type=str,
-    help="URL to upload the form to", default="bridge.kemri-wellcome.org/dataclerk-ai/",
+    help="Single file to process",
+    default=None,
+)
+@click.option("--recursive", is_flag=True, help="Process subdirectories recursively", default=False)
+@click.option("--skip-existing", is_flag=True, help="Skip files already in MongoDB", default=False)
+@click.option(
+    "--form-type",
+    type=str,
+    help="Override form type detection (ITF, NAR, etc.)",
+    default=None,
+)
+@click.option(
+    "--concurrency",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Number of files to process in parallel",
+)
+@click.option(
+    "--max-retries",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Retry attempts for transient LLM gateway errors",
 )
 def bulk_upload(
-        directory: Optional[str],
-        file: Optional[str],
-        recursive: bool,
-        skip_existing: bool,
-        form_type: Optional[str],
-        api_url: Optional[str],
+    directory: Optional[str],
+    file: Optional[str],
+    recursive: bool,
+    skip_existing: bool,
+    form_type: Optional[str],
+    concurrency: int,
+    max_retries: int,
 ) -> None:
     """
-    Bulk upload and process form images via HTTP API.
+    Bulk process form images directly via the LLM gateway.
 
     Examples:
-        # Process entire directory recursively
-        python -m backend.cli.bulk_upload --directory ./bridge_images --recursive
+        # Process entire directory recursively with 5 parallel workers
+        python -m backend.cli.bulk_upload --directory ./bridge_images --recursive --concurrency 5
 
         # Process single file with form type override
-        python -m backend.cli.bulk_upload --file ./bridge_images/form_001.png --form-type NAR
+        python -m backend.cli.bulk_upload --file ./form_001.png --form-type NAR
 
-        # Process directory, skip existing files
+        # Process directory, skip files already in MongoDB
         python -m backend.cli.bulk_upload --directory ./bridge_images --skip-existing
-
-        # Process with custom API endpoint
-        python -m backend.cli.bulk_upload --directory ./bridge_images
     """
-
-    # Validate arguments
     if not directory and not file:
         click.echo("❌ Error: Must provide either --directory or --file")
         sys.exit(1)
@@ -431,28 +520,20 @@ def bulk_upload(
         click.echo("❌ Error: Cannot provide both --directory and --file")
         sys.exit(1)
 
-    cli = BulkUploadCLI(api_url=api_url)
+    cli = BulkUploadCLI()
 
     try:
-        if file:
-            # Process single file
-            asyncio.run(
-                cli.process_single_file(
-                    file_path=Path(file),
-                    form_type=form_type,
-                )
+        asyncio.run(
+            cli.run(
+                directory=directory,
+                file=file,
+                recursive=recursive,
+                skip_existing=skip_existing,
+                form_type=form_type,
+                concurrency=concurrency,
+                max_retries=max_retries,
             )
-        else:
-            # Process directory
-            asyncio.run(
-                cli.process_directory(
-                    directory=Path(directory),
-                    recursive=recursive,
-                    skip_existing=skip_existing,
-                    form_type=form_type,
-                )
-            )
-
+        )
     except KeyboardInterrupt:
         logger.warning("\n⚠️  Process interrupted by user")
         sys.exit(1)
