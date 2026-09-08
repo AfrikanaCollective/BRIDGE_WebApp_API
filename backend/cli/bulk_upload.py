@@ -84,6 +84,7 @@ class BulkUploadCLI:
         using the same configuration path as main.py lifespan.
         """
         logger.info("🔧 Initializing services...")
+        logger.info(f"   PROMPTS_DIR: {settings.PROMPTS_DIR}")
 
         mongo_client = MongoClient(
             uri=settings.get_mongodb_uri(),
@@ -400,8 +401,12 @@ class BulkUploadCLI:
         form_type: Optional[str],
         concurrency: int,
         max_retries: int,
+        prompts_dir: Optional[str] = None,
     ) -> None:
         """Initialise services, run processing, and always close services."""
+        if prompts_dir:
+            settings.PROMPTS_DIR = str(Path(prompts_dir).resolve())
+            logger.info(f"   PROMPTS_DIR override: {settings.PROMPTS_DIR}")
         await self._init_services()
         try:
             if file:
@@ -496,6 +501,12 @@ def _log_file_result(result: UploadResult, idx: int, total: int) -> None:
     show_default=True,
     help="Retry attempts for transient LLM gateway errors",
 )
+@click.option(
+    "--prompts-dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    default=None,
+    help="Override the prompts directory (e.g. /opt/dataBRIDGE/backend/prompts)",
+)
 def bulk_upload(
     directory: Optional[str],
     file: Optional[str],
@@ -504,6 +515,7 @@ def bulk_upload(
     form_type: Optional[str],
     concurrency: int,
     max_retries: int,
+    prompts_dir: Optional[str],
 ) -> None:
     """
     Bulk process form images directly via the LLM gateway.
@@ -538,6 +550,7 @@ def bulk_upload(
                 form_type=form_type,
                 concurrency=concurrency,
                 max_retries=max_retries,
+                prompts_dir=prompts_dir,
             )
         )
     except KeyboardInterrupt:
