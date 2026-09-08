@@ -279,13 +279,16 @@ async def get_stats_overview(
 
         logger.debug(f"📋 Filter: {filters}")
 
-        # ==================== COUNT TOTAL PROCESSED ====================
+        # ==================== COUNT TOTAL PROCESSED (all-time) ====================
+        # No date filter — this is the headline "Forms Processed" count shown
+        # on the homepage. Time-windowed stats (success rate, timing) still
+        # use `filters` so they reflect the selected period.
         try:
             total_processed = await mongo_client.count_documents(
                 collection_name,
-                filters
+                {"form_type": form_type.upper()} if form_type else {}
             )
-            logger.info(f"✅ Total processed: {total_processed}")
+            logger.info(f"✅ Total processed (all-time): {total_processed}")
         except Exception as e:
             logger.error(f"❌ Error counting documents: {e}", exc_info=True)
             total_processed = 0
@@ -424,10 +427,13 @@ async def get_stats_overview(
             logger.error(f"❌ Error calculating timing statistics: {e}", exc_info=True)
 
         # ==================== CALCULATE SUCCESS RATE ====================
+        # Use windowed count so the rate reflects the selected period,
+        # not the all-time total.
         completed_count = status_counts.get("success", 0)
+        windowed_count = sum(status_counts.values())
         success_rate = (
-            round(completed_count / total_processed * 100, 2)
-            if total_processed > 0
+            round(completed_count / windowed_count * 100, 2)
+            if windowed_count > 0
             else 0.0
         )
 
