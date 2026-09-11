@@ -276,7 +276,7 @@ class FormProcessor:
         image_path: Path,
         form_type: str = "ITF",
         page_number: Optional[int] = None,
-    ) -> Tuple[Dict[str, Any], Dict[str, Any], str]:
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], str, Optional[Any], Optional[Any]]:
         """
         Process LLM response through form agent.
 
@@ -287,7 +287,7 @@ class FormProcessor:
             page_number: Page number (optional)
 
         Returns:
-            Tuple of (raw_json, cleaned_json, case_summary)
+            Tuple of (raw_json, cleaned_json, case_summary, coverage, completeness)
         """
         try:
             form_type_upper = form_type.upper()
@@ -306,12 +306,13 @@ class FormProcessor:
                 agent_class = self.get_agent_for_form_type(form_type)
             except ValueError as e:
                 logger.warning(f"⚠️  {str(e)}")
-                return (raw_json, {}, f"Agent error: {str(e)}")
+                return (raw_json, {}, f"Agent error: {str(e)}", None, None)
 
             # Create temp markdown file
             temp_md = Path(
                 f"{settings.UPLOAD_TEMP_DIR}/{form_type_upper.lower()}_{image_path.stem}.md"
             )
+            temp_md.parent.mkdir(parents=True, exist_ok=True)
 
             if isinstance(raw_json, dict):
                 md_content = f"\n```json\n"
@@ -362,7 +363,7 @@ class FormProcessor:
             else:
                 error_msg = result.get("error", "Unknown error")
                 logger.warning(f"⚠️  Agent error: {error_msg}")
-                return raw_json, {}, f"Agent error: {error_msg}"
+                return raw_json, {}, f"Agent error: {error_msg}", None, None
 
         except Exception as e:
             logger.error(f"❌ Agent processing failed: {e}", exc_info=True)
@@ -371,7 +372,7 @@ class FormProcessor:
             except:
                 raw_json = {"response": response_text}
 
-            return raw_json, {}, f"Error: {str(e)}"
+            return raw_json, {}, f"Error: {str(e)}", None, None
 
     async def process(
         self,
