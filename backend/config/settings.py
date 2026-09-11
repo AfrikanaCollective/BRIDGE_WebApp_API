@@ -202,13 +202,13 @@ class Settings(BaseSettings):
         if not p.is_absolute():
             return str(_backend_dir / p)
 
-        # Absolute path that doesn't exist (e.g. /app/prompts on bare-metal):
-        # resolve using just the last component against the backend directory.
-        fallback = _backend_dir / p.name
-        if fallback.exists():
-            return str(fallback)
-
-        return str(p)
+        # Absolute path that doesn't exist (e.g. /app/tmp/uploads on bare-metal):
+        # drop the container-root component (e.g. "/app") and resolve the rest
+        # of the path against the backend directory, preserving any
+        # intermediate segments (e.g. "tmp/uploads", not just "uploads").
+        relative_parts = p.parts[2:]
+        fallback = _backend_dir.joinpath(*relative_parts) if relative_parts else _backend_dir / p.name
+        return str(fallback)
 
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
