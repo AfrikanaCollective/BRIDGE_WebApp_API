@@ -5,6 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Match the host `bridge` user so bind-mounted code and the
+        # named log/upload volumes share ownership with the host.
+        # Override in .env if `id -u bridge` / `id -g bridge` differ.
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
     container_name: bridge-backend
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-production}
