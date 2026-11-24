@@ -68,7 +68,7 @@ class MinIOClient:
 
         try:
             if not self.client.bucket_exists(bucket):
-                self.client.make_bucket(bucket, region=self.region)
+                self.client.make_bucket(bucket, location=self.region)
                 logger.info(f"✅ Created bucket: {bucket}")
             else:
                 logger.debug(f"✅ Bucket exists: {bucket}")
