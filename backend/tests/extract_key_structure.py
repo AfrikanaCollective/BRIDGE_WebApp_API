@@ -25,9 +25,20 @@ Usage:
     python extract_key_structure.py
     python extract_key_structure.py --db mydb --collection mycoll --output result.json
     python extract_key_structure.py --audit   # audit DB -> *_audit.json outputs
+    python extract_key_structure.py --reprocess           # production, post-processing re-run
+    python extract_key_structure.py --audit --reprocess   # audit, post-processing re-run
+
+--reprocess re-runs the CURRENT post-model processing (form agents) on each
+record's stored raw model output (`raw_json`) instead of using the stored
+`cleaned_json`/`coverage`/`completeness`. Use it on both databases so the two
+models' results are compared through identical post-processing code. It is
+read-only: nothing is written back to MongoDB or MinIO. Outputs get a
+`_reprocessed` suffix.
 """
 
 import json
+import asyncio
+import logging
 import argparse
 from pathlib import Path
 from typing import Any, Dict
@@ -113,6 +124,69 @@ def flatten_cleaned_json(value: Dict[str, Any]) -> Dict[str, Any]:
     return flat
 
 
+DOCUMENT_PROJECTION = {
+    "_id": 0,
+    "image_filename": 1,
+    "form_type": 1,
+    "page_number": 1,
+    "status": 1,
+    "model": 1,
+    "metrics": 1,
+    "cleaned_json": 1,
+    "coverage": 1,
+    "completeness": 1,
+    "raw_json": 1,
+    "processing_time_llm_seconds": 1,
+    "processing_time_agent_seconds": 1,
+}
+
+
+async def _reprocess_documents(docs):
+    """Re-run post-model processing on each doc's stored raw_json, in place.
+
+    Feeds the agent exactly what the live pipeline feeds it
+    (FormProcessor._process_with_agent on the stored raw model output), and
+    derives status with the same rule as StorageService (coverage 0 -> failed).
+    """
+    from services.form_processor import FormProcessor
+
+    # Agents log a warning per unconvertible field; thousands of docs would
+    # bury the progress output.
+    for name in ("agents", "services.form_processor"):
+        logging.getLogger(name).setLevel(logging.ERROR)
+
+    processor = FormProcessor(storage_service=object())  # storage is never used here
+    failed = 0
+    for i, doc in enumerate(docs, 1):
+        raw = doc.get("raw_json")
+        if not raw or not doc.get("image_filename") or not doc.get("form_type"):
+            failed += 1
+            continue
+        _, cleaned_json, _, coverage, completeness = await processor._process_with_agent(
+            raw,
+            Path(doc["image_filename"]),
+            form_type=doc["form_type"],
+            page_number=doc.get("page_number"),
+        )
+        doc["cleaned_json"] = cleaned_json
+        doc["coverage"] = coverage
+        doc["completeness"] = completeness
+        doc["status"] = "failed" if coverage == 0.0 else "success"
+        if i % 500 == 0:
+            print(f"   ...reprocessed {i}/{len(docs)}")
+    print(f"Reprocessed {len(docs) - failed}/{len(docs)} document(s) "
+          f"({failed} without raw_json/form_type kept as stored)")
+
+
+def load_documents(coll, reprocess: bool = False):
+    """Load every document once; optionally re-run post-processing on it."""
+    docs = list(coll.find({}, DOCUMENT_PROJECTION))
+    print(f"Loaded {len(docs)} document(s)")
+    if reprocess:
+        asyncio.run(_reprocess_documents(docs))
+    return docs
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -124,6 +198,14 @@ def main():
         help=(
             "Read from the audit profile's database (QWEN_MODEL_COMPARE results) "
             "and add an '_audit' suffix to every output filename"
+        ),
+    )
+    parser.add_argument(
+        "--reprocess",
+        action="store_true",
+        help=(
+            "Re-run the current post-model processing on each record's stored "
+            "raw_json (read-only) instead of using the stored cleaned_json"
         ),
     )
     parser.add_argument(
@@ -165,7 +247,7 @@ def main():
     # (settings.apply_audit_profile mutates the shared settings instance).
     if args.audit:
         settings.apply_audit_profile()
-    suffix = "_audit" if args.audit else ""
+    suffix = ("_audit" if args.audit else "") + ("_reprocessed" if args.reprocess else "")
     args.db = args.db or settings.MONGODB_DB_NAME
     args.collection = args.collection or settings.MONGODB_DB_COLLECTION
     args.output = args.output or f"mongodb_key_structure{suffix}.json"
@@ -176,15 +258,15 @@ def main():
     client = MongoClient(settings.get_mongodb_uri())
     coll = client[args.db][args.collection]
 
-    query = {"status": "success"}
-    projection = {"form_type": 1, "page_number": 1, "cleaned_json": 1, "_id": 0}
+    docs = load_documents(coll, reprocess=args.reprocess)
+    successful = [d for d in docs if d.get("status") == "success"]
 
     groups = defaultdict(lambda: None)  # group_name -> merged structure
 
     doc_count = 0
     skipped = 0
 
-    for doc in coll.find(query, projection):
+    for doc in successful:
         doc_count += 1
 
         form_type = doc.get("form_type")
@@ -214,15 +296,11 @@ def main():
 
     # ==================== Per-document flattened export ====================
 
-    documents_projection = {"image_filename": 1, "cleaned_json": 1, "_id": 0}
-
     documents_by_filename: Dict[str, Any] = {}
     doc_total = 0
     doc_skipped = 0
 
-    query = {"status": "success"}
-
-    for doc in coll.find(query, documents_projection):
+    for doc in successful:
         doc_total += 1
 
         image_filename = doc.get("image_filename")
@@ -249,23 +327,11 @@ def main():
     # All statuses are included: a page whose extraction failed (coverage 0)
     # still spent LLM time and tokens, which matters when comparing models.
 
-    metrics_projection = {
-        "image_filename": 1,
-        "form_type": 1,
-        "page_number": 1,
-        "status": 1,
-        "model": 1,
-        "metrics": 1,
-        "processing_time_llm_seconds": 1,
-        "processing_time_agent_seconds": 1,
-        "_id": 0,
-    }
-
     metrics_by_filename: Dict[str, Any] = {}
     metrics_total = 0
     metrics_skipped = 0
 
-    for doc in coll.find({}, metrics_projection):
+    for doc in docs:
         metrics_total += 1
 
         image_filename = doc.get("image_filename")
@@ -295,6 +361,9 @@ def main():
             "completion_tokens": completion_tokens,
             "total_tokens": total_tokens,
             "done_reason": llm_metrics.get("done_reason"),
+            "coverage": doc.get("coverage"),
+            "completeness": doc.get("completeness"),
+            "reprocessed": bool(args.reprocess),
         }
 
     metrics_output_path = SCRIPT_DIR / args.metrics_output

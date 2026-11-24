@@ -6,7 +6,7 @@ import logging
 import unicodedata
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 
 from agents.config import get_form_schema, ClinicalCategory, FieldType
@@ -153,6 +153,8 @@ class BaseAgent(ABC):
 
             form_data = self._flatten_nested_json(form_data)
             logger.info("✅ Flattened nested JSON structure")
+
+            form_data = self._expand_ticked_option_keys(form_data)
 
             form_data = self._fix_prefixed_keys(form_data)
             logger.info("✅ Fixed prefixed keys")
@@ -340,6 +342,139 @@ class BaseAgent(ABC):
             logger.warning("⚠️  No key:value pairs found in text format")
         return form_data
 
+    # Values a model uses to say "this option is the ticked one". ASCII "X"
+    # is deliberately excluded: it can be a genuine field value.
+    _TICK_MARKS = {"✓", "✔", "☑", "✅", "√", "✗", "✘", "☒"}
+    # Values meaning "this option was not ticked".
+    _UNTICKED_VALUES = {"", "N/A", "NA", "n/a", "na", "☐"}
+    # Characters that may sit between a section prefix and the field name
+    # ("A&B Crackles", "A&B - Crackles", "F1: ... - Skin", "F1_Crackles").
+    _FIELD_BOUNDARY = r"(?:^|(?<=[\s:\-–—_/.(&]))"
+    # Separator between the field name and the ticked option: a dash/colon
+    # (optionally spaced) or plain whitespace ("Crackles - N", "Crackles N").
+    _OPTION_SEPARATOR = r"(?:\s*[-–—:]\s*|\s+)"
+
+    @classmethod
+    def _is_tick_mark(cls, value: Any) -> bool:
+        if not isinstance(value, str):
+            return False
+        # Drop emoji variation selectors (e.g. "✔️") before comparing.
+        stripped = value.replace("\ufe0f", "").strip()
+        return stripped in cls._TICK_MARKS
+
+    def _ticked_option_patterns(self) -> List[tuple]:
+        """(schema_key, compiled pattern) for every schema field name.
+
+        Built once per agent. Field names ending in '?' also match without
+        it, since models often drop the question mark ("Birth defects Y").
+        """
+        cached = getattr(self, "_ticked_option_patterns_cache", None)
+        if cached is not None:
+            return cached
+        patterns = []
+        for schema_key, field_def in self._get_all_schema_fields().items():
+            names = {schema_key, str(field_def.get("field_name") or schema_key)}
+            names |= {n.rstrip("?").strip() for n in names}
+            for name in sorted(n for n in names if n):
+                pattern = re.compile(
+                    self._FIELD_BOUNDARY + r"(?P<field>" + re.escape(name) + r")"
+                    + self._OPTION_SEPARATOR + r"(?P<option>\S.*?)\s*$",
+                    re.IGNORECASE,
+                )
+                patterns.append((schema_key, pattern))
+        self._ticked_option_patterns_cache = patterns
+        return patterns
+
+    def _parse_option_key(self, key: str) -> Optional[tuple]:
+        """Split a raw key into (schema_key, option), or None.
+
+        ``"A&B - Crackles N"`` → ``("Crackles", "N")``. Any section prefix
+        before the field name is ignored. When several field names occur in
+        the key, the one nearest the option (rightmost start) wins, so
+        ``"Neuro Tone Normal"`` resolves to ``Tone``, not ``Neuro``.
+        """
+        best = None  # (start, -len(name), schema_key, option)
+        for schema_key, pattern in self._ticked_option_patterns():
+            for match in pattern.finditer(key):
+                candidate = (match.start("field"), -len(match.group("field")),
+                             schema_key, match.group("option"))
+                if best is None or candidate[:2] > best[:2]:
+                    best = candidate
+        return (best[2], best[3]) if best else None
+
+    def _expand_ticked_option_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Rewrite ``"<Field> - <Option>": "✓"`` into ``"<Field>": "<Option>"``.
+
+        Some models report a checkbox by naming the ticked option in the key
+        and putting a tick mark in the value (e.g. ``"Crackles - N": "✓"``,
+        ``"A&B Crackles N": "✓"``), instead of returning the option as the
+        value (``"Crackles": "N"``). This restores the expected shape before
+        any key matching or type conversion, so the rest of the pipeline is
+        unchanged. Field names come from the loaded schema; keys that do not
+        contain a schema field name are left untouched.
+
+        Rules (conservative, never invents a value):
+          - Only keys whose value is a tick mark are rewritten.
+          - If the field already has a real value under its own key, it wins.
+          - If different options of the same field are ticked, the field is
+            ambiguous: none are applied and a warning is logged.
+          - Once a field is resolved, its unticked sibling keys
+            (``"Crackles Y": "N/A"``) are dropped.
+        """
+        parsed: Dict[str, Optional[tuple]] = {}
+        ticked: Dict[str, List[str]] = {}
+        for key, value in data.items():
+            if not self._is_tick_mark(value):
+                continue
+            parsed[key] = self._parse_option_key(str(key))
+            if parsed[key]:
+                schema_key, option = parsed[key]
+                options = ticked.setdefault(schema_key, [])
+                if option.lower() not in (o.lower() for o in options):
+                    options.append(option)
+
+        if not ticked:
+            return data
+
+        existing_by_token = {
+            self._key_token(str(k)): v for k, v in data.items()
+            if not self._is_tick_mark(v)
+        }
+        resolved: Dict[str, str] = {}
+        for schema_key, options in ticked.items():
+            existing = existing_by_token.get(self._key_token(schema_key))
+            if existing is not None and str(existing).strip() not in self._UNTICKED_VALUES:
+                logger.debug(
+                    f"⏭️  Ticked options for '{schema_key}' ignored: "
+                    f"field already has value {existing!r}"
+                )
+                continue
+            if len(options) > 1:
+                logger.warning(
+                    f"⚠️  Ambiguous ticks for '{schema_key}': {options} all ticked - field left unset"
+                )
+                continue
+            resolved[schema_key] = options[0]
+
+        expanded: Dict[str, Any] = {}
+        for key, value in data.items():
+            if self._is_tick_mark(value) and parsed.get(key):
+                continue  # consumed into its field below (or ambiguous/overridden)
+            if str(value).strip() in self._UNTICKED_VALUES:
+                sibling = self._parse_option_key(str(key))
+                if sibling and sibling[0] in resolved:
+                    continue  # unticked option of a resolved field
+            expanded[key] = value
+        for field, option in resolved.items():
+            expanded[field] = option
+            logger.debug(f"✅ Expanded ticked option: '{field} - {option}' → '{field}': {option!r}")
+
+        logger.info(
+            f"✅ Expanded {len(resolved)} ticked option key(s) into field values"
+            + (f" ({len(ticked) - len(resolved)} skipped)" if len(ticked) != len(resolved) else "")
+        )
+        return expanded
+
     def _flatten_nested_json(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Recursively flatten nested dicts until only leaf key-value pairs remain."""
 
@@ -417,10 +552,15 @@ class BaseAgent(ABC):
         for raw_key, value in data.items():
             try:
                 val_str = str(value).strip()
+                # "Unknown"/"unkn" are NOT skipped: Unknown is a valid recorded
+                # answer, canonicalised to "Unknown" in _convert_single_field.
+                # "Unchecked"/"Unticked" = the box was left empty, i.e. N/A; so is a
+                # checkbox row with nothing ticked (see _is_nothing_ticked).
                 if val_str in {
                     "", "N/A", "n/a", "NA", "na", "N/A + N/A",
-                    "unknown", "unkn", "Unknown", "UNKNOWN",
-                }:
+                } or val_str.upper() in {"UNCHECKED", "UNTICKED"} \
+                        or self._is_empty_with_units(val_str) \
+                        or self._is_nothing_ticked(val_str):
                     logger.debug(
                         f"⏭️  Skipping N/A value: {raw_key} = {val_str}"
                     )
@@ -473,16 +613,44 @@ class BaseAgent(ABC):
         """Apply enum mapping then type conversion for a single field."""
         val_str = str(raw_value).strip()
 
+        inline_choice = self._resolve_inline_ticks(val_str)
+        if inline_choice is not None:
+            logger.debug(f"  ☑️  Resolved inline ticks for '{field_name}': {val_str!r} → {inline_choice!r}")
+            raw_value = val_str = inline_choice
+
+        field_type = field_def.get("type")
+
+        # Unknown is a valid recorded answer: any spelling becomes "Unknown"
+        # for yes/no, enum and text fields. Numeric fields are excluded on
+        # purpose - a string stored there compares greater than every number
+        # in MongoDB ($gt in indicators_service), so it would read as e.g. a
+        # high respiratory rate. Dates/times keep returning None.
+        if (
+            val_str.upper() in self._UNKNOWN_TOKENS
+            and field_type in self._UNKNOWN_AS_STRING_TYPES
+        ):
+            return "Unknown"
+
         enum_mapping = field_def.get("enum_mapping", {})
         if enum_mapping and val_str in enum_mapping:
             raw_value = enum_mapping[val_str]
             val_str = str(raw_value).strip()
             logger.debug(f"  📍 Applied enum mapping: '{val_str}'")
 
-        field_type = field_def.get("type")
-
         if field_type == FieldType.BOOLEAN:
             return self._parse_boolean(val_str)
+
+        if field_type in (FieldType.INTEGER, FieldType.FLOAT):
+            # Count shorthand: "X6" / "x6" / "6x" / "×6" means 6 (times).
+            times = self._TIMES_COUNT.fullmatch(val_str)
+            if times:
+                val_str = times.group("num") or times.group("num2")
+            # Gravida written with its obstetric prefix: "G9" means 9 pregnancies.
+            # Only for the Gravida field - elsewhere a "G" is not that prefix.
+            elif str(field_def.get("field_name", "")).strip().lower() == "gravida":
+                gravida = re.fullmatch(r"\s*[Gg]\s*(\d+)\s*", val_str)
+                if gravida:
+                    val_str = gravida.group(1)
 
         if field_type == FieldType.INTEGER:
             try:
@@ -519,13 +687,138 @@ class BaseAgent(ABC):
 
         return val_str  # STRING, MULTILINE, or unknown type
 
-    def _parse_boolean(self, val_str: str) -> Optional[bool]:
-        val_str = val_str.upper().strip()
-        if val_str in {"Y", "YES", "TRUE", "1", "T"}:
-            return True
-        if val_str in {"N", "NO", "FALSE", "0", "F"}:
+    # Placeholders for an empty box. N/A and NA must stand alone (so
+    # "Nasal flaring" / "Nabugola" are untouched). "[unclear]" is NOT
+    # empty - the box had something illegible - so it is left as is.
+    _EMPTY_PLACEHOLDER = re.compile(
+        r"\[(?:blank|empty|unticked|unchecked)\]|(?<![A-Za-z])N/?A(?![A-Za-z])",
+        re.IGNORECASE,
+    )
+    # Unit suffixes printed next to the box ("N/A /min", "N/A bmp", "N/A °C").
+    _EMPTY_UNITS = re.compile(
+        r"(?:breaths?/min|beats?/min|[μu]mol/l|mmol/l|mg/dl|g/dl|mmhg|/min|bpm|bmp"
+        r"|minutes?|mins?|hours?|hrs?|seconds?|secs?|°c|cm|kg|grams?|weeks?|wks?"
+        r"|days?|years?|yrs?|%)",
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def _is_empty_with_units(cls, val_str: str) -> bool:
+        """True for an empty box that carries its printed unit or separators.
+
+        ``"N/A /min"``, ``"N/A bmp"``, ``"N/A / N/A mmHg"``, ``"[blank] cm"``,
+        ``"- - hours"``, ``"NA NA minutes"`` → True.
+        Also a value whose FIRST line is such an empty box and whose later
+        lines are a form heading that leaked in (no digits):
+        ``"N/A\\nAPGAR Score"``, ``"N/A bpm\\nAPGAR Score"`` → True.
+        Anything with a digit or with words beyond the known unit list
+        (``"- Neonatal jaundice"``) → False.
+        """
+        if not val_str or re.search(r"\d", val_str):
             return False
-        if val_str in {"UNKNOWN", "UNKN", ""}:
+        first_line, _, later_lines = val_str.partition("\n")
+        if later_lines.strip():
+            first = first_line.strip()
+            return first.upper() in {"N/A", "NA"} or cls._is_empty_with_units(first)
+        rest = cls._EMPTY_PLACEHOLDER.sub(" ", val_str)
+        had_placeholder = rest != val_str
+        rest = cls._EMPTY_UNITS.sub(" ", rest)
+        if not re.fullmatch(r"[\s\-/+.,:_]*", rest):
+            return False
+        # Pure separators ("-", "- -") only count as empty if a unit or
+        # placeholder was present; a lone "-" keeps its existing handling.
+        return had_placeholder or rest.strip() != val_str.strip()
+
+    # One number with a single multiplication mark before or after it.
+    _TIMES_COUNT = re.compile(r"\s*(?:[xX×]\s*(?P<num>\d+(?:\.\d+)?)|(?P<num2>\d+(?:\.\d+)?)\s*[xX×])\s*")
+
+    _UNKNOWN_TOKENS = {"UNKNOWN", "UNKN", "UNK", "UKN"}
+    _UNKNOWN_AS_STRING_TYPES = {
+        FieldType.BOOLEAN, FieldType.ENUM, FieldType.STRING, FieldType.MULTILINE, None,
+    }
+
+    # Markers a model writes after each printed option of a checkbox row,
+    # e.g. "Y [blank] N [ticked] Unkn [blank]".
+    _INLINE_TICKED = {"TICKED", "CHECKED", "X", "✓", "✔", "MARKED", "SELECTED"}
+    _INLINE_UNTICKED = {"BLANK", "UNTICKED", "UNCHECKED", "EMPTY", "NOT TICKED", "NOT CHECKED"}
+    _INLINE_PAIR = re.compile(r"\s*(?P<option>[^\[\],]+?)\s*\[(?P<mark>[^\[\]]+)\]\s*,?")
+
+    # Printed option labels of a yes/no(/unknown) checkbox row.
+    _OPTION_LABELS = {"Y", "N", "YES", "NO", "UNKN", "UNK", "UNKNOWN", "POS", "NEG"}
+
+    @classmethod
+    def _is_nothing_ticked(cls, val_str: str) -> bool:
+        """True for a checkbox row the model read with no option ticked.
+
+        - every option explicitly unticked:
+          ``"Y [blank] N [blank]"``, ``"Y [blank] N [blank] Unkn [blank]"``
+        - only the printed option labels, no marks at all:
+          ``"Y N"``, ``"Y N Unkn"``
+        A single label (``"N"``) is a real answer and returns False, as does
+        any row with a ticked or unclear box.
+        """
+        if "[" in val_str:
+            pairs = []
+            pos = 0
+            for match in cls._INLINE_PAIR.finditer(val_str):
+                if match.start() != pos:
+                    return False
+                pairs.append(match.group("mark").strip().upper())
+                pos = match.end()
+            return (
+                len(pairs) >= 2
+                and not val_str[pos:].strip()
+                and all(mark in cls._INLINE_UNTICKED for mark in pairs)
+            )
+        tokens = re.split(r"[\s,/]+", val_str.strip().upper())
+        return len(tokens) >= 2 and all(t in cls._OPTION_LABELS for t in tokens)
+
+    @classmethod
+    def _resolve_inline_ticks(cls, val_str: str) -> Optional[str]:
+        """Return the single ticked option of an inline checkbox row, else None.
+
+        ``"Y [blank] N [ticked]"`` → ``"N"``;
+        ``"Pos [blank] Neg [ticked] Unkn [blank]"`` → ``"Neg"``.
+
+        Resolves only when the WHOLE value is ``<option> [marker]`` pairs,
+        exactly one option is ticked and every other one is explicitly
+        unticked. Anything else - nothing ticked, several ticked, any
+        ``[unclear]`` (that box might be the ticked one), or a value that
+        is not such a row (``[blank]/[blank] mmHg``) - returns None and the
+        value is converted exactly as before.
+        """
+        if "[" not in val_str:
+            return None
+        pairs = []
+        pos = 0
+        for match in cls._INLINE_PAIR.finditer(val_str):
+            if match.start() != pos:
+                return None
+            pairs.append((match.group("option").strip(), match.group("mark").strip().upper()))
+            pos = match.end()
+        if len(pairs) < 2 or val_str[pos:].strip():
+            return None
+        ticked = [opt for opt, mark in pairs if mark in cls._INLINE_TICKED]
+        if len(ticked) != 1:
+            return None
+        if any(mark not in cls._INLINE_TICKED | cls._INLINE_UNTICKED for _, mark in pairs):
+            return None
+        return ticked[0]
+
+    def _parse_boolean(self, val_str: str) -> Optional[Union[bool, str]]:
+        """Y/N-style value → True/False; "Unknown" (a valid recorded answer)
+        → the string "Unknown"; empty → None (not documented)."""
+        val_str = val_str.upper().strip()
+        # POS/NEG: models sometimes borrow the Pos/Neg/Unkn vocabulary of
+        # neighbouring form fields (e.g. PMTCT) for yes/no questions, and
+        # ENUM_MAPPINGS expands "Neg" -> "Negative" before this runs.
+        if val_str in {"Y", "YES", "TRUE", "1", "T", "POS", "POSITIVE"}:
+            return True
+        if val_str in {"N", "NO", "FALSE", "0", "F", "NEG", "NEGATIVE"}:
+            return False
+        if val_str in {"UNKNOWN", "UNKN", "UNK", "UKN"}:
+            return "Unknown"
+        if val_str == "":
             return None
         raise ValueError(f"Cannot convert '{val_str}' to boolean")
 
@@ -533,8 +826,16 @@ class BaseAgent(ABC):
         self, val_str: str, date_format: str
     ) -> Optional[str]:
         val_str = val_str.strip()
-        if val_str.upper() in {"UNKNOWN", "UNKN", ""}:
+        if val_str.upper() in {"UNKNOWN", "UNKN", "UNK", "UKN", ""}:
             return None
+        if date_format == "DD-MM-YYYY":
+            normalized = self._normalize_dmy_date(val_str)
+            if normalized is None:
+                raise ValueError(
+                    f"Cannot parse date '{val_str}' with format "
+                    f"'{date_format}': incomplete (missing digits)"
+                )
+            val_str = normalized
         try:
             py_fmt = (
                 date_format
@@ -549,11 +850,63 @@ class BaseAgent(ABC):
                 f"'{date_format}': {e}"
             )
 
+    _MONTH_NAMES = {
+        "JAN": "01", "FEB": "02", "MAR": "03", "APR": "04", "MAY": "05", "JUN": "06",
+        "JUL": "07", "AUG": "08", "SEP": "09", "OCT": "10", "NOV": "11", "DEC": "12",
+    }
+    _MONTH_NAME_PATTERN = re.compile(
+        r"(?<![A-Z])(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*"
+    )
+
+    @classmethod
+    def _normalize_dmy_date(cls, val_str: str) -> Optional[str]:
+        """Clean an LLM-read DD-MM-YYYY date without inventing digits.
+
+        Forms pre-print ``DD-MM-YYYY`` in the date boxes, so the model often
+        returns the handwriting mixed with template letters. Rules:
+          - separators ``/ . _`` become ``-``; spaces are removed
+          - month names become numbers (``08-MAR-2025`` → ``08-03-2025``)
+          - 8 bare digits are read as DDMMYYYY (``13122024``)
+          - template letters (D/M/Y) are removed from a part ONLY if the
+            digits left fill that part completely (2 for day/month, 4 for
+            year): ``24-03M-2024`` → ``24-03-2024``, but ``25-0M-2025`` is
+            incomplete (a digit was never written) and returns None
+          - a two-digit year is read as 20YY (``07-04-24`` → ``07-04-2024``)
+
+        Returns the cleaned string (which strptime still validates, so
+        impossible dates like 30-02-2025 still fail), the input unchanged
+        when it isn't a three-part date, or None when digits are missing.
+        """
+        s = val_str.upper().replace(" ", "")
+        s = cls._MONTH_NAME_PATTERN.sub(lambda m: cls._MONTH_NAMES[m.group(1)], s)
+        s = re.sub(r"[/._]", "-", s)
+        s = re.sub(r"-{2,}", "-", s).strip("-")
+        if re.fullmatch(r"\d{8}", s):
+            s = f"{s[:2]}-{s[2:4]}-{s[4:]}"
+
+        parts = s.split("-")
+        if len(parts) != 3:
+            return val_str
+
+        cleaned = []
+        for part, placeholder, full_width in zip(parts, "DMY", (2, 2, 4)):
+            if not re.fullmatch(r"[0-9DMY]+", part):
+                return val_str  # e.g. "[UNCLEAR]": leave for strptime to reject
+            if re.search(r"[DMY]", part):
+                digits = re.sub(r"[DMY]", "", part)
+                if len(digits) != full_width:
+                    return None  # template letter stands in for a missing digit
+                part = digits
+            if placeholder == "Y" and len(part) == 2:
+                part = f"20{part}"
+            cleaned.append(part)
+        return "-".join(cleaned)
+
     def _parse_time(
         self, val_str: str, time_format: str
     ) -> Optional[str]:
         val_str = val_str.strip()
-        if val_str.upper() in {"UNKNOWN", "UNKN", ""}:
+        if val_str.upper() in {"UNKNOWN", "UNKN", "UNK", "UKN", ""}:
             return None
         try:
             py_fmt = (
