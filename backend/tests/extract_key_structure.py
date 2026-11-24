@@ -17,9 +17,14 @@ entry is keyed by the document's `image_filename`, with the value being its
 `cleaned_json` flattened down to a single level of leaf key:value pairs
 (section/grouping structure discarded).
 
+Also exports per-page timing and token metrics (LLM/agent processing time,
+gateway latency, prompt/completion tokens, done_reason, model that answered)
+keyed by `image_filename`, for every document regardless of status.
+
 Usage:
     python extract_key_structure.py
     python extract_key_structure.py --db mydb --collection mycoll --output result.json
+    python extract_key_structure.py --audit   # audit DB -> *_audit.json outputs
 """
 
 import json
@@ -114,30 +119,59 @@ def main():
         description="Extract unique cleaned_json key structure grouped by form_type/page_number."
     )
     parser.add_argument(
+        "--audit",
+        action="store_true",
+        help=(
+            "Read from the audit profile's database (QWEN_MODEL_COMPARE results) "
+            "and add an '_audit' suffix to every output filename"
+        ),
+    )
+    parser.add_argument(
         "--db",
-        default=settings.MONGODB_DB_NAME,
-        help=f"Database name (default: {settings.MONGODB_DB_NAME})",
+        default=None,
+        help="Database name (default: MONGODB_DB_NAME, or the audit DB with --audit)",
     )
     parser.add_argument(
         "--collection",
-        default=settings.MONGODB_DB_COLLECTION,
+        default=None,
         help=f"Collection name (default: {settings.MONGODB_DB_COLLECTION})",
     )
     parser.add_argument(
         "--output",
-        default="mongodb_key_structure.json",
-        help="Path to write the combined output JSON (default: mongodb_key_structure.json)",
+        default=None,
+        help="Path to write the combined output JSON (default: mongodb_key_structure[_audit].json)",
     )
     parser.add_argument(
         "--documents-output",
-        default="llm_dataset.json",
+        default=None,
         help=(
             "Path to write the {image_filename: flattened cleaned_json} JSON "
             "covering every document in the collection "
-            "(default: llm_dataset.json)"
+            "(default: llm_dataset[_audit].json)"
+        ),
+    )
+    parser.add_argument(
+        "--metrics-output",
+        default=None,
+        help=(
+            "Path to write the per-page {image_filename: timing/token metrics} "
+            "JSON covering every document regardless of status "
+            "(default: llm_metrics[_audit].json)"
         ),
     )
     args = parser.parse_args()
+
+    # Defaults are resolved after parsing so --audit can switch the DB name
+    # (settings.apply_audit_profile mutates the shared settings instance).
+    if args.audit:
+        settings.apply_audit_profile()
+    suffix = "_audit" if args.audit else ""
+    args.db = args.db or settings.MONGODB_DB_NAME
+    args.collection = args.collection or settings.MONGODB_DB_COLLECTION
+    args.output = args.output or f"mongodb_key_structure{suffix}.json"
+    args.documents_output = args.documents_output or f"llm_dataset{suffix}.json"
+    args.metrics_output = args.metrics_output or f"llm_metrics{suffix}.json"
+    print(f"Reading {args.db}.{args.collection}")
 
     client = MongoClient(settings.get_mongodb_uri())
     coll = client[args.db][args.collection]
@@ -210,6 +244,69 @@ def main():
         f"({doc_skipped} skipped due to missing image_filename/cleaned_json)."
     )
     print(f"Wrote {len(documents_by_filename)} document(s) to: {args.documents_output}")
+
+    # ==================== Per-page timing/token metrics export ====================
+    # All statuses are included: a page whose extraction failed (coverage 0)
+    # still spent LLM time and tokens, which matters when comparing models.
+
+    metrics_projection = {
+        "image_filename": 1,
+        "form_type": 1,
+        "page_number": 1,
+        "status": 1,
+        "model": 1,
+        "metrics": 1,
+        "processing_time_llm_seconds": 1,
+        "processing_time_agent_seconds": 1,
+        "_id": 0,
+    }
+
+    metrics_by_filename: Dict[str, Any] = {}
+    metrics_total = 0
+    metrics_skipped = 0
+
+    for doc in coll.find({}, metrics_projection):
+        metrics_total += 1
+
+        image_filename = doc.get("image_filename")
+        if not image_filename:
+            metrics_skipped += 1
+            continue
+
+        llm_metrics = doc.get("metrics") or {}
+        prompt_tokens = llm_metrics.get("prompt_eval_count")
+        completion_tokens = llm_metrics.get("eval_count")
+        total_tokens = (
+            prompt_tokens + completion_tokens
+            if isinstance(prompt_tokens, int) and isinstance(completion_tokens, int)
+            else None
+        )
+
+        metrics_by_filename[image_filename] = {
+            "form_type": doc.get("form_type"),
+            "page_number": doc.get("page_number"),
+            "status": doc.get("status"),
+            "model": doc.get("model"),
+            "backend_used": llm_metrics.get("backend_used"),
+            "processing_time_llm_seconds": doc.get("processing_time_llm_seconds"),
+            "processing_time_agent_seconds": doc.get("processing_time_agent_seconds"),
+            "gateway_latency_ms": llm_metrics.get("latency_ms"),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "done_reason": llm_metrics.get("done_reason"),
+        }
+
+    metrics_output_path = SCRIPT_DIR / args.metrics_output
+
+    with open(metrics_output_path, "w", encoding="utf-8") as f:
+        json.dump(metrics_by_filename, f, indent=2, ensure_ascii=False)
+
+    print(
+        f"Processed {metrics_total} document(s) for metrics export "
+        f"({metrics_skipped} skipped due to missing image_filename)."
+    )
+    print(f"Wrote {len(metrics_by_filename)} document(s) to: {args.metrics_output}")
 
     client.close()
 

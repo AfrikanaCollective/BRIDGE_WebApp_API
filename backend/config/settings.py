@@ -4,7 +4,7 @@ Application settings loaded from environment variables and .env file.
 import ssl
 import json
 import logging
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings
@@ -91,10 +91,28 @@ class Settings(BaseSettings):
 
     # ==================== Qwen API (Docker Service) ====================
     QWEN_SERVICE_URL: str = Field(default="https://localhost:8443")
-    QWEN_MODEL: str = Field(default="qwen-turbo")
+    # Sent to the gateway as the `model` form field on every request, so it
+    # must be a model the gateway routes (gateway/admin/routing.yaml).
+    QWEN_MODEL: str = Field(default="qwen3.5:9b")
     QWEN_REQUEST_TIMEOUT: int = Field(default=600)  # seconds
     QWEN_MAX_RETRIES: int = Field(default=3)
     QWEN_SERVICE_API_KEY: str = Field(default="CHANGE_ME")
+
+    # ==================== Audit Profile ====================
+    # The audit profile re-runs the exact same pipeline against a different
+    # model and writes results to a separate MongoDB database and MinIO
+    # bucket. It is only activated explicitly (CLI `--audit` flag ->
+    # apply_audit_profile()); these values are inert otherwise.
+    QWEN_MODEL_COMPARE: Optional[str] = Field(default=None)
+    # Empty/unset -> derived as "{MONGODB_DB_NAME}_audit"
+    MONGODB_DB_NAME_AUDIT: Optional[str] = Field(default=None)
+    # Empty/unset -> derived as "{MINIO_BUCKET_NAME}-audit". S3/MinIO bucket
+    # names may not contain underscores, hence the hyphen.
+    MINIO_BUCKET_NAME_AUDIT: Optional[str] = Field(default=None)
+    # Set to True by apply_audit_profile(). When True, FormProcessor rejects
+    # any LLM response served by a model other than QWEN_MODEL (i.e. a
+    # gateway failover to a different model), so it never enters the audit DB.
+    AUDIT_PROFILE_ACTIVE: bool = Field(default=False)
 
     # ==================== File Upload ====================
     MAX_FILE_SIZE: int = Field(default=15 * 1024 * 1024)  # 15MB
@@ -551,6 +569,66 @@ class Settings(BaseSettings):
 
         return str(key_path), str(cert_path)
 
+    # ==================== AUDIT PROFILE ====================
+    def apply_audit_profile(self) -> None:
+        """
+        Switch this settings instance to the audit profile, in place.
+
+        Must be called before any client/service is constructed: services
+        take db/bucket names at construction time, and several constructor
+        defaults are bound when their module is imported.
+
+        Swaps QWEN_MODEL -> QWEN_MODEL_COMPARE, MONGODB_DB_NAME -> audit DB
+        and MINIO_BUCKET_NAME -> audit bucket. Collection names are
+        unchanged, so all post-model processing runs identically and only
+        the destination differs.
+
+        Raises:
+            ValueError: if QWEN_MODEL_COMPARE is unset, or an audit DB/bucket
+                name would collide with the production one.
+        """
+        if self.AUDIT_PROFILE_ACTIVE:
+            return
+
+        compare_model = (self.QWEN_MODEL_COMPARE or "").strip()
+        if not compare_model:
+            raise ValueError(
+                "Audit profile requested but QWEN_MODEL_COMPARE is not set "
+                "(add it to backend/.env, e.g. QWEN_MODEL_COMPARE=qwen3.6:35b)"
+            )
+
+        audit_db = (self.MONGODB_DB_NAME_AUDIT or "").strip() or f"{self.MONGODB_DB_NAME}_audit"
+        audit_bucket = (self.MINIO_BUCKET_NAME_AUDIT or "").strip() or f"{self.MINIO_BUCKET_NAME}-audit"
+
+        if audit_db == self.MONGODB_DB_NAME:
+            raise ValueError(
+                f"MONGODB_DB_NAME_AUDIT ({audit_db}) must differ from MONGODB_DB_NAME"
+            )
+        if audit_bucket == self.MINIO_BUCKET_NAME:
+            raise ValueError(
+                f"MINIO_BUCKET_NAME_AUDIT ({audit_bucket}) must differ from MINIO_BUCKET_NAME"
+            )
+        if "_" in audit_bucket:
+            raise ValueError(
+                f"MINIO_BUCKET_NAME_AUDIT ({audit_bucket}) is not a valid bucket "
+                f"name: S3/MinIO bucket names cannot contain underscores"
+            )
+        if compare_model == self.QWEN_MODEL:
+            logger.warning(
+                f"⚠️  QWEN_MODEL_COMPARE equals QWEN_MODEL ({compare_model}); "
+                f"the audit run will re-test the production model"
+            )
+
+        logger.info("🔍 Audit profile ACTIVE")
+        logger.info(f"   Model:    {self.QWEN_MODEL} -> {compare_model}")
+        logger.info(f"   MongoDB:  {self.MONGODB_DB_NAME} -> {audit_db}")
+        logger.info(f"   MinIO:    {self.MINIO_BUCKET_NAME} -> {audit_bucket}")
+
+        self.QWEN_MODEL = compare_model
+        self.MONGODB_DB_NAME = audit_db
+        self.MINIO_BUCKET_NAME = audit_bucket
+        self.AUDIT_PROFILE_ACTIVE = True
+
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.ENVIRONMENT.lower() == "production"
@@ -604,6 +682,7 @@ class Settings(BaseSettings):
         logger.info("🤖 Qwen LLM Configuration:")
         logger.info(f"   Service URL: {self.QWEN_SERVICE_URL}")
         logger.info(f"   Model: {self.QWEN_MODEL}")
+        logger.info(f"   Compare (audit) Model: {self.QWEN_MODEL_COMPARE or 'not set'}")
         logger.info(f"   Timeout: {self.QWEN_REQUEST_TIMEOUT}s")
         logger.info(f"   Max Retries: {self.QWEN_MAX_RETRIES}")
 

@@ -449,7 +449,7 @@ class FormProcessor:
         logger.debug(f"💬 Prompt: {prompt[:100]}...")
 
         # ==================== STEP 3: SEND TO LLM ====================
-        logger.info(f"🔗 Sending to Qwen: {settings.QWEN_SERVICE_URL}")
+        logger.info(f"🔗 Sending to Qwen: {settings.QWEN_SERVICE_URL} (model={settings.QWEN_MODEL})")
 
         start_time = datetime.now(UTC)
         result = await self._call_qwen_api(image_path, prompt)
@@ -458,6 +458,28 @@ class FormProcessor:
         if "error" in result:
             logger.error(f"❌ LLM error: {result['error']}")
             return result
+
+        # Audit profile only: the gateway's failover chains are
+        # heterogeneous, so a busy/unhealthy backend can make a different
+        # model answer. Such a response must never be stored as the audit
+        # model's result. Treated as retryable: the requested backend is
+        # usually back after a short wait.
+        if settings.AUDIT_PROFILE_ACTIVE:
+            served_model = result.get("model")
+            if served_model != settings.QWEN_MODEL:
+                logger.error(
+                    f"❌ Served model mismatch: requested {settings.QWEN_MODEL}, "
+                    f"served {served_model} (gateway failover) - result discarded"
+                )
+                return {
+                    "error": "Served model mismatch",
+                    "details": (
+                        f"requested {settings.QWEN_MODEL}, served {served_model}"
+                    ),
+                    "status": None,
+                    "retryable": True,
+                    "retry_after": None,
+                }
 
         response_text = result.get("response", "")
         response_text = self.strip_markdown_code_blocks(response_text)
@@ -597,6 +619,7 @@ class FormProcessor:
                 data = aiohttp.FormData()
                 data.add_field("image", f, filename=image_path.name)
                 data.add_field("prompt", prompt)
+                data.add_field("model", settings.QWEN_MODEL)
 
                 connector = aiohttp.TCPConnector(ssl=self.ssl_context)
                 timeout_obj = aiohttp.ClientTimeout(total=timeout)

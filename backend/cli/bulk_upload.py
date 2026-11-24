@@ -9,6 +9,7 @@ Usage:
     python -m backend.cli.bulk_upload --file ./bridge_images/form_001.png --form-type ITF
     python -m backend.cli.bulk_upload --directory ./bridge_images --concurrency 5 --max-retries 4
     python -m backend.cli.bulk_upload --file /opt/bridge_images/NAR_72001218_page_1.png --form-type NAR --max-retries 3
+    python -m backend.cli.bulk_upload --directory ./bridge_images --audit --skip-existing
 """
 
 import sys
@@ -134,11 +135,17 @@ class BulkUploadCLI:
     # ==================== SKIP-EXISTING CHECK ====================
 
     async def _is_already_processed(self, file_path: Path) -> bool:
-        """Return True if the filename already exists in MongoDB."""
+        """
+        Return True if this file already has a successful result in the
+        active profile's database (production, or audit under --audit).
+
+        Matches on `image_filename`, the field StorageService writes. Records
+        with status "failed" are not counted as done, so a re-run retries them.
+        """
         assert self.mongo_client is not None, "_init_services must be called first"
         doc = await self.mongo_client.find_one(
             settings.MONGODB_DB_COLLECTION,
-            {"filename": file_path.name},
+            {"image_filename": file_path.name, "status": "success"},
         )
         return doc is not None
 
@@ -402,8 +409,13 @@ class BulkUploadCLI:
         concurrency: int,
         max_retries: int,
         prompts_dir: Optional[str] = None,
+        audit: bool = False,
     ) -> None:
         """Initialise services, run processing, and always close services."""
+        if audit:
+            # Must happen before _init_services: clients and services read
+            # db/bucket names when they are constructed.
+            settings.apply_audit_profile()
         if prompts_dir:
             settings.PROMPTS_DIR = str(Path(prompts_dir).resolve())
             logger.info(f"   PROMPTS_DIR override: {settings.PROMPTS_DIR}")
@@ -507,6 +519,15 @@ def _log_file_result(result: UploadResult, idx: int, total: int) -> None:
     default=None,
     help="Override the prompts directory (e.g. /opt/dataBRIDGE/backend/prompts)",
 )
+@click.option(
+    "--audit",
+    is_flag=True,
+    default=False,
+    help=(
+        "Use the audit profile: QWEN_MODEL_COMPARE, the audit MongoDB database "
+        "and the audit MinIO bucket. Responses served by any other model are rejected."
+    ),
+)
 def bulk_upload(
     directory: Optional[str],
     file: Optional[str],
@@ -516,6 +537,7 @@ def bulk_upload(
     concurrency: int,
     max_retries: int,
     prompts_dir: Optional[str],
+    audit: bool,
 ) -> None:
     """
     Bulk process form images directly via the LLM gateway.
@@ -529,6 +551,9 @@ def bulk_upload(
 
         # Process directory, skip files already in MongoDB
         python -m backend.cli.bulk_upload --directory ./bridge_images --skip-existing
+
+        # Audit run with QWEN_MODEL_COMPARE into the audit DB/bucket
+        python -m backend.cli.bulk_upload --directory ./bridge_images --audit --skip-existing
     """
     if not directory and not file:
         click.echo("❌ Error: Must provide either --directory or --file")
@@ -551,6 +576,7 @@ def bulk_upload(
                 concurrency=concurrency,
                 max_retries=max_retries,
                 prompts_dir=prompts_dir,
+                audit=audit,
             )
         )
     except KeyboardInterrupt:

@@ -11,6 +11,7 @@ is dropped (e.g. after prolonged downtime past the oplog retention window).
 Usage:
     python -m cli.backfill_patient_summary
     python -m cli.backfill_patient_summary --batch-size 200
+    python -m cli.backfill_patient_summary --audit   # rebuild patient_summary in the audit DB
 """
 
 import asyncio
@@ -29,7 +30,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def run_backfill(batch_size: int) -> None:
+async def run_backfill(batch_size: int, audit: bool = False) -> None:
+    if audit:
+        # Before any client/service is built: they read the DB name at construction.
+        settings.apply_audit_profile()
+
     mongo_client = MongoClient(
         uri=settings.get_mongodb_uri(),
         db_name=settings.MONGODB_DB_NAME,
@@ -84,9 +89,15 @@ async def run_backfill(batch_size: int) -> None:
     default=100,
     help="Number of source documents to fetch per batch / progress log interval",
 )
-def backfill(batch_size: int):
+@click.option(
+    "--audit",
+    is_flag=True,
+    default=False,
+    help="Run against the audit profile's MongoDB database instead of production",
+)
+def backfill(batch_size: int, audit: bool):
     """Populate patient_summary from existing form-results history."""
-    asyncio.run(run_backfill(batch_size))
+    asyncio.run(run_backfill(batch_size, audit=audit))
 
 
 if __name__ == "__main__":

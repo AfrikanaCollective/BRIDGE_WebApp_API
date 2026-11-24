@@ -11,6 +11,7 @@ pre-existing history - and again any time the watcher's resume token is dropped
 Usage:
     python -m cli.backfill_viz
     python -m cli.backfill_viz --batch-size 200
+    python -m cli.backfill_viz --audit   # rebuild patient_summary_viz in the audit DB
 """
 
 import asyncio
@@ -29,7 +30,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def run_backfill(batch_size: int) -> None:
+async def run_backfill(batch_size: int, audit: bool = False) -> None:
+    if audit:
+        # Before any client/service is built: they read the DB name at construction.
+        settings.apply_audit_profile()
+
     mongo_client = MongoClient(
         uri=settings.get_mongodb_uri(),
         db_name=settings.MONGODB_DB_NAME,
@@ -69,9 +74,15 @@ async def run_backfill(batch_size: int) -> None:
     default=100,
     help="Number of patient_summary documents to process per batch / progress log interval",
 )
-def backfill(batch_size: int):
+@click.option(
+    "--audit",
+    is_flag=True,
+    default=False,
+    help="Run against the audit profile's MongoDB database instead of production",
+)
+def backfill(batch_size: int, audit: bool):
     """Populate patient_summary_viz from existing patient_summary history."""
-    asyncio.run(run_backfill(batch_size))
+    asyncio.run(run_backfill(batch_size, audit=audit))
 
 
 if __name__ == "__main__":
