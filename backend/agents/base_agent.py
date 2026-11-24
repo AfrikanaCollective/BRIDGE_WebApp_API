@@ -343,8 +343,10 @@ class BaseAgent(ABC):
         return form_data
 
     # Values a model uses to say "this option is the ticked one". ASCII "X"
-    # is deliberately excluded: it can be a genuine field value.
-    _TICK_MARKS = {"✓", "✔", "☑", "✅", "√", "✗", "✘", "☒"}
+    # is included because these marks are ONLY honoured on a key that names
+    # a schema field plus an option ("Delivery SVD": "X"), where X can only
+    # mean "ticked"; a bare "X" field value is never rewritten.
+    _TICK_MARKS = {"✓", "✔", "☑", "✅", "√", "✗", "✘", "☒", "X", "x"}
     # Values meaning "this option was not ticked".
     _UNTICKED_VALUES = {"", "N/A", "NA", "n/a", "na", "☐"}
     # Characters that may sit between a section prefix and the field name
@@ -390,13 +392,14 @@ class BaseAgent(ABC):
 
         ``"A&B - Crackles N"`` → ``("Crackles", "N")``. Any section prefix
         before the field name is ignored. When several field names occur in
-        the key, the one nearest the option (rightmost start) wins, so
-        ``"Neuro Tone Normal"`` resolves to ``Tone``, not ``Neuro``.
+        the key, the one that ENDS nearest the option wins, and on a tie the
+        longer name: ``"Neuro Tone Normal"`` → ``Tone`` (not ``Neuro``) and
+        ``"Multiple delivery N"`` → ``Multiple delivery`` (not ``Delivery``).
         """
-        best = None  # (start, -len(name), schema_key, option)
+        best = None  # (end, len(name), schema_key, option)
         for schema_key, pattern in self._ticked_option_patterns():
             for match in pattern.finditer(key):
-                candidate = (match.start("field"), -len(match.group("field")),
+                candidate = (match.end("field"), len(match.group("field")),
                              schema_key, match.group("option"))
                 if best is None or candidate[:2] > best[:2]:
                     best = candidate
