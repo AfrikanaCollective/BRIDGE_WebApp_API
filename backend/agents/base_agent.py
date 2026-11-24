@@ -347,8 +347,15 @@ class BaseAgent(ABC):
     # a schema field plus an option ("Delivery SVD": "X"), where X can only
     # mean "ticked"; a bare "X" field value is never rewritten.
     _TICK_MARKS = {"✓", "✔", "☑", "✅", "√", "✗", "✘", "☒", "X", "x"}
+    # Word forms of a tick ("Delivery SVD": "Checked"), compared case-insensitively.
+    _TICK_WORDS = {"CHECKED", "TICKED", "MARKED", "SELECTED", "[CHECKED]", "[TICKED]"}
     # Values meaning "this option was not ticked".
     _UNTICKED_VALUES = {"", "N/A", "NA", "n/a", "na", "☐"}
+    # Word forms of an empty box, compared case-insensitively.
+    _UNTICKED_WORDS = {
+        "UNCHECKED", "UNTICKED", "NOT CHECKED", "NOT TICKED", "BLANK", "EMPTY",
+        "[UNCHECKED]", "[UNTICKED]", "[BLANK]", "[EMPTY]",
+    }
     # Characters that may sit between a section prefix and the field name
     # ("A&B Crackles", "A&B - Crackles", "F1: ... - Skin", "F1_Crackles").
     _FIELD_BOUNDARY = r"(?:^|(?<=[\s:\-–—_/.(&]))"
@@ -362,7 +369,12 @@ class BaseAgent(ABC):
             return False
         # Drop emoji variation selectors (e.g. "✔️") before comparing.
         stripped = value.replace("\ufe0f", "").strip()
-        return stripped in cls._TICK_MARKS
+        return stripped in cls._TICK_MARKS or stripped.upper() in cls._TICK_WORDS
+
+    @classmethod
+    def _is_unticked(cls, value: Any) -> bool:
+        stripped = str(value).strip()
+        return stripped in cls._UNTICKED_VALUES or stripped.upper() in cls._UNTICKED_WORDS
 
     def _ticked_option_patterns(self) -> List[tuple]:
         """(schema_key, compiled pattern) for every schema field name.
@@ -446,7 +458,7 @@ class BaseAgent(ABC):
         resolved: Dict[str, str] = {}
         for schema_key, options in ticked.items():
             existing = existing_by_token.get(self._key_token(schema_key))
-            if existing is not None and str(existing).strip() not in self._UNTICKED_VALUES:
+            if existing is not None and not self._is_unticked(existing):
                 logger.debug(
                     f"⏭️  Ticked options for '{schema_key}' ignored: "
                     f"field already has value {existing!r}"
@@ -463,7 +475,7 @@ class BaseAgent(ABC):
         for key, value in data.items():
             if self._is_tick_mark(value) and parsed.get(key):
                 continue  # consumed into its field below (or ambiguous/overridden)
-            if str(value).strip() in self._UNTICKED_VALUES:
+            if self._is_unticked(value):
                 sibling = self._parse_option_key(str(key))
                 if sibling and sibling[0] in resolved:
                     continue  # unticked option of a resolved field
