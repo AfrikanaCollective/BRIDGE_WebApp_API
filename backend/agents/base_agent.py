@@ -711,11 +711,17 @@ class BaseAgent(ABC):
         Also a value whose FIRST line is such an empty box and whose later
         lines are a form heading that leaked in (no digits):
         ``"N/A\\nAPGAR Score"``, ``"N/A bpm\\nAPGAR Score"`` → True.
+        A value of only dashes/underscores/dots (``"-"``, ``"- -"``, ``"—"``,
+        ``"..."``) → True: a dash is how "nothing written" is recorded.
+        ``"+"``/``"++"``/``"+++"`` are real grades (Pallor/Jaundice) and
+        ``"/"`` is not a placeholder, so they stay → False.
         Anything with a digit or with words beyond the known unit list
         (``"- Neonatal jaundice"``) → False.
         """
         if not val_str or re.search(r"\d", val_str):
             return False
+        if re.fullmatch(r"[\s\-–—_.]+", val_str):
+            return True
         first_line, _, later_lines = val_str.partition("\n")
         if later_lines.strip():
             first = first_line.strip()
@@ -725,8 +731,8 @@ class BaseAgent(ABC):
         rest = cls._EMPTY_UNITS.sub(" ", rest)
         if not re.fullmatch(r"[\s\-/+.,:_]*", rest):
             return False
-        # Pure separators ("-", "- -") only count as empty if a unit or
-        # placeholder was present; a lone "-" keeps its existing handling.
+        # Separators left over ("/", "+") only count as empty if a unit or
+        # placeholder was present - "+" alone is a real grade.
         return had_placeholder or rest.strip() != val_str.strip()
 
     # One number with a single multiplication mark before or after it.
