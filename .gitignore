@@ -10,6 +10,8 @@ llm_dataset_audit.json
 mongodb_key_structure.json
 mongodb_key_structure_audit.json
 
+gold_standard_dataset.csv
+
 benchmarking_google_auth.json
 __pycache__/
 .pyctest_reports/
