@@ -5,6 +5,7 @@ eval_dataset.csv
 llm_dataset.json
 mongodb_key_structure.json
 gold_standard_dataset.csv
+benchmarking_google_auth.json
 __pycache__/
 .pyctest_reports/
 node_modules/
