@@ -3,9 +3,13 @@
 *.pyc
 Images.json
 eval_dataset.csv
+
+llm_metrics_audit.json
 llm_dataset.json
+llm_dataset_audit.json
 mongodb_key_structure.json
-gold_standard_dataset.csv
+mongodb_key_structure_audit.json
+
 benchmarking_google_auth.json
 __pycache__/
 .pyctest_reports/
