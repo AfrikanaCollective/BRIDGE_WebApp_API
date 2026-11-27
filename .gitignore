@@ -1,6 +1,7 @@
 .env
 .idea/
 *.pyc
+*.pkl
 
 Figure 1.png
 
@@ -24,4 +25,4 @@ __pycache__/
 .pyctest_reports/
 node_modules/
 certs/
-
+saved_models/
